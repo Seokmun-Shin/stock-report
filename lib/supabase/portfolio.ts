@@ -36,15 +36,7 @@ export async function savePortfolio(userId: string, appData: AppData): Promise<v
 export async function signIn(email: string, password: string) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase가 설정되지 않았습니다.");
-  const result = await supabase.auth.signInWithPassword({ email, password });
-  if (result.error) return result;
-  if (!result.data.session) {
-    return {
-      data: result.data,
-      error: { message: "Email not confirmed", status: 401, name: "AuthError" },
-    };
-  }
-  return result;
+  return supabase.auth.signInWithPassword({ email, password });
 }
 
 export async function signUp(email: string, password: string) {
