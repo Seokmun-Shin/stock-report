@@ -3,6 +3,8 @@ export type TradeType = "buy" | "sell";
 export interface Stock {
   id: string;
   name: string;
+  /** KIS 시세 조회용 6자리 종목코드 (예: 삼성전자 005930) */
+  code?: string;
 }
 
 export interface Trade {

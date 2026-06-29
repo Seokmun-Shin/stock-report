@@ -407,6 +407,11 @@ export function summarizeInitialCapital(data: AppData): InitialCapitalSummary {
 
 type TradeDraft = Omit<Trade, "createdAt"> & { createdAt?: string };
 
+const LEGACY_STOCK_CODES: Record<string, string> = {
+  sk: "000660",
+  ss: "005930",
+};
+
 export function migrateAppData(
   raw: Partial<Omit<AppData, "trades">> & { trades?: TradeDraft[] }
 ): AppData {
@@ -414,8 +419,12 @@ export function migrateAppData(
     ...t,
     createdAt: t.createdAt ?? inferCreatedAt(t as Trade, i),
   }));
+  const stocks = (raw.stocks ?? []).map((s) => ({
+    ...s,
+    code: s.code?.trim() || LEGACY_STOCK_CODES[s.id],
+  }));
   return {
-    stocks: raw.stocks ?? [],
+    stocks,
     trades,
     currentPrices: raw.currentPrices ?? {},
     initialCapitalTradeIds: raw.initialCapitalTradeIds ?? [],

@@ -67,6 +67,7 @@ export function StockBar({
                 <span className={`block text-sm tabular-nums ${isActive ? "text-slate-300" : "text-ink-muted"}`}>
                   {sum.holdingQty > 0 ? `보유 ${fmtQty(sum.holdingQty)} · ` : ""}
                   {fmtPct(sum.returnRate)}
+                  {s.code && <span className="ml-1 opacity-80">· {s.code}</span>}
                 </span>
               )}
             </button>

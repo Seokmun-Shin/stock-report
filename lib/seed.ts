@@ -3,8 +3,8 @@ import { migrateAppData, uid } from "./calc";
 
 const RAW_SEED = {
   stocks: [
-    { id: "sk", name: "SK하이닉스" },
-    { id: "ss", name: "삼성전자" },
+    { id: "sk", name: "SK하이닉스", code: "000660" },
+    { id: "ss", name: "삼성전자", code: "005930" },
   ],
   trades: [
     { id: uid(), stockId: "sk", type: "buy" as const, date: "2026-05-29", quantity: 4, price: 2300500, fee: 1753, tax: 0 },

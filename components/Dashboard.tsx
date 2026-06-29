@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import type { AppData, Trade } from "@/lib/types";
+import type { AppData, Stock, Trade } from "@/lib/types";
 import { SEED } from "@/lib/seed";
 import {
   fmt,
@@ -21,6 +21,8 @@ import { InitialCapitalPanel } from "@/components/InitialCapitalPanel";
 import { StockPanel } from "@/components/StockPanel";
 import { StockSettlement, TimingRadar } from "@/components/TimingRadar";
 import { TradeHistorySection } from "@/components/TradeSection";
+import { PriceRefreshBar } from "@/components/PriceRefreshBar";
+import { applyPriceUpdates, useKisPrices } from "@/hooks/useKisPrices";
 
 export function Dashboard({
   data,
@@ -42,7 +44,15 @@ export function Dashboard({
   const [activeId, setActiveId] = useState(data.stocks[0]?.id ?? "");
   const [addingStock, setAddingStock] = useState(false);
   const [newStockName, setNewStockName] = useState("");
+  const [newStockCode, setNewStockCode] = useState("");
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
+
+  const dataRef = useRef(data);
+  dataRef.current = data;
+
+  const kis = useKisPrices(data.stocks, (updates) => {
+    persist(applyPriceUpdates(dataRef.current, updates));
+  });
 
   useEffect(() => {
     if (!data.stocks.some((s) => s.id === activeId)) {
@@ -109,22 +119,35 @@ export function Dashboard({
     const name = newStockName.trim();
     if (!name) return;
     const id = uid();
+    const codeRaw = newStockCode.trim().replace(/\D/g, "");
+    const code = codeRaw ? codeRaw.padStart(6, "0") : undefined;
     persist({
       ...data,
-      stocks: [...data.stocks, { id, name }],
+      stocks: [...data.stocks, { id, name, code }],
       currentPrices: { ...data.currentPrices, [id]: 0 },
     });
     setActiveId(id);
     setNewStockName("");
+    setNewStockCode("");
     setAddingStock(false);
   }
 
-  function editStock(stock: { id: string; name: string }) {
-    const name = prompt("종목명 수정", stock.name)?.trim();
-    if (!name || name === stock.name) return;
+  function editStock(stock: Stock) {
+    const name = prompt("종목명", stock.name)?.trim();
+    if (!name) return;
+    const codeInput = prompt(
+      "종목코드 (6자리, KIS 시세용)\n비우면 자동 시세 OFF",
+      stock.code ?? ""
+    );
+    if (codeInput === null) return;
+    const codeRaw = codeInput.trim().replace(/\D/g, "");
     persist({
       ...data,
-      stocks: data.stocks.map((s) => (s.id === stock.id ? { ...s, name } : s)),
+      stocks: data.stocks.map((s) =>
+        s.id === stock.id
+          ? { ...s, name, code: codeRaw ? codeRaw.padStart(6, "0") : undefined }
+          : s
+      ),
     });
   }
 
@@ -241,6 +264,18 @@ export function Dashboard({
         >
           {activeStock && (
             <>
+              <PriceRefreshBar
+                configured={kis.configured}
+                loading={kis.loading}
+                error={kis.error}
+                lastUpdated={kis.lastUpdated}
+                autoRefresh={kis.autoRefresh}
+                onAutoRefreshChange={kis.setAutoRefresh}
+                onRefresh={kis.refresh}
+                codedCount={kis.codedCount}
+                totalCount={data.stocks.length}
+              />
+
               {addingStock && (
                 <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface-dim p-3">
                   <span className="text-sm font-medium text-ink-muted">종목 추가</span>
@@ -251,6 +286,13 @@ export function Dashboard({
                     onChange={(e) => setNewStockName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addStock()}
                     autoFocus
+                  />
+                  <input
+                    className="w-28 rounded-lg border border-line bg-white px-3 py-2 text-sm tabular-nums"
+                    placeholder="코드 6자리"
+                    value={newStockCode}
+                    onChange={(e) => setNewStockCode(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addStock()}
                   />
                   <button type="button" onClick={addStock} className="rounded-lg bg-gain px-4 py-1.5 text-sm font-medium text-white">
                     추가

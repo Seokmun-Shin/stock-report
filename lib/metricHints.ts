@@ -43,5 +43,5 @@ export const TIMING_HINTS = {
   holdingQty: "현재 보유 주식 수",
   holdingAvgPrice: "보유분 매수 단가 가중평균 (수수료 제외)",
   unrealizedPnl: "보유분 (현재가−평단) × 수량",
-  currentPrice: "미실현 손익·타이밍 판단에 쓰는 입력값",
+  currentPrice: "미실현 손익·타이밍 판단. KIS 연동 시 「현재가 새로고침」으로 자동 입력",
 } as const;
