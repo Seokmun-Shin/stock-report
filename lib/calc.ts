@@ -362,7 +362,11 @@ export function summarizeInitialCapital(data: AppData): InitialCapitalSummary {
   };
 }
 
-export function migrateAppData(raw: Partial<AppData>): AppData {
+type TradeDraft = Omit<Trade, "createdAt"> & { createdAt?: string };
+
+export function migrateAppData(
+  raw: Partial<Omit<AppData, "trades">> & { trades?: TradeDraft[] }
+): AppData {
   const trades = (raw.trades ?? []).map((t, i) => ({
     ...t,
     createdAt: t.createdAt ?? inferCreatedAt(t as Trade, i),
