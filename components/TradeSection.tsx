@@ -9,7 +9,7 @@ import { SectionTitle } from "./StatCard";
 type TradeInput = Omit<Trade, "id" | "stockId" | "createdAt">;
 
 const inputCls =
-  "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-right text-sm tabular-nums outline-none focus:ring-2 focus:ring-blue-200";
+  "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-right text-base tabular-nums outline-none focus:ring-2 focus:ring-blue-200";
 
 const DEFAULT_VISIBLE = 5;
 
@@ -51,8 +51,8 @@ export function TradeTable({
   return (
     <div className="space-y-2">
       <div className="overflow-x-auto rounded-2xl border border-line">
-        <table className="w-full min-w-[720px] text-sm">
-          <thead className="bg-surface-dim text-xs text-ink-muted">
+        <table className="w-full min-w-[720px] text-base">
+          <thead className="bg-surface-dim text-sm text-ink-muted">
             <tr>
               <th className="px-3 py-3 text-center">기준</th>
               <th className="px-3 py-3 text-center">구분</th>

@@ -8,7 +8,8 @@ import {
   fmt,
   fmtPct,
   fmtSigned,
-  getTimingSignal,
+  getBuyTimingSignal,
+  getSellTimingSignal,
   summarizeInitialCapital,
   summarizePortfolio,
   summarizeStock,
@@ -62,7 +63,8 @@ export function Dashboard({
   const capitalIds = new Set(data.initialCapitalTradeIds);
   const activeStock = data.stocks.find((s) => s.id === activeId) ?? data.stocks[0];
   const stockSummary = activeStock ? stockSummaries[activeStock.id] : null;
-  const signal = stockSummary ? getTimingSignal(stockSummary) : null;
+  const buySignal = stockSummary ? getBuyTimingSignal(stockSummary) : null;
+  const sellSignal = stockSummary ? getSellTimingSignal(stockSummary) : null;
   const stockTrades = data.trades.filter((t) => t.stockId === activeId);
 
   function addOrUpdateTrade(partial: Omit<Trade, "id" | "stockId" | "createdAt">) {
@@ -163,7 +165,7 @@ export function Dashboard({
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">주식 매매 리포트</h1>
-            <p className="mt-0.5 text-xs text-ink-muted">
+            <p className="mt-0.5 text-sm text-ink-muted">
               수익 · 타이밍 · 한 화면 · <UnitNotice />
               {cloudEnabled && user && (
                 <span className="ml-2 text-gain">
@@ -174,7 +176,7 @@ export function Dashboard({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {user && (
-              <span className="max-w-[180px] truncate text-xs text-ink-muted" title={user.email ?? ""}>
+              <span className="max-w-[180px] truncate text-sm text-ink-muted" title={user.email ?? ""}>
                 {user.email}
               </span>
             )}
@@ -182,7 +184,7 @@ export function Dashboard({
               <button
                 type="button"
                 onClick={signOut}
-                className="rounded-lg border border-line px-3 py-1.5 text-xs text-ink-muted hover:bg-surface-dim"
+                className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink-muted hover:bg-surface-dim"
               >
                 로그아웃
               </button>
@@ -190,14 +192,14 @@ export function Dashboard({
             <button
               type="button"
               onClick={resetDemo}
-              className="rounded-lg border border-line px-3 py-1.5 text-xs text-ink-muted hover:bg-surface-dim"
+              className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink-muted hover:bg-surface-dim"
             >
               샘플 초기화
             </button>
           </div>
         </div>
         {syncError && (
-          <p className="mx-auto mt-2 max-w-5xl text-xs text-loss">동기화 오류: {syncError}</p>
+          <p className="mx-auto mt-2 max-w-5xl text-sm text-loss">동기화 오류: {syncError}</p>
         )}
       </header>
 
@@ -241,7 +243,7 @@ export function Dashboard({
             <>
               {addingStock && (
                 <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface-dim p-3">
-                  <span className="text-xs font-medium text-ink-muted">종목 추가</span>
+                  <span className="text-sm font-medium text-ink-muted">종목 추가</span>
                   <input
                     className="min-w-[120px] flex-1 rounded-lg border border-line bg-white px-3 py-2 text-sm"
                     placeholder="종목명"
@@ -259,9 +261,14 @@ export function Dashboard({
                 </div>
               )}
 
-              {stockSummary && signal && (
+              {stockSummary && buySignal && sellSignal && (
                 <div className="grid items-stretch gap-5 lg:grid-cols-2">
-                  <TimingRadar summary={stockSummary} signal={signal} onPriceChange={setCurrentPrice} />
+                  <TimingRadar
+                    summary={stockSummary}
+                    buySignal={buySignal}
+                    sellSignal={sellSignal}
+                    onPriceChange={setCurrentPrice}
+                  />
                   <StockSettlement stockName={activeStock.name} summary={stockSummary} />
                 </div>
               )}
@@ -282,7 +289,7 @@ export function Dashboard({
         </StockPanel>
       </main>
 
-      <footer className="border-t border-line py-5 text-center text-xs text-ink-muted">
+      <footer className="border-t border-line py-5 text-center text-sm text-ink-muted">
         {cloudEnabled && user
           ? "데이터는 클라우드(Supabase)에 저장 · 사무실·집 동일 계정으로 접속"
           : "데이터는 이 브라우저에 저장됩니다 · .env 설정 시 클라우드 동기화"}

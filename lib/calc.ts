@@ -1,7 +1,9 @@
 import type {
   AppData,
+  BuyTimingSignal,
   InitialCapitalSummary,
   PortfolioSummary,
+  SellTimingSignal,
   StockSummary,
   TimingSignal,
   Trade,
@@ -98,6 +100,10 @@ export function summarizeStock(
   const lastSellPrice = lastSell?.price ?? null;
   const timing10 = lastSellPrice ? Math.round(lastSellPrice * 0.9) : null;
   const timing20 = lastSellPrice ? Math.round(lastSellPrice * 0.8) : null;
+  const sellTiming10 =
+    m.holdingQty > 0 && m.holdingAvgPrice > 0 ? Math.round(m.holdingAvgPrice * 1.1) : null;
+  const sellTiming20 =
+    m.holdingQty > 0 && m.holdingAvgPrice > 0 ? Math.round(m.holdingAvgPrice * 1.2) : null;
 
   return {
     stockId,
@@ -111,6 +117,8 @@ export function summarizeStock(
     lastSellPrice,
     timing10,
     timing20,
+    sellTiming10,
+    sellTiming20,
     holdingQty: m.holdingQty,
     holdingAvgPrice: m.holdingAvgPrice,
     unrealizedPnl,
@@ -178,10 +186,10 @@ export function summarizePortfolio(data: AppData): PortfolioSummary {
   };
 }
 
-export function getTimingSignal(summary: StockSummary): TimingSignal {
+export function getBuyTimingSignal(summary: StockSummary): BuyTimingSignal {
   const { currentPrice, timing10, timing20, lastSellPrice } = summary;
   if (!lastSellPrice || !timing10 || !timing20) {
-    return { status: "watch", label: "기준 없음", hint: "매도 기록이 있으면 타이밍선이 표시됩니다." };
+    return { status: "watch", label: "기준 없음", hint: "매도 기록이 있으면 매수 타이밍선이 표시됩니다." };
   }
   if (currentPrice <= timing20) {
     return {
@@ -201,6 +209,41 @@ export function getTimingSignal(summary: StockSummary): TimingSignal {
     status: "above",
     label: "관망",
     hint: `현재가가 1차 매수선(${fmt(timing10)}) 위. 급하게 매수하지 않아도 됩니다.`,
+  };
+}
+
+/** @deprecated getBuyTimingSignal 사용 */
+export function getTimingSignal(summary: StockSummary): TimingSignal {
+  return getBuyTimingSignal(summary);
+}
+
+export function getSellTimingSignal(summary: StockSummary): SellTimingSignal {
+  const { currentPrice, sellTiming10, sellTiming20, holdingAvgPrice, holdingQty } = summary;
+  if (holdingQty <= 0 || !holdingAvgPrice || !sellTiming10 || !sellTiming20) {
+    return {
+      status: "watch",
+      label: "기준 없음",
+      hint: "보유 중일 때 평단 기준 매도 타이밍선이 표시됩니다.",
+    };
+  }
+  if (currentPrice >= sellTiming20) {
+    return {
+      status: "zone20",
+      label: "2차 익절 구간",
+      hint: `평단(${fmt(holdingAvgPrice)}) 대비 +20% 이상. 분할 매도·익절 검토.`,
+    };
+  }
+  if (currentPrice >= sellTiming10) {
+    return {
+      status: "zone10",
+      label: "1차 익절 구간",
+      hint: `평단 대비 +10% 이상. 1차 분할 매도 검토.`,
+    };
+  }
+  return {
+    status: "below",
+    label: "보유 유지",
+    hint: `1차 매도선(${fmt(sellTiming10)})까지 추가 상승을 기다립니다.`,
   };
 }
 

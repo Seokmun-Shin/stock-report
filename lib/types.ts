@@ -36,8 +36,14 @@ export interface StockSummary {
   netProfit: number;
   returnRate: number;
   lastSellPrice: number | null;
+  /** 최근 매도가 대비 −10% 매수선 */
   timing10: number | null;
+  /** 최근 매도가 대비 −20% 매수선 */
   timing20: number | null;
+  /** 평단 대비 +10% 매도선 */
+  sellTiming10: number | null;
+  /** 평단 대비 +20% 매도선 */
+  sellTiming20: number | null;
   holdingQty: number;
   holdingAvgPrice: number;
   unrealizedPnl: number;
@@ -79,10 +85,23 @@ export interface InitialCapitalSummary {
   selectedCount: number;
 }
 
-export type TimingStatus = "watch" | "zone10" | "zone20" | "above";
+export type BuyTimingStatus = "watch" | "zone10" | "zone20" | "above";
+export type SellTimingStatus = "watch" | "zone10" | "zone20" | "below";
 
-export interface TimingSignal {
-  status: TimingStatus;
+/** @deprecated BuyTimingSignal 사용 */
+export type TimingStatus = BuyTimingStatus;
+
+export interface BuyTimingSignal {
+  status: BuyTimingStatus;
   label: string;
   hint: string;
 }
+
+export interface SellTimingSignal {
+  status: SellTimingStatus;
+  label: string;
+  hint: string;
+}
+
+/** @deprecated BuyTimingSignal 사용 */
+export type TimingSignal = BuyTimingSignal;

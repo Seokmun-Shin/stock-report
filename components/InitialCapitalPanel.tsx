@@ -18,7 +18,7 @@ export function InitialCapitalPanel({ summary }: { summary: InitialCapitalSummar
         <p className="mt-3 text-sm leading-relaxed text-amber-900/80">
           매매 내역 표에서 매수 건의 <strong>「기준」</strong>을 눌러 초기 투자금으로 지정하세요.
           <br />
-          <span className="mt-1 inline-block text-xs">★ 매수분을 전량 매도한 뒤, 투입 대비 회수·실현 수익을 확인하는 용도입니다.</span>
+          <span className="mt-1 inline-block text-sm">★ 매수분을 전량 매도한 뒤, 투입 대비 회수·실현 수익을 확인하는 용도입니다.</span>
         </p>
       </section>
     );
@@ -32,7 +32,7 @@ export function InitialCapitalPanel({ summary }: { summary: InitialCapitalSummar
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <SectionTitle unit>초기 투자금 기준 수익</SectionTitle>
-          <p className="mt-1 text-xs text-ink-muted">
+          <p className="mt-1 text-sm text-ink-muted">
             {fullySold ? "★ 매수분 전량 매도 · 청산 완료" : "★ 매수분 일부 보유 — 매도분만 회수·실현에 반영"}
           </p>
         </div>
@@ -60,7 +60,7 @@ export function InitialCapitalPanel({ summary }: { summary: InitialCapitalSummar
         )}
       </div>
 
-      <p className="mt-3 text-xs text-slate-600">
+      <p className="mt-3 text-sm text-slate-600">
         {fullySold ? (
           <>
             회수 현금 {fmt(summary.recoveredCash)}

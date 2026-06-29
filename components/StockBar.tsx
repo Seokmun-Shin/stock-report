@@ -28,20 +28,20 @@ export function StockBar({
   const inner = (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-ink">종목</h2>
+        <h2 className="text-base font-semibold text-ink sm:text-lg">종목</h2>
         {active && (
           <div className="flex gap-1">
             <button
               type="button"
               onClick={() => onEdit(active)}
-              className="rounded-lg border border-line px-2.5 py-1 text-xs text-ink-muted hover:bg-surface-dim"
+              className="rounded-lg border border-line px-2.5 py-1 text-sm text-ink-muted hover:bg-surface-dim"
             >
               이름 수정
             </button>
             <button
               type="button"
               onClick={() => onDelete(active.id)}
-              className="rounded-lg border border-line px-2.5 py-1 text-xs text-loss hover:bg-loss-soft"
+              className="rounded-lg border border-line px-2.5 py-1 text-sm text-loss hover:bg-loss-soft"
             >
               삭제
             </button>
@@ -62,9 +62,9 @@ export function StockBar({
                 isActive ? "bg-ink text-white shadow-md" : "border border-line bg-surface-dim text-ink hover:border-slate-400"
               }`}
             >
-              <span className="block text-sm font-semibold">{s.name}</span>
+              <span className="block text-base font-semibold">{s.name}</span>
               {sum && (
-                <span className={`block text-xs tabular-nums ${isActive ? "text-slate-300" : "text-ink-muted"}`}>
+                <span className={`block text-sm tabular-nums ${isActive ? "text-slate-300" : "text-ink-muted"}`}>
                   {sum.holdingQty > 0 ? `보유 ${fmtQty(sum.holdingQty)} · ` : ""}
                   {fmtPct(sum.returnRate)}
                 </span>
@@ -75,7 +75,7 @@ export function StockBar({
         <button
           type="button"
           onClick={onAdd}
-          className="rounded-xl border-2 border-dashed border-line px-4 py-2 text-sm font-semibold text-ink-muted hover:border-gain hover:text-gain"
+          className="rounded-xl border-2 border-dashed border-line px-4 py-2 text-base font-semibold text-ink-muted hover:border-gain hover:text-gain"
         >
           + 종목
         </button>
