@@ -268,11 +268,12 @@ interface CapitalLot {
 
 /** 선택한 매수 내역 기준 — FIFO로 실현/미실현/회수금 계산 */
 export function summarizeInitialCapital(data: AppData): InitialCapitalSummary {
-  const initialIds = new Set(data.initialCapitalTradeIds ?? []);
+  const capitalIdList = data.initialCapitalTradeIds ?? [];
+  const initialIds = new Set(capitalIdList);
   const selectedCount = initialIds.size;
 
   let initialCapital = 0;
-  for (const id of Array.from(initialIds)) {
+  for (const id of capitalIdList) {
     const t = data.trades.find((x) => x.id === id);
     if (t?.type === "buy") initialCapital += tradeAmount(t) + t.fee;
   }
