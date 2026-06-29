@@ -28,10 +28,41 @@ export function useKisPrices(stocks: Stock[], onApplyPrices: (updates: Record<st
   onApplyRef.current = onApplyPrices;
 
   useEffect(() => {
-    fetch("/api/stock-prices")
-      .then((r) => r.json())
-      .then((d) => setConfigured(!!d.configured))
-      .catch(() => setConfigured(false));
+    let cancelled = false;
+
+    async function checkStatus(attempt = 0) {
+      try {
+        const res = await fetch("/api/stock-prices", { cache: "no-store" });
+        const d = (await res.json()) as { configured?: boolean };
+        if (cancelled) return;
+        const ok = !!d.configured;
+        setConfigured(ok);
+        if (ok) sessionStorage.setItem("kis-configured", "true");
+      } catch {
+        if (cancelled) return;
+        if (attempt < 2) {
+          window.setTimeout(() => void checkStatus(attempt + 1), 800);
+          return;
+        }
+        const cached = sessionStorage.getItem("kis-configured") === "true";
+        setConfigured(cached ? true : false);
+      }
+    }
+
+    void checkStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("stock-report-kis-auto");
+    if (saved === "true") setAutoRefresh(true);
+  }, []);
+
+  const setAutoRefreshPersist = useCallback((v: boolean) => {
+    setAutoRefresh(v);
+    localStorage.setItem("stock-report-kis-auto", v ? "true" : "false");
   }, []);
 
   const refresh = useCallback(async () => {
@@ -103,7 +134,7 @@ export function useKisPrices(stocks: Stock[], onApplyPrices: (updates: Record<st
     error,
     lastUpdated,
     autoRefresh,
-    setAutoRefresh,
+    setAutoRefresh: setAutoRefreshPersist,
     refresh,
     codedCount: stocks.filter((s) => s.code?.trim()).length,
   };

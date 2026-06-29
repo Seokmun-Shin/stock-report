@@ -23,13 +23,28 @@ export function PriceRefreshBar({
   codedCount: number;
   totalCount: number;
 }) {
-  if (configured === null) return null;
+  if (configured === null) {
+    return (
+      <div className="rounded-xl border border-line bg-surface-dim px-4 py-3 text-sm text-ink-muted">
+        KIS 시세 연동 확인 중…
+      </div>
+    );
+  }
 
   if (!configured) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-        KIS 시세 연동: 서버에 <code className="text-xs">KIS_APP_KEY</code>,{" "}
-        <code className="text-xs">KIS_APP_SECRET</code> 설정 시 「현재가 새로고침」 사용 가능
+      <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <p className="font-semibold">KIS 시세 연동이 서버에 설정되지 않았습니다.</p>
+        <p className="mt-1.5 leading-relaxed">
+          Vercel → Settings → Environment Variables에{" "}
+          <code className="text-xs">KIS_APP_KEY</code>, <code className="text-xs">KIS_APP_SECRET</code>,{" "}
+          <code className="text-xs">KIS_USE_VTS</code> 등록 후{" "}
+          <strong>Deployments → Redeploy</strong> 하세요.
+        </p>
+        <p className="mt-1 text-xs opacity-80">
+          확인: 브라우저에서 <code className="text-xs">/api/stock-prices</code> 접속 →{" "}
+          <code className="text-xs">{`{"configured":true}`}</code> 이어야 합니다.
+        </p>
       </div>
     );
   }

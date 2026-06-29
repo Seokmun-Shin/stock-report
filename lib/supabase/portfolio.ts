@@ -14,7 +14,15 @@ export async function loadPortfolio(userId: string): Promise<AppData | null> {
 
   if (error) throw error;
   if (!data?.data) return null;
-  return migrateAppData(data.data as Partial<AppData>);
+  const raw = data.data as Partial<AppData>;
+  const migrated = migrateAppData(raw);
+  const codesPatched = (raw.stocks ?? []).some(
+    (s, i) => !s.code?.trim() && !!migrated.stocks[i]?.code?.trim()
+  );
+  if (codesPatched) {
+    await savePortfolio(userId, migrated);
+  }
+  return migrated;
 }
 
 export async function savePortfolio(userId: string, appData: AppData): Promise<void> {

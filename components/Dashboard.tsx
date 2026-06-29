@@ -310,6 +310,10 @@ export function Dashboard({
                     buySignal={buySignal}
                     sellSignal={sellSignal}
                     onPriceChange={setCurrentPrice}
+                    kisConfigured={kis.configured}
+                    kisLoading={kis.loading}
+                    kisLastUpdated={kis.lastUpdated}
+                    onKisRefresh={kis.refresh}
                   />
                   <StockSettlement stockName={activeStock.name} summary={stockSummary} />
                 </div>

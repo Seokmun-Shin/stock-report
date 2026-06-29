@@ -5,6 +5,7 @@ import { fmt, fmtPct, fmtQty, fmtSigned } from "@/lib/calc";
 import { STOCK_SETTLEMENT_HINTS, TIMING_HINTS } from "@/lib/metricHints";
 import { FormattedNumberInput } from "./FormattedNumberInput";
 import { HintTooltip, SectionTitle, StatCard, ZoneDivider } from "./StatCard";
+import { formatKisUpdatedTime } from "@/hooks/useKisPrices";
 
 function timingBadge(
   status: BuyTimingSignal["status"] | SellTimingSignal["status"],
@@ -113,11 +114,19 @@ export function TimingRadar({
   buySignal,
   sellSignal,
   onPriceChange,
+  kisConfigured,
+  kisLoading,
+  kisLastUpdated,
+  onKisRefresh,
 }: {
   summary: StockSummary;
   buySignal: BuyTimingSignal;
   sellSignal: SellTimingSignal;
   onPriceChange: (price: number) => void;
+  kisConfigured?: boolean | null;
+  kisLoading?: boolean;
+  kisLastUpdated?: Date | null;
+  onKisRefresh?: () => void;
 }) {
   const holdingRows: { label: string; hint?: string; value: string; tone?: "gain" | "loss" }[] = [];
   if (summary.holdingQty > 0) {
@@ -138,10 +147,27 @@ export function TimingRadar({
       <SectionTitle unit>매매 타이밍</SectionTitle>
 
       <div className="mt-3">
-        <label className="inline-flex items-center text-sm font-semibold text-slate-700">
-          현재가
-          <HintTooltip text={TIMING_HINTS.currentPrice} />
-        </label>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <label className="inline-flex items-center text-sm font-semibold text-slate-700">
+            현재가
+            <HintTooltip text={TIMING_HINTS.currentPrice} />
+          </label>
+          {kisConfigured && onKisRefresh && (
+            <button
+              type="button"
+              onClick={onKisRefresh}
+              disabled={kisLoading}
+              className="shrink-0 rounded-lg border border-line bg-white px-3 py-1.5 text-sm font-semibold text-gain hover:bg-blue-50 disabled:opacity-50"
+            >
+              {kisLoading ? "조회 중…" : "KIS 새로고침"}
+            </button>
+          )}
+        </div>
+        {kisLastUpdated && (
+          <p className="mt-1 text-xs tabular-nums text-ink-muted">
+            KIS {formatKisUpdatedTime(kisLastUpdated)} 반영
+          </p>
+        )}
         <FormattedNumberInput
           value={summary.currentPrice}
           onChange={onPriceChange}
