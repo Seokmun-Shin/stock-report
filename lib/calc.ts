@@ -272,7 +272,7 @@ export function summarizeInitialCapital(data: AppData): InitialCapitalSummary {
   const selectedCount = initialIds.size;
 
   let initialCapital = 0;
-  for (const id of initialIds) {
+  for (const id of Array.from(initialIds)) {
     const t = data.trades.find((x) => x.id === id);
     if (t?.type === "buy") initialCapital += tradeAmount(t) + t.fee;
   }
