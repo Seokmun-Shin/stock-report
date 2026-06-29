@@ -13,6 +13,8 @@ export function StockBar({
   onEdit,
   onDelete,
   embedded = false,
+  view,
+  onViewChange,
 }: {
   stocks: Stock[];
   activeId: string;
@@ -22,13 +24,39 @@ export function StockBar({
   onEdit: (stock: Stock) => void;
   onDelete: (id: string) => void;
   embedded?: boolean;
+  view?: "summary" | "detail";
+  onViewChange?: (view: "summary" | "detail") => void;
 }) {
   const active = stocks.find((s) => s.id === activeId);
 
   const inner = (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-ink sm:text-lg">종목</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-base font-semibold text-ink sm:text-lg">종목</h2>
+          {onViewChange && view && (
+            <div className="flex rounded-lg border border-line bg-surface-dim p-0.5 text-sm">
+              <button
+                type="button"
+                onClick={() => onViewChange("summary")}
+                className={`rounded-md px-2.5 py-1 font-semibold ${
+                  view === "summary" ? "bg-white text-ink shadow-sm" : "text-ink-muted"
+                }`}
+              >
+                Summary
+              </button>
+              <button
+                type="button"
+                onClick={() => onViewChange("detail")}
+                className={`rounded-md px-2.5 py-1 font-semibold ${
+                  view === "detail" ? "bg-white text-ink shadow-sm" : "text-ink-muted"
+                }`}
+              >
+                상세
+              </button>
+            </div>
+          )}
+        </div>
         {active && (
           <div className="flex gap-1">
             <button

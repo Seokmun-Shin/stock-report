@@ -68,6 +68,24 @@ export function Dashboard({
     return map;
   }, [data]);
 
+  const stockBuySignals = useMemo(() => {
+    const map: Record<string, ReturnType<typeof getBuyTimingSignal>> = {};
+    for (const s of data.stocks) {
+      const sum = stockSummaries[s.id];
+      if (sum) map[s.id] = getBuyTimingSignal(sum);
+    }
+    return map;
+  }, [data.stocks, stockSummaries]);
+
+  const stockSellSignals = useMemo(() => {
+    const map: Record<string, ReturnType<typeof getSellTimingSignal>> = {};
+    for (const s of data.stocks) {
+      const sum = stockSummaries[s.id];
+      if (sum) map[s.id] = getSellTimingSignal(sum);
+    }
+    return map;
+  }, [data.stocks, stockSummaries]);
+
   const portfolio = summarizePortfolio(data);
   const capital = summarizeInitialCapital(data);
   const capitalIds = new Set(data.initialCapitalTradeIds);
@@ -254,6 +272,8 @@ export function Dashboard({
           stocks={data.stocks}
           activeId={activeId}
           summaries={stockSummaries}
+          buySignals={stockBuySignals}
+          sellSignals={stockSellSignals}
           onSelect={(id) => {
             setActiveId(id);
             setEditingTrade(null);
