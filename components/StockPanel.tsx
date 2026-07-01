@@ -45,22 +45,22 @@ export function StockPanel({
 
   if (view === "detail" && active) {
     return (
-      <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
-          <div className="flex min-w-0 items-center gap-3">
+      <section className="min-w-0 overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-line px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <BackToSummaryIcon onClick={() => setView("summary")} />
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold text-ink sm:text-xl">
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-base font-semibold text-ink sm:text-xl">
                 {active.name}
                 {active.code && (
-                  <span className="ml-2 text-base font-semibold tabular-nums text-ink-muted sm:text-lg">
+                  <span className="ml-1.5 text-sm font-semibold tabular-nums text-ink-muted sm:ml-2 sm:text-lg">
                     {active.code}
                   </span>
                 )}
               </h2>
             </div>
           </div>
-          <div className="flex gap-1">
+          <div className="flex shrink-0 gap-1 self-end sm:self-auto">
             <button
               type="button"
               onClick={() => onEdit(active)}
@@ -78,9 +78,9 @@ export function StockPanel({
           </div>
         </div>
 
-        <div className="px-5 pb-5 pt-4">
-          <div className="overflow-hidden rounded-xl border border-blue-400 bg-white">
-            <div className="bg-surface-dim px-3 pb-0 pt-3">
+        <div className="px-3 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-blue-400 bg-white">
+            <div className="overflow-x-auto bg-surface-dim px-2 pb-0 pt-3 sm:px-3">
               <StockMiniCards
                 stocks={stocks}
                 summaries={summaries}
@@ -90,7 +90,7 @@ export function StockPanel({
               />
             </div>
             {children && (
-              <div className="relative space-y-5 border-t border-blue-400 bg-white p-5 pt-4">{children}</div>
+              <div className="relative space-y-4 border-t border-blue-400 bg-white p-3 pt-3 sm:space-y-5 sm:p-5 sm:pt-4">{children}</div>
             )}
           </div>
         </div>
@@ -99,10 +99,10 @@ export function StockPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm">
-      <h2 className="border-b border-line px-5 py-3.5 text-base font-semibold text-ink sm:text-lg">종목 Summary</h2>
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm">
+      <h2 className="border-b border-line px-3 py-3 text-base font-semibold text-ink sm:px-5 sm:py-3.5 sm:text-lg">종목 Summary</h2>
 
-      <div className="p-5 pt-4">
+      <div className="min-w-0 p-3 pt-3 sm:p-5 sm:pt-4">
         <StockSummaryList
           stocks={stocks}
           summaries={summaries}

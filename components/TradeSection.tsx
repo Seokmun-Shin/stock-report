@@ -50,8 +50,8 @@ export function TradeTable({
 
   return (
     <div className="space-y-2">
-      <div className="overflow-x-auto rounded-2xl border border-line">
-        <table className="w-full min-w-[720px] text-base">
+      <div className="min-w-0 overflow-x-auto rounded-2xl border border-line">
+        <table className="w-full min-w-[640px] text-sm sm:text-base">
           <thead className="bg-surface-dim text-sm text-ink-muted">
             <tr>
               <th className="px-3 py-3 text-center">기준</th>
@@ -270,9 +270,9 @@ export function TradeHistorySection({
   }
 
   return (
-    <section className="space-y-3 border-t border-line pt-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <section className="min-w-0 space-y-3 border-t border-line pt-4 sm:pt-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <SectionTitle>
             매매 내역 — {stockName}
             <span className="ml-1.5 text-xs font-normal text-ink-muted">({trades.length}건)</span>
@@ -283,7 +283,7 @@ export function TradeHistorySection({
           <button
             type="button"
             onClick={() => setFormOpen(true)}
-            className="shrink-0 rounded-lg bg-gain px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+            className="w-full shrink-0 rounded-lg bg-gain px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-auto"
           >
             + 매매 내역 추가
           </button>

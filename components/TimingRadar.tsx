@@ -37,7 +37,7 @@ function KisPriceToolbar({
   stockCode?: string;
 }) {
   return (
-    <div className="flex w-full items-center justify-between gap-2">
+    <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-sm text-ink-muted">
         <input
           type="checkbox"
@@ -51,7 +51,7 @@ function KisPriceToolbar({
         type="button"
         onClick={onRefresh}
         disabled={loading || !stockCode}
-        className="shrink-0 rounded-lg bg-gain px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+        className="w-full shrink-0 rounded-lg bg-gain px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
       >
         {loading ? "조회 중…" : "현재가 새로고침"}
       </button>
@@ -222,7 +222,7 @@ export function TimingRadar({
     ) : null;
 
   return (
-    <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
+    <section className="min-w-0 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-5">
       {/* 모바일: 영역별 세로 배치 */}
       <div className="flex flex-col gap-5 md:hidden">
         <div className="space-y-2">
@@ -385,7 +385,7 @@ export function StockSettlement({ stockName, summary }: { stockName: string; sum
   ];
 
   return (
-    <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
+    <section className="min-w-0 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-5">
       <SectionTitle unit>{stockName} 정산</SectionTitle>
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {rows.map((row) => (

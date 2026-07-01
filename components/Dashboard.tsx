@@ -228,8 +228,8 @@ export function Dashboard({
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="border-b border-slate-200/90 bg-white px-4 py-4 shadow-sm sm:px-6">
+    <div className="min-h-screen min-w-0 overflow-x-hidden bg-slate-100">
+      <header className="border-b border-slate-200/90 bg-white px-3 py-3 shadow-sm sm:px-6 sm:py-4">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">주식 매매 리포트</h1>
@@ -271,7 +271,7 @@ export function Dashboard({
         )}
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-4 px-4 py-5 sm:px-6">
+      <main className="mx-auto min-w-0 max-w-5xl space-y-4 px-3 py-4 sm:px-6 sm:py-5">
         <PortfolioSummaryPanel portfolio={portfolio} />
 
         <InitialCapitalPanel summary={capital} />

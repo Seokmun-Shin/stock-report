@@ -17,8 +17,8 @@ export function StockSummaryList({
   onOpen: (id: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-line">
-      <table className="w-full min-w-[800px] text-sm sm:text-base">
+    <div className="min-w-0 overflow-x-auto rounded-xl border border-line">
+      <table className="w-full min-w-[640px] text-sm sm:min-w-[800px] sm:text-base">
         <thead className="border-b border-line bg-surface-dim text-xs font-semibold text-ink-muted sm:text-sm">
           <tr>
             <th className="px-3 py-2.5 text-left">종목</th>

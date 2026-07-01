@@ -38,7 +38,7 @@ export function StockMiniCards({
   connected?: boolean;
 }) {
   return (
-    <div className={`flex flex-wrap gap-2 ${connected ? "items-end" : ""}`}>
+    <div className={`flex min-w-0 gap-2 ${connected ? "items-end" : "flex-wrap"}`}>
       {stocks.map((s) => {
         const sum = summaries[s.id];
         const isActive = s.id === activeId;
@@ -49,7 +49,7 @@ export function StockMiniCards({
             onClick={() => onSelect(s.id)}
             className={
               connected
-                ? `min-w-[8.5rem] px-4 py-3 text-left transition ${
+                ? `shrink-0 min-w-[7.5rem] px-3 py-2.5 text-left transition sm:min-w-[8.5rem] sm:px-4 sm:py-3 ${
                     isActive
                       ? "relative z-10 -mb-px rounded-t-lg border-2 border-blue-400 border-b-white bg-white"
                       : "mb-px rounded-lg border border-transparent bg-white/70 text-ink-muted hover:border-slate-300 hover:bg-white hover:text-ink"
