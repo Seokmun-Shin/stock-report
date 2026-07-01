@@ -1,7 +1,7 @@
 "use client";
 
-import type { Stock, StockSummary } from "@/lib/types";
-import { fmt } from "@/lib/calc";
+import type { Stock, StockQuote, StockSummary } from "@/lib/types";
+import { fmt, fmtPct } from "@/lib/calc";
 
 export function BackToSummaryIcon({ onClick }: { onClick: () => void }) {
   return (
@@ -27,12 +27,14 @@ export function BackToSummaryIcon({ onClick }: { onClick: () => void }) {
 export function StockMiniCards({
   stocks,
   summaries,
+  stockQuotes,
   activeId,
   onSelect,
   connected = false,
 }: {
   stocks: Stock[];
   summaries: Record<string, StockSummary>;
+  stockQuotes?: Record<string, StockQuote>;
   activeId: string;
   onSelect: (id: string) => void;
   connected?: boolean;
@@ -41,6 +43,7 @@ export function StockMiniCards({
     <div className={`flex min-w-0 gap-2 ${connected ? "items-end" : "flex-wrap"}`}>
       {stocks.map((s) => {
         const sum = summaries[s.id];
+        const q = stockQuotes?.[s.id];
         const isActive = s.id === activeId;
         return (
           <button
@@ -75,6 +78,13 @@ export function StockMiniCards({
                 }`}
               >
                 {fmt(sum.currentPrice)}
+                {q && (
+                  <span
+                    className={`ml-1 text-xs ${q.changeRate >= 0 ? "text-gain" : "text-loss"} ${connected || !isActive ? "" : "opacity-90"}`}
+                  >
+                    {fmtPct(q.changeRate)}
+                  </span>
+                )}
               </span>
             )}
             <span

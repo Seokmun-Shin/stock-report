@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import type { BuyTimingSignal, SellTimingSignal, Stock, StockSummary } from "@/lib/types";
+import type { BuyTimingSignal, SellTimingSignal, Stock, StockQuote, StockSummary } from "@/lib/types";
 import { BackToSummaryIcon, StockMiniCards } from "./StockMiniCards";
 import { StockSummaryList } from "./StockSummaryView";
 
@@ -11,6 +11,7 @@ export function StockPanel({
   summaries,
   buySignals,
   sellSignals,
+  stockQuotes,
   onSelect,
   onAdd,
   onEdit,
@@ -21,6 +22,7 @@ export function StockPanel({
   stocks: Stock[];
   activeId: string;
   summaries: Record<string, StockSummary>;
+  stockQuotes?: Record<string, StockQuote>;
   buySignals: Record<string, BuyTimingSignal>;
   sellSignals: Record<string, SellTimingSignal>;
   onSelect: (id: string) => void;
@@ -84,6 +86,7 @@ export function StockPanel({
               <StockMiniCards
                 stocks={stocks}
                 summaries={summaries}
+                stockQuotes={stockQuotes}
                 activeId={activeId}
                 onSelect={onSelect}
                 connected
@@ -106,6 +109,7 @@ export function StockPanel({
         <StockSummaryList
           stocks={stocks}
           summaries={summaries}
+          stockQuotes={stockQuotes}
           buySignals={buySignals}
           sellSignals={sellSignals}
           onOpen={openDetail}

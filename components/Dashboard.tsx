@@ -13,6 +13,7 @@ import {
   summarizeStock,
   uid,
 } from "@/lib/calc";
+import { UnitNotice } from "@/components/StatCard";
 import { DailyReportPanel } from "@/components/DailyReportPanel";
 import { applyDailySnapshot, applyPeakPrices } from "@/lib/dailyReport";
 import { InitialCapitalPanel } from "@/components/InitialCapitalPanel";
@@ -21,7 +22,14 @@ import { StockEditModal } from "@/components/StockEditModal";
 import { StockPanel } from "@/components/StockPanel";
 import { StockSettlement, TimingRadar } from "@/components/TimingRadar";
 import { TradeHistorySection } from "@/components/TradeSection";
-import { applyPriceUpdates, useKisPrices } from "@/hooks/useKisPrices";
+import { applyQuoteUpdates, useKisPrices } from "@/hooks/useKisPrices";
+import { BenchmarkPanel } from "@/components/BenchmarkPanel";
+import { PeriodReportPanel } from "@/components/PeriodReportPanel";
+import { StockEventsPanel } from "@/components/StockEventsPanel";
+import { CsvImportPanel, mergeCsvTrades } from "@/components/CsvImportPanel";
+import type { ParsedTradeRow } from "@/lib/import/tradeCsv";
+import { collectPortfolioAlerts, notifyAlertsIfEnabled } from "@/lib/alerts";
+import { resolveReportSettings, type ReportSettings } from "@/lib/reportSettings";
 
 export function Dashboard({
   data,
@@ -78,8 +86,8 @@ export function Dashboard({
   const dataRef = useRef(data);
   dataRef.current = data;
 
-  const kis = useKisPrices(data.stocks, (updates) => {
-    persist(applyPriceUpdates(dataRef.current, updates));
+  const kis = useKisPrices(data.stocks, (payload) => {
+    persist(applyQuoteUpdates(dataRef.current, payload));
   });
 
   useEffect(() => {
@@ -88,10 +96,18 @@ export function Dashboard({
     }
   }, [data.stocks, activeId]);
 
+  const reportSettings = resolveReportSettings(data.reportSettings);
+
   const stockSummaries = useMemo(() => {
     const map: Record<string, ReturnType<typeof summarizeStock>> = {};
     for (const s of data.stocks) {
-      map[s.id] = summarizeStock(s.id, s.name, data.trades, data.currentPrices[s.id] ?? 0);
+      map[s.id] = summarizeStock(
+        s.id,
+        s.name,
+        data.trades,
+        data.currentPrices[s.id] ?? 0,
+        data.reportSettings
+      );
     }
     return map;
   }, [data]);
@@ -100,19 +116,19 @@ export function Dashboard({
     const map: Record<string, ReturnType<typeof getBuyTimingSignal>> = {};
     for (const s of data.stocks) {
       const sum = stockSummaries[s.id];
-      if (sum) map[s.id] = getBuyTimingSignal(sum);
+      if (sum) map[s.id] = getBuyTimingSignal(sum, data.reportSettings);
     }
     return map;
-  }, [data.stocks, stockSummaries]);
+  }, [data.stocks, data.reportSettings, stockSummaries]);
 
   const stockSellSignals = useMemo(() => {
     const map: Record<string, ReturnType<typeof getSellTimingSignal>> = {};
     for (const s of data.stocks) {
       const sum = stockSummaries[s.id];
-      if (sum) map[s.id] = getSellTimingSignal(sum);
+      if (sum) map[s.id] = getSellTimingSignal(sum, data.reportSettings);
     }
     return map;
-  }, [data.stocks, stockSummaries]);
+  }, [data.stocks, data.reportSettings, stockSummaries]);
 
   const portfolio = summarizePortfolio(data);
   const capital = summarizeInitialCapital(data);
@@ -127,19 +143,21 @@ export function Dashboard({
     if (changed) persist(next);
   }, [data, portfolio, stockSummaries, persist]);
 
-  function updateReportSettings(buyDrop: number, sellGain: number) {
+  useEffect(() => {
+    const alerts = collectPortfolioAlerts(data, stockSummaries, stockBuySignals, stockSellSignals);
+    void notifyAlertsIfEnabled(data, alerts);
+  }, [data, stockSummaries, stockBuySignals, stockSellSignals]);
+
+  function patchReportSettings(patch: Partial<ReportSettings> | ReportSettings) {
     persist({
       ...data,
-      reportSettings: {
-        buyDropFromPeakPct: buyDrop,
-        sellGainFromAvgPct: sellGain,
-      },
+      reportSettings: { ...reportSettings, ...patch },
     });
   }
   const activeStock = data.stocks.find((s) => s.id === activeId) ?? data.stocks[0];
   const stockSummary = activeStock ? stockSummaries[activeStock.id] : null;
-  const buySignal = stockSummary ? getBuyTimingSignal(stockSummary) : null;
-  const sellSignal = stockSummary ? getSellTimingSignal(stockSummary) : null;
+  const buySignal = stockSummary ? getBuyTimingSignal(stockSummary, data.reportSettings) : null;
+  const sellSignal = stockSummary ? getSellTimingSignal(stockSummary, data.reportSettings) : null;
   const stockTrades = data.trades.filter((t) => t.stockId === activeId);
 
   function addOrUpdateTrade(partial: Omit<Trade, "id" | "stockId" | "createdAt">) {
@@ -220,21 +238,38 @@ export function Dashboard({
     if (!confirm(`「${stock.name}」 종목과 매매 내역을 모두 삭제할까요?`)) return;
     const removedTradeIds = new Set(data.trades.filter((t) => t.stockId === stockId).map((t) => t.id));
     const nextStocks = data.stocks.filter((s) => s.id !== stockId);
-    const { [stockId]: _, ...restPrices } = data.currentPrices;
+    const { [stockId]: _p, ...restPrices } = data.currentPrices;
+    const { [stockId]: _q, ...restQuotes } = data.stockQuotes ?? {};
+    const { [stockId]: _peak, ...restPeaks } = data.peakPrices ?? {};
     persist({
       ...data,
       stocks: nextStocks,
       trades: data.trades.filter((t) => t.stockId !== stockId),
       currentPrices: restPrices,
+      stockQuotes: restQuotes,
+      peakPrices: restPeaks,
       initialCapitalTradeIds: data.initialCapitalTradeIds.filter((id) => !removedTradeIds.has(id)),
     });
     if (activeId === stockId) setActiveId(nextStocks[0]?.id ?? "");
     setEditingTrade(null);
   }
 
+  function setTargetPrice(stockId: string, price: number) {
+    const next = { ...reportSettings.targetPrices };
+    if (price > 0) next[stockId] = price;
+    else delete next[stockId];
+    patchReportSettings({ targetPrices: next });
+  }
+
   function setCurrentPrice(price: number) {
     if (!activeStock) return;
     persist({ ...data, currentPrices: { ...data.currentPrices, [activeStock.id]: price } });
+  }
+
+  function importCsvRows(rows: ParsedTradeRow[]) {
+    if (rows.length === 0) return;
+    if (!confirm(`${rows.length}건의 매매 내역을 추가할까요?`)) return;
+    persist(mergeCsvTrades(data, rows));
   }
 
   function resetDemo() {
@@ -296,12 +331,16 @@ export function Dashboard({
           summaries={stockSummaries}
           buySignals={stockBuySignals}
           sellSignals={stockSellSignals}
-          onSettingsChange={updateReportSettings}
+          onSettingsChange={patchReportSettings}
           onOpenStock={(id) => {
             setActiveId(id);
             setEditingTrade(null);
           }}
         />
+
+        <BenchmarkPanel data={data} portfolio={portfolio} summaries={stockSummaries} />
+
+        <PeriodReportPanel data={data} />
 
         <PortfolioSummaryPanel portfolio={portfolio} />
 
@@ -311,6 +350,7 @@ export function Dashboard({
           stocks={data.stocks}
           activeId={activeId}
           summaries={stockSummaries}
+          stockQuotes={data.stockQuotes}
           buySignals={stockBuySignals}
           sellSignals={stockSellSignals}
           onSelect={(id) => {
@@ -353,7 +393,9 @@ export function Dashboard({
                   취소
                 </button>
               </div>
-            ) : null
+            ) : (
+              <CsvImportPanel stocks={data.stocks} onImport={importCsvRows} />
+            )
           }
         >
           {activeStock && (
@@ -374,9 +416,15 @@ export function Dashboard({
                     onKisAutoRefreshChange={kis.setAutoRefresh}
                     onKisRefresh={kis.refresh}
                     kisStockCode={activeStock.code}
+                    stockQuote={data.stockQuotes?.[activeStock.id]}
+                    reportSettings={data.reportSettings}
+                    targetPrice={reportSettings.targetPrices?.[activeStock.id]}
+                    onTargetPriceChange={(p) => setTargetPrice(activeStock.id, p)}
                   />
                 </div>
               )}
+
+              <StockEventsPanel data={data} activeStock={activeStock} onPersist={persist} />
 
               <TradeHistorySection
                 stockName={activeStock.name}

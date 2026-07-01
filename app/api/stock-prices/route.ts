@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchKisPrices, isKisConfigured, normalizeStockCode } from "@/lib/kis/client";
+import { fetchKisQuotes, fetchKospiBenchmark, isKisConfigured, normalizeStockCode } from "@/lib/kis/client";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,7 @@ export async function GET() {
   return NextResponse.json({ configured: isKisConfigured() });
 }
 
-/** 종목코드 배열 → 현재가 조회 */
+/** 종목코드 배열 → 시세 조회 + KOSPI */
 export async function POST(req: Request) {
   if (!isKisConfigured()) {
     return NextResponse.json(
@@ -25,6 +25,8 @@ export async function POST(req: Request) {
   }
 
   const codes = (body as { codes?: unknown }).codes;
+  const includeKospi = (body as { includeKospi?: boolean }).includeKospi !== false;
+
   if (!Array.isArray(codes) || codes.length === 0) {
     return NextResponse.json({ error: "codes 배열이 필요합니다." }, { status: 400 });
   }
@@ -34,11 +36,24 @@ export async function POST(req: Request) {
   }
 
   const normalized = [...new Set(codes.map((c) => normalizeStockCode(String(c))))];
-  const { prices, errors } = await fetchKisPrices(normalized);
+  const { quotes, prices, errors } = await fetchKisQuotes(normalized);
+
+  let kospi = null;
+  let kospiError: string | undefined;
+  if (includeKospi) {
+    try {
+      kospi = await fetchKospiBenchmark();
+    } catch (err) {
+      kospiError = err instanceof Error ? err.message : "KOSPI 조회 실패";
+    }
+  }
 
   return NextResponse.json({
+    quotes,
     prices,
     errors,
+    kospi,
+    kospiError,
     updatedAt: new Date().toISOString(),
   });
 }

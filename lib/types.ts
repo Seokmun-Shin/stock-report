@@ -42,6 +42,26 @@ export interface StockPeak {
   asOf: string;
 }
 
+/** KIS 시세 스냅샷 (종목별) */
+export interface StockQuote {
+  price: number;
+  prevClose: number;
+  changeAmount: number;
+  changeRate: number;
+  high: number;
+  low: number;
+  updatedAt: string;
+}
+
+/** KOSPI 지수 스냅샷 */
+export interface KospiBenchmark {
+  price: number;
+  prevClose: number;
+  changeAmount: number;
+  changeRate: number;
+  updatedAt: string;
+}
+
 export interface AppData {
   stocks: Stock[];
   trades: Trade[];
@@ -54,6 +74,12 @@ export interface AppData {
   dailySnapshots?: DailySnapshot[];
   /** 종목별 추적 고점 (매수 시그널용) */
   peakPrices?: Record<string, StockPeak>;
+  /** KIS 시세 (전일가·등락·고저) — stockId 키 */
+  stockQuotes?: Record<string, StockQuote>;
+  /** KOSPI 벤치마크 */
+  kospiBenchmark?: KospiBenchmark;
+  /** 분할·배당 이벤트 */
+  stockEvents?: StockEvent[];
 }
 
 export interface StockSummary {
@@ -141,3 +167,18 @@ export interface SellTimingSignal {
 
 /** @deprecated BuyTimingSignal 사용 */
 export type TimingSignal = BuyTimingSignal;
+
+export type StockEventType = "split" | "dividend";
+
+/** 분할·배당 이벤트 */
+export interface StockEvent {
+  id: string;
+  stockId: string;
+  type: StockEventType;
+  date: string;
+  /** 분할: 2 = 2:1 (수량×2, 단가÷2) */
+  ratio?: number;
+  /** 배당: 주당 금액(원) */
+  amount?: number;
+  memo?: string;
+}

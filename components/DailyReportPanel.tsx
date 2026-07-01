@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { AppData } from "@/lib/types";
 import type { PortfolioSummary } from "@/lib/types";
 import type { BuyTimingSignal, SellTimingSignal, StockSummary } from "@/lib/types";
 import { fmt, fmtPct, fmtSigned } from "@/lib/calc";
 import { buildDailyReport, formatDailyReportText } from "@/lib/dailyReport";
-import { DEFAULT_REPORT_SETTINGS } from "@/lib/reportSettings";
+import type { ReportSettings } from "@/lib/reportSettings";
 import { CollapsibleSection, SummaryChip } from "./CollapsibleSection";
-import { SectionTitle } from "./StatCard";
+import { StrategySettingsForm } from "./StrategySettingsForm";
 
 function AlertBadge({ kind }: { kind: "buy" | "sell" | "watch" }) {
   if (kind === "buy") {
@@ -40,7 +40,7 @@ export function DailyReportPanel({
   summaries: Record<string, StockSummary>;
   buySignals: Record<string, BuyTimingSignal>;
   sellSignals: Record<string, SellTimingSignal>;
-  onSettingsChange: (buyDrop: number, sellGain: number) => void;
+  onSettingsChange: (settings: ReportSettings) => void;
   onOpenStock: (stockId: string) => void;
 }) {
   const report = useMemo(
@@ -50,13 +50,6 @@ export function DailyReportPanel({
 
   const [copied, setCopied] = useState(false);
   const settings = report.settings;
-  const [buyDrop, setBuyDrop] = useState(settings.buyDropFromPeakPct);
-  const [sellGain, setSellGain] = useState(settings.sellGainFromAvgPct);
-
-  useEffect(() => {
-    setBuyDrop(settings.buyDropFromPeakPct);
-    setSellGain(settings.sellGainFromAvgPct);
-  }, [settings.buyDropFromPeakPct, settings.sellGainFromAvgPct]);
 
   const pnlTone = portfolio.totalPnl >= 0 ? "gain" : "loss";
   const alertCount = report.headlineAlerts.length;
@@ -67,8 +60,8 @@ export function DailyReportPanel({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function saveSettings() {
-    onSettingsChange(buyDrop, sellGain);
+  function saveSettings(next: ReportSettings) {
+    onSettingsChange(next);
   }
 
   return (
@@ -191,53 +184,7 @@ export function DailyReportPanel({
           </table>
         </div>
 
-        <div className="rounded-xl border border-line bg-surface-dim/30 p-3">
-          <SectionTitle>시그널 설정</SectionTitle>
-          <p className="mt-1 text-xs text-ink-muted">
-            고점·평단은 앱에 기록된 데이터 기준 · 타이밍선(±10/20%)과 함께 판단
-          </p>
-          <div className="mt-3 flex flex-wrap items-end gap-3">
-            <label className="text-xs text-ink-muted">
-              고점 대비 매수 (−%)
-              <input
-                type="number"
-                min={1}
-                max={50}
-                className="mt-1 w-24 rounded-lg border border-line px-2 py-1.5 text-right tabular-nums"
-                value={buyDrop}
-                onChange={(e) => setBuyDrop(Number(e.target.value))}
-              />
-            </label>
-            <label className="text-xs text-ink-muted">
-              평단 대비 매도 (+%)
-              <input
-                type="number"
-                min={1}
-                max={100}
-                className="mt-1 w-24 rounded-lg border border-line px-2 py-1.5 text-right tabular-nums"
-                value={sellGain}
-                onChange={(e) => setSellGain(Number(e.target.value))}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={saveSettings}
-              className="rounded-lg bg-gain px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              적용
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setBuyDrop(DEFAULT_REPORT_SETTINGS.buyDropFromPeakPct);
-                setSellGain(DEFAULT_REPORT_SETTINGS.sellGainFromAvgPct);
-              }}
-              className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink-muted hover:bg-white"
-            >
-              기본값
-            </button>
-          </div>
-        </div>
+        <StrategySettingsForm settings={settings} onSave={saveSettings} />
 
         <div className="flex flex-wrap justify-end gap-2">
           <button

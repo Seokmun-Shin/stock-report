@@ -1,8 +1,9 @@
 "use client";
 
-import type { BuyTimingSignal, SellTimingSignal, StockSummary } from "@/lib/types";
+import type { BuyTimingSignal, SellTimingSignal, StockQuote, StockSummary } from "@/lib/types";
 import { fmt, fmtPct, fmtQty, fmtSigned } from "@/lib/calc";
 import { STOCK_SETTLEMENT_HINTS, TIMING_HINTS } from "@/lib/metricHints";
+import { resolveReportSettings, type ReportSettings } from "@/lib/reportSettings";
 import { FormattedNumberInput } from "./FormattedNumberInput";
 import { HintTooltip, SectionTitle, StatCard } from "./StatCard";
 import { formatKisUpdatedTime, isKrxMarketOpen } from "@/hooks/useKisPrices";
@@ -104,22 +105,22 @@ function BuyTimingHeader({ summary, signal }: { summary: StockSummary; signal: B
 
 type TimingCardRow = { label: string; hint?: string; value: string; tone?: "gain" | "loss" };
 
-function getBuyTimingRows(summary: StockSummary): TimingCardRow[] {
+function getBuyTimingRows(summary: StockSummary, settings: ReportSettings): TimingCardRow[] {
   const { timing10, timing20, lastSellPrice } = summary;
   if (!timing10 || !timing20 || !lastSellPrice) return [];
   return [
-    { label: "-20% 매수선", hint: TIMING_HINTS.timing20, value: fmt(timing20) },
-    { label: "-10% 매수선", hint: TIMING_HINTS.timing10, value: fmt(timing10) },
+    { label: `-${settings.buyTimingPct2}% 매수선`, hint: TIMING_HINTS.timing20, value: fmt(timing20) },
+    { label: `-${settings.buyTimingPct1}% 매수선`, hint: TIMING_HINTS.timing10, value: fmt(timing10) },
     { label: "최근 매도가", hint: TIMING_HINTS.lastSellPrice, value: fmt(lastSellPrice) },
   ];
 }
 
-function getSellTimingRows(summary: StockSummary): TimingCardRow[] {
+function getSellTimingRows(summary: StockSummary, settings: ReportSettings): TimingCardRow[] {
   const { sellTiming10, sellTiming20, holdingAvgPrice, holdingQty } = summary;
   if (!sellTiming10 || !sellTiming20 || holdingQty <= 0) return [];
   return [
-    { label: "+10% 매도선", hint: TIMING_HINTS.sellTiming10, value: fmt(sellTiming10) },
-    { label: "+20% 매도선", hint: TIMING_HINTS.sellTiming20, value: fmt(sellTiming20) },
+    { label: `+${settings.sellTimingPct1}% 매도선`, hint: TIMING_HINTS.sellTiming10, value: fmt(sellTiming10) },
+    { label: `+${settings.sellTimingPct2}% 매도선`, hint: TIMING_HINTS.sellTiming20, value: fmt(sellTiming20) },
     { label: "평단", hint: TIMING_HINTS.holdingAvgPriceSell, value: fmt(holdingAvgPrice) },
   ];
 }
@@ -155,6 +156,52 @@ function SellTimingHeader({ summary, signal }: { summary: StockSummary; signal: 
   );
 }
 
+function TargetPriceField({
+  value,
+  onChange,
+}: {
+  value?: number;
+  onChange?: (price: number) => void;
+}) {
+  if (!onChange) return null;
+  return (
+    <label className="mt-2 block text-xs text-ink-muted">
+      목표가 (알림)
+      <FormattedNumberInput
+        value={value ?? 0}
+        onChange={onChange}
+        className="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-right text-sm tabular-nums"
+        placeholder="0"
+      />
+    </label>
+  );
+}
+
+function KisQuoteStrip({ quote }: { quote?: StockQuote }) {
+  if (!quote) return null;
+  const tone = quote.changeRate >= 0 ? "text-gain" : "text-loss";
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 rounded-lg border border-line bg-surface-dim/50 px-3 py-2 text-xs sm:grid-cols-4">
+      <div>
+        <span className="text-ink-muted">전일 </span>
+        <span className="font-semibold tabular-nums">{fmt(quote.prevClose)}</span>
+      </div>
+      <div>
+        <span className="text-ink-muted">등락 </span>
+        <span className={`font-semibold tabular-nums ${tone}`}>{fmtPct(quote.changeRate)}</span>
+      </div>
+      <div>
+        <span className="text-ink-muted">고가 </span>
+        <span className="font-semibold tabular-nums">{fmt(quote.high)}</span>
+      </div>
+      <div>
+        <span className="text-ink-muted">저가 </span>
+        <span className="font-semibold tabular-nums">{fmt(quote.low)}</span>
+      </div>
+    </div>
+  );
+}
+
 export function TimingRadar({
   summary,
   buySignal,
@@ -168,6 +215,10 @@ export function TimingRadar({
   onKisAutoRefreshChange,
   onKisRefresh,
   kisStockCode,
+  stockQuote,
+  reportSettings,
+  targetPrice,
+  onTargetPriceChange,
 }: {
   summary: StockSummary;
   buySignal: BuyTimingSignal;
@@ -181,7 +232,12 @@ export function TimingRadar({
   onKisAutoRefreshChange?: (v: boolean) => void;
   onKisRefresh?: () => void;
   kisStockCode?: string;
+  stockQuote?: StockQuote;
+  reportSettings?: Partial<ReportSettings>;
+  targetPrice?: number;
+  onTargetPriceChange?: (price: number) => void;
 }) {
+  const timingSettings = resolveReportSettings(reportSettings);
   const holdingRows: { label: string; hint?: string; value: string; tone?: "gain" | "loss" }[] = [];
   if (summary.holdingQty > 0) {
     holdingRows.push(
@@ -201,8 +257,8 @@ export function TimingRadar({
     );
   }
 
-  const buyRows = getBuyTimingRows(summary);
-  const sellRows = getSellTimingRows(summary);
+  const buyRows = getBuyTimingRows(summary, timingSettings);
+  const sellRows = getSellTimingRows(summary, timingSettings);
   const alignedRows = holdingRows.length > 0;
 
   const kisStatusBlock =
@@ -257,6 +313,8 @@ export function TimingRadar({
             className="mt-1.5 w-full rounded-lg border border-line bg-surface-dim px-3 py-2.5 text-right text-lg font-bold tabular-nums text-ink outline-none focus:ring-2 focus:ring-blue-200"
             placeholder="0"
           />
+          <KisQuoteStrip quote={stockQuote} />
+          <TargetPriceField value={targetPrice} onChange={onTargetPriceChange} />
         </div>
         {holdingRows.length > 0 && (
           <div className="flex flex-col gap-1.5">
@@ -322,6 +380,8 @@ export function TimingRadar({
             className="min-h-[2.75rem] w-full rounded-lg border border-line bg-surface-dim px-3 py-2.5 text-right text-lg font-bold tabular-nums text-ink outline-none focus:ring-2 focus:ring-blue-200"
             placeholder="0"
           />
+          <KisQuoteStrip quote={stockQuote} />
+          <TargetPriceField value={targetPrice} onChange={onTargetPriceChange} />
         </div>
 
         {alignedRows && (

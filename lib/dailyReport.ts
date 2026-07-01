@@ -77,11 +77,18 @@ export function buildDailyReport(
       };
     }
 
+    const kisQ = data.stockQuotes?.[stock.id];
     const prevPrice = prev?.stockPrices[stock.id];
-    const priceChangeFromPrev =
-      prevPrice != null && prevPrice > 0 ? summary.currentPrice - prevPrice : null;
-    const priceChangePctFromPrev =
-      priceChangeFromPrev != null && prevPrice! > 0 ? (priceChangeFromPrev / prevPrice!) * 100 : null;
+    let priceChangeFromPrev: number | null = null;
+    let priceChangePctFromPrev: number | null = null;
+
+    if (kisQ && kisQ.prevClose > 0) {
+      priceChangeFromPrev = kisQ.changeAmount;
+      priceChangePctFromPrev = kisQ.changeRate;
+    } else if (prevPrice != null && prevPrice > 0) {
+      priceChangeFromPrev = summary.currentPrice - prevPrice;
+      priceChangePctFromPrev = (priceChangeFromPrev / prevPrice) * 100;
+    }
 
     const peak = data.peakPrices?.[stock.id]?.price;
     const dropFromPeakPct =

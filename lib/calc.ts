@@ -9,7 +9,7 @@ import type {
   Trade,
 } from "./types";
 import { sellTaxTotal } from "./tradeFees";
-import { resolveReportSettings } from "./reportSettings";
+import { resolveReportSettings, timingLineFromAvg, timingLineFromSell } from "./reportSettings";
 
 export function tradeAmount(t: Trade): number {
   return t.quantity * t.price;
@@ -93,8 +93,10 @@ export function summarizeStock(
   stockId: string,
   stockName: string,
   trades: Trade[],
-  currentPrice: number
+  currentPrice: number,
+  settingsInput?: Partial<import("./reportSettings").ReportSettings>
 ): StockSummary {
+  const settings = resolveReportSettings(settingsInput);
   const rows = trades.filter((t) => t.stockId === stockId);
   const m = fifoStockMetrics(rows);
 
@@ -108,12 +110,16 @@ export function summarizeStock(
   const sells = rows.filter((t) => t.type === "sell");
   const lastSell = [...sells].sort((a, b) => b.date.localeCompare(a.date))[0];
   const lastSellPrice = lastSell?.price ?? null;
-  const timing10 = lastSellPrice ? Math.round(lastSellPrice * 0.9) : null;
-  const timing20 = lastSellPrice ? Math.round(lastSellPrice * 0.8) : null;
+  const timing10 = lastSellPrice ? timingLineFromSell(lastSellPrice, settings.buyTimingPct1) : null;
+  const timing20 = lastSellPrice ? timingLineFromSell(lastSellPrice, settings.buyTimingPct2) : null;
   const sellTiming10 =
-    m.holdingQty > 0 && m.holdingAvgPrice > 0 ? Math.round(m.holdingAvgPrice * 1.1) : null;
+    m.holdingQty > 0 && m.holdingAvgPrice > 0
+      ? timingLineFromAvg(m.holdingAvgPrice, settings.sellTimingPct1)
+      : null;
   const sellTiming20 =
-    m.holdingQty > 0 && m.holdingAvgPrice > 0 ? Math.round(m.holdingAvgPrice * 1.2) : null;
+    m.holdingQty > 0 && m.holdingAvgPrice > 0
+      ? timingLineFromAvg(m.holdingAvgPrice, settings.sellTimingPct2)
+      : null;
 
   return {
     stockId,
@@ -177,7 +183,8 @@ export function summarizePortfolio(data: AppData): PortfolioSummary {
       stock.id,
       stock.name,
       data.trades,
-      data.currentPrices[stock.id] ?? 0
+      data.currentPrices[stock.id] ?? 0,
+      data.reportSettings
     ).unrealizedPnl;
   }
 
@@ -199,8 +206,14 @@ export function summarizePortfolio(data: AppData): PortfolioSummary {
   };
 }
 
-export function getBuyTimingSignal(summary: StockSummary): BuyTimingSignal {
+export function getBuyTimingSignal(
+  summary: StockSummary,
+  settingsInput?: Partial<import("./reportSettings").ReportSettings>
+): BuyTimingSignal {
+  const settings = resolveReportSettings(settingsInput);
   const { currentPrice, timing10, timing20, lastSellPrice } = summary;
+  const p1 = settings.buyTimingPct1;
+  const p2 = settings.buyTimingPct2;
   if (!lastSellPrice || !timing10 || !timing20) {
     return { status: "watch", label: "기준 없음", hint: "매도 기록이 있으면 매수 타이밍선이 표시됩니다." };
   }
@@ -208,14 +221,14 @@ export function getBuyTimingSignal(summary: StockSummary): BuyTimingSignal {
     return {
       status: "zone20",
       label: "2차 분할 구간",
-      hint: `최근 매도가(${fmt(lastSellPrice)}) 대비 -20% 이하. 적극 분할 매수 검토.`,
+      hint: `최근 매도가(${fmt(lastSellPrice)}) 대비 -${p2}% 이하. 적극 분할 매수 검토.`,
     };
   }
   if (currentPrice <= timing10) {
     return {
       status: "zone10",
       label: "1차 분할 구간",
-      hint: `최근 매도가 대비 -10% 이하. 1차 분할 매수 검토.`,
+      hint: `최근 매도가 대비 -${p1}% 이하. 1차 분할 매수 검토.`,
     };
   }
   return {
@@ -230,8 +243,14 @@ export function getTimingSignal(summary: StockSummary): TimingSignal {
   return getBuyTimingSignal(summary);
 }
 
-export function getSellTimingSignal(summary: StockSummary): SellTimingSignal {
+export function getSellTimingSignal(
+  summary: StockSummary,
+  settingsInput?: Partial<import("./reportSettings").ReportSettings>
+): SellTimingSignal {
+  const settings = resolveReportSettings(settingsInput);
   const { currentPrice, sellTiming10, sellTiming20, holdingAvgPrice, holdingQty } = summary;
+  const p1 = settings.sellTimingPct1;
+  const p2 = settings.sellTimingPct2;
   if (holdingQty <= 0 || !holdingAvgPrice || !sellTiming10 || !sellTiming20) {
     return {
       status: "watch",
@@ -243,14 +262,14 @@ export function getSellTimingSignal(summary: StockSummary): SellTimingSignal {
     return {
       status: "zone20",
       label: "2차 익절 구간",
-      hint: `평단(${fmt(holdingAvgPrice)}) 대비 +20% 이상. 분할 매도·익절 검토.`,
+      hint: `평단(${fmt(holdingAvgPrice)}) 대비 +${p2}% 이상. 분할 매도·익절 검토.`,
     };
   }
   if (currentPrice >= sellTiming10) {
     return {
       status: "zone10",
       label: "1차 익절 구간",
-      hint: `평단 대비 +10% 이상. 1차 분할 매도 검토.`,
+      hint: `평단 대비 +${p1}% 이상. 1차 분할 매도 검토.`,
     };
   }
   return {
@@ -509,5 +528,8 @@ export function migrateAppData(
     reportSettings: resolveReportSettings(raw.reportSettings),
     dailySnapshots: raw.dailySnapshots ?? [],
     peakPrices: raw.peakPrices ?? {},
+    stockQuotes: raw.stockQuotes ?? {},
+    kospiBenchmark: raw.kospiBenchmark,
+    stockEvents: raw.stockEvents ?? [],
   };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AppData, Stock } from "@/lib/types";
+import type { AppData, KospiBenchmark, Stock, StockQuote } from "@/lib/types";
 
 const AUTO_REFRESH_MS = 60_000;
 
@@ -18,14 +18,22 @@ export function isKrxMarketOpen(now = new Date()): boolean {
   return mins >= 9 * 60 && mins < 15 * 60 + 30;
 }
 
-export function useKisPrices(stocks: Stock[], onApplyPrices: (updates: Record<string, number>) => void) {
+export type QuoteApplyPayload = {
+  quotesByStockId: Record<string, StockQuote>;
+  kospi?: KospiBenchmark | null;
+};
+
+export function useKisPrices(
+  stocks: Stock[],
+  onApply: (payload: QuoteApplyPayload) => void
+) {
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const onApplyRef = useRef(onApplyPrices);
-  onApplyRef.current = onApplyPrices;
+  const onApplyRef = useRef(onApply);
+  onApplyRef.current = onApply;
 
   useEffect(() => {
     let cancelled = false;
@@ -79,38 +87,42 @@ export function useKisPrices(stocks: Stock[], onApplyPrices: (updates: Record<st
       const res = await fetch("/api/stock-prices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codes: coded.map((s) => s.code!.trim()) }),
+        body: JSON.stringify({ codes: coded.map((s) => s.code!.trim()), includeKospi: true }),
       });
       const data = (await res.json()) as {
         error?: string;
+        quotes?: Record<string, StockQuote>;
         prices?: Record<string, number>;
         errors?: Record<string, string>;
+        kospi?: KospiBenchmark | null;
+        kospiError?: string;
       };
 
       if (!res.ok) {
         throw new Error(data.error ?? "시세 조회 실패");
       }
 
-      const updates: Record<string, number> = {};
+      const quotesByStockId: Record<string, StockQuote> = {};
       for (const stock of coded) {
         const raw = stock.code!.trim();
         const padded = raw.replace(/\D/g, "").padStart(6, "0");
-        const price = data.prices?.[padded] ?? data.prices?.[raw];
-        if (price != null) updates[stock.id] = price;
+        const q = data.quotes?.[padded] ?? data.quotes?.[raw];
+        if (q) quotesByStockId[stock.id] = q;
       }
 
-      if (Object.keys(updates).length === 0) {
+      if (Object.keys(quotesByStockId).length === 0) {
         const firstErr = data.errors ? Object.values(data.errors)[0] : undefined;
         throw new Error(firstErr ?? "조회된 시세가 없습니다.");
       }
 
-      onApplyRef.current(updates);
+      onApplyRef.current({ quotesByStockId, kospi: data.kospi ?? null });
       setLastUpdated(new Date());
 
       const failCount = data.errors ? Object.keys(data.errors).length : 0;
-      if (failCount > 0) {
-        setError(`${failCount}개 종목 조회 실패 (나머지는 반영됨)`);
-      }
+      const msgs: string[] = [];
+      if (failCount > 0) msgs.push(`${failCount}개 종목 조회 실패`);
+      if (data.kospiError) msgs.push(`KOSPI: ${data.kospiError}`);
+      if (msgs.length > 0) setError(msgs.join(" · "));
     } catch (err) {
       setError(err instanceof Error ? err.message : "시세 조회 실패");
     } finally {
@@ -140,6 +152,20 @@ export function useKisPrices(stocks: Stock[], onApplyPrices: (updates: Record<st
   };
 }
 
+export function applyQuoteUpdates(data: AppData, payload: QuoteApplyPayload): AppData {
+  const currentPrices = { ...data.currentPrices };
+  for (const [id, q] of Object.entries(payload.quotesByStockId)) {
+    currentPrices[id] = q.price;
+  }
+  return {
+    ...data,
+    currentPrices,
+    stockQuotes: { ...(data.stockQuotes ?? {}), ...payload.quotesByStockId },
+    kospiBenchmark: payload.kospi ?? data.kospiBenchmark,
+  };
+}
+
+/** @deprecated applyQuoteUpdates 사용 */
 export function applyPriceUpdates(data: AppData, updates: Record<string, number>): AppData {
   return {
     ...data,
