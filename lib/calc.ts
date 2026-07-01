@@ -9,6 +9,7 @@ import type {
   Trade,
 } from "./types";
 import { sellTaxTotal } from "./tradeFees";
+import { resolveReportSettings } from "./reportSettings";
 
 export function tradeAmount(t: Trade): number {
   return t.quantity * t.price;
@@ -505,5 +506,8 @@ export function migrateAppData(
     trades,
     currentPrices: raw.currentPrices ?? {},
     initialCapitalTradeIds: raw.initialCapitalTradeIds ?? [],
+    reportSettings: resolveReportSettings(raw.reportSettings),
+    dailySnapshots: raw.dailySnapshots ?? [],
+    peakPrices: raw.peakPrices ?? {},
   };
 }

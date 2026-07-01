@@ -13,7 +13,8 @@ import {
   summarizeStock,
   uid,
 } from "@/lib/calc";
-import { UnitNotice } from "@/components/StatCard";
+import { DailyReportPanel } from "@/components/DailyReportPanel";
+import { applyDailySnapshot, applyPeakPrices } from "@/lib/dailyReport";
 import { InitialCapitalPanel } from "@/components/InitialCapitalPanel";
 import { PortfolioSummaryPanel } from "@/components/PortfolioSummaryPanel";
 import { StockEditModal } from "@/components/StockEditModal";
@@ -116,6 +117,25 @@ export function Dashboard({
   const portfolio = summarizePortfolio(data);
   const capital = summarizeInitialCapital(data);
   const capitalIds = new Set(data.initialCapitalTradeIds);
+
+  useEffect(() => {
+    let next = applyPeakPrices(data);
+    next = applyDailySnapshot(next, portfolio, stockSummaries);
+    const changed =
+      next.peakPrices !== data.peakPrices ||
+      (next.dailySnapshots?.length ?? 0) !== (data.dailySnapshots?.length ?? 0);
+    if (changed) persist(next);
+  }, [data, portfolio, stockSummaries, persist]);
+
+  function updateReportSettings(buyDrop: number, sellGain: number) {
+    persist({
+      ...data,
+      reportSettings: {
+        buyDropFromPeakPct: buyDrop,
+        sellGainFromAvgPct: sellGain,
+      },
+    });
+  }
   const activeStock = data.stocks.find((s) => s.id === activeId) ?? data.stocks[0];
   const stockSummary = activeStock ? stockSummaries[activeStock.id] : null;
   const buySignal = stockSummary ? getBuyTimingSignal(stockSummary) : null;
@@ -270,6 +290,19 @@ export function Dashboard({
       </header>
 
       <main className="mx-auto min-w-0 max-w-5xl space-y-4 px-3 py-4 sm:px-6 sm:py-5">
+        <DailyReportPanel
+          data={data}
+          portfolio={portfolio}
+          summaries={stockSummaries}
+          buySignals={stockBuySignals}
+          sellSignals={stockSellSignals}
+          onSettingsChange={updateReportSettings}
+          onOpenStock={(id) => {
+            setActiveId(id);
+            setEditingTrade(null);
+          }}
+        />
+
         <PortfolioSummaryPanel portfolio={portfolio} />
 
         <InitialCapitalPanel summary={capital} />

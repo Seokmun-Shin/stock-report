@@ -1,5 +1,7 @@
 export type TradeType = "buy" | "sell";
 
+import type { ReportSettings } from "./reportSettings";
+
 export interface Stock {
   id: string;
   name: string;
@@ -27,12 +29,31 @@ export interface Trade {
   createdAt: string;
 }
 
+export interface DailySnapshot {
+  date: string;
+  portfolioTotalPnl: number;
+  portfolioTotalReturnRate: number;
+  stockPrices: Record<string, number>;
+  stockUnrealizedPnl: Record<string, number>;
+}
+
+export interface StockPeak {
+  price: number;
+  asOf: string;
+}
+
 export interface AppData {
   stocks: Stock[];
   trades: Trade[];
   currentPrices: Record<string, number>;
   /** 매수 내역 중 '초기 투자금'으로 지정한 trade id 목록 */
   initialCapitalTradeIds: string[];
+  /** 일일 브리핑 시그널 설정 */
+  reportSettings?: Partial<ReportSettings>;
+  /** 일별 포트폴리오 스냅샷 (최근 90일) */
+  dailySnapshots?: DailySnapshot[];
+  /** 종목별 추적 고점 (매수 시그널용) */
+  peakPrices?: Record<string, StockPeak>;
 }
 
 export interface StockSummary {
