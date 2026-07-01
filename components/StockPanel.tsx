@@ -99,10 +99,10 @@ export function StockPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-ink sm:text-lg">종목 Summary</h2>
+    <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm">
+      <h2 className="border-b border-line px-5 py-3.5 text-base font-semibold text-ink sm:text-lg">종목 Summary</h2>
 
-      <div className="mt-3">
+      <div className="p-5 pt-4">
         <StockSummaryList
           stocks={stocks}
           summaries={summaries}

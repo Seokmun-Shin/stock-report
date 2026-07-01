@@ -78,7 +78,7 @@ export function StatCard({
 
   if (inline) {
     return (
-      <div className={`flex min-h-[2.75rem] min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2.5 ${bg} ${fill ? "flex-1" : ""}`}>
+      <div className={`flex min-h-[2.75rem] min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${bg} ${fill ? "flex-1" : ""}`}>
         <div className="min-w-0 flex-1 text-sm font-semibold text-slate-700">
           <CardLabel label={label} hint={hint} hintAlign={hintAlign} />
         </div>
@@ -90,12 +90,12 @@ export function StatCard({
   }
 
   return (
-    <div className={`flex min-h-[4.75rem] min-w-0 flex-col rounded-xl border p-3.5 shadow-sm ${bg}`}>
-      <p className="text-sm font-semibold text-slate-700">
+    <div className={`flex min-h-[4.25rem] min-w-0 flex-col rounded-lg border p-3 ${bg}`}>
+      <p className="text-xs font-medium text-ink-muted sm:text-sm">
         <CardLabel label={label} hint={hint} hintAlign={hintAlign} />
       </p>
-      <div className="mt-auto pt-2">
-        <p className={`truncate text-right text-lg font-bold tabular-nums sm:text-xl ${valColor}`} title={value}>
+      <div className="mt-auto pt-1.5">
+        <p className={`truncate text-right text-base font-bold tabular-nums sm:text-lg ${valColor}`} title={value}>
           {value}
         </p>
         {sub && (

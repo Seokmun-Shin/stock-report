@@ -222,7 +222,7 @@ export function TimingRadar({
     ) : null;
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
+    <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
       {/* 모바일: 영역별 세로 배치 */}
       <div className="flex flex-col gap-5 md:hidden">
         <div className="space-y-2">
@@ -385,7 +385,7 @@ export function StockSettlement({ stockName, summary }: { stockName: string; sum
   ];
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
       <SectionTitle unit>{stockName} 정산</SectionTitle>
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {rows.map((row) => (

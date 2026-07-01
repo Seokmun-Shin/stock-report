@@ -6,9 +6,6 @@ import type { AppData, Stock, Trade } from "@/lib/types";
 import { SEED } from "@/lib/seed";
 import { suggestStockCode } from "@/lib/stockCodes";
 import {
-  fmt,
-  fmtPct,
-  fmtSigned,
   getBuyTimingSignal,
   getSellTimingSignal,
   summarizeInitialCapital,
@@ -16,9 +13,9 @@ import {
   summarizeStock,
   uid,
 } from "@/lib/calc";
-import { PORTFOLIO_HINTS } from "@/lib/metricHints";
-import { HeroMetric, SectionTitle, StatCard, UnitNotice } from "@/components/StatCard";
+import { UnitNotice } from "@/components/StatCard";
 import { InitialCapitalPanel } from "@/components/InitialCapitalPanel";
+import { PortfolioSummaryPanel } from "@/components/PortfolioSummaryPanel";
 import { StockPanel } from "@/components/StockPanel";
 import { StockSettlement, TimingRadar } from "@/components/TimingRadar";
 import { TradeHistorySection } from "@/components/TradeSection";
@@ -231,8 +228,8 @@ export function Dashboard({
   }
 
   return (
-    <div className="min-h-screen bg-surface-dim">
-      <header className="border-b border-line bg-surface px-4 py-4 sm:px-6">
+    <div className="min-h-screen bg-slate-100">
+      <header className="border-b border-slate-200/90 bg-white px-4 py-4 shadow-sm sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">주식 매매 리포트</h1>
@@ -274,27 +271,8 @@ export function Dashboard({
         )}
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:px-6">
-        <section className="rounded-2xl border border-line bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <SectionTitle unit>전체 요약</SectionTitle>
-            <HeroMetric
-              label="누적 손익"
-              hint={PORTFOLIO_HINTS.totalPnl}
-              value={fmtSigned(portfolio.totalPnl)}
-              sub={fmtPct(portfolio.totalReturnRate)}
-              tone={portfolio.totalPnl >= 0 ? "gain" : "loss"}
-            />
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <StatCard label="매수 총액" hint={PORTFOLIO_HINTS.buyAmount} value={fmt(portfolio.buyAmount)} />
-            <StatCard label="매도 총액" hint={PORTFOLIO_HINTS.sellAmount} value={fmt(portfolio.sellAmount)} />
-            <StatCard label="매매 비용" hint={PORTFOLIO_HINTS.tradeCost} value={fmt(portfolio.tradeCost)} />
-            <StatCard label="실현 순수익" hint={PORTFOLIO_HINTS.netProfitRealized} value={fmt(portfolio.netProfitRealized)} tone={portfolio.netProfitRealized >= 0 ? "gain" : "loss"} />
-            <StatCard label="미실현 손익" hint={PORTFOLIO_HINTS.unrealizedPnl} value={fmtSigned(portfolio.unrealizedPnl)} tone={portfolio.unrealizedPnl >= 0 ? "gain" : "loss"} />
-            <StatCard label="수익률" hint={PORTFOLIO_HINTS.returnRate} value={fmtPct(portfolio.totalReturnRate)} tone={portfolio.totalReturnRate >= 0 ? "gain" : "loss"} />
-          </div>
-        </section>
+      <main className="mx-auto max-w-5xl space-y-4 px-4 py-5 sm:px-6">
+        <PortfolioSummaryPanel portfolio={portfolio} />
 
         <InitialCapitalPanel summary={capital} />
 

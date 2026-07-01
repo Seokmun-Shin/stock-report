@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 body {
-  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  font-family: "Pretendard Variable", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-size: 16px;
   color: #0f172a;
+  background-color: #f1f5f9;
+  -webkit-font-smoothing: antialiased;
 }
