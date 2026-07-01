@@ -17,6 +17,7 @@ import { UnitNotice } from "@/components/StatCard";
 import { InitialCapitalPanel } from "@/components/InitialCapitalPanel";
 import { PortfolioSummaryPanel } from "@/components/PortfolioSummaryPanel";
 import { StockEditModal } from "@/components/StockEditModal";
+import { StockPanel } from "@/components/StockPanel";
 import { StockSettlement, TimingRadar } from "@/components/TimingRadar";
 import { TradeHistorySection } from "@/components/TradeSection";
 import { applyPriceUpdates, useKisPrices } from "@/hooks/useKisPrices";
