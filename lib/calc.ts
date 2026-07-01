@@ -8,13 +8,14 @@ import type {
   TimingSignal,
   Trade,
 } from "./types";
+import { sellTaxTotal } from "./tradeFees";
 
 export function tradeAmount(t: Trade): number {
   return t.quantity * t.price;
 }
 
 export function tradeCost(t: Trade): number {
-  return t.fee + (t.type === "sell" ? t.tax : 0);
+  return t.fee + (t.type === "sell" ? sellTaxTotal(t) : 0);
 }
 
 interface Lot {
@@ -40,7 +41,7 @@ function fifoStockMetrics(trades: Trade[]) {
       lots.push({ qty: t.quantity, price: t.price, fee: t.fee });
     } else {
       sellAmountTotal += tradeAmount(t);
-      sellCostTotal += t.fee + t.tax;
+      sellCostTotal += t.fee + sellTaxTotal(t);
       let remaining = t.quantity;
       while (remaining > 0 && lots.length > 0) {
         const lot = lots[0];
@@ -57,9 +58,11 @@ function fifoStockMetrics(trades: Trade[]) {
 
   let holdingQty = 0;
   let holdingCost = 0;
+  let holdingCostBasis = 0;
   for (const lot of lots) {
     holdingQty += lot.qty;
     holdingCost += lot.qty * lot.price;
+    holdingCostBasis += lot.qty * lot.price + lot.fee;
   }
 
   const tradeCost = buyCostTotal + sellCostTotal;
@@ -68,8 +71,8 @@ function fifoStockMetrics(trades: Trade[]) {
   const returnRate =
     matchedBuyAmount + tradeCost > 0 ? (netProfit / (matchedBuyAmount + tradeCost)) * 100 : 0;
 
-  // 평단 = 매수 단가 가중평균 (수수료·세금 미포함)
   const holdingAvgPrice = holdingQty > 0 ? holdingCost / holdingQty : 0;
+  const holdingAvgPriceWithCost = holdingQty > 0 ? holdingCostBasis / holdingQty : 0;
 
   return {
     buyAmountTotal,
@@ -80,6 +83,8 @@ function fifoStockMetrics(trades: Trade[]) {
     returnRate,
     holdingQty,
     holdingAvgPrice,
+    holdingAvgPriceWithCost,
+    holdingCostBasis,
   };
 }
 
@@ -94,6 +99,10 @@ export function summarizeStock(
 
   const unrealizedPnl =
     m.holdingQty > 0 ? (currentPrice - m.holdingAvgPrice) * m.holdingQty : 0;
+  const unrealizedPnlWithCost =
+    m.holdingQty > 0 ? currentPrice * m.holdingQty - m.holdingCostBasis : 0;
+  const unrealizedPnlPct =
+    m.holdingCostBasis > 0 ? (unrealizedPnlWithCost / m.holdingCostBasis) * 100 : 0;
 
   const sells = rows.filter((t) => t.type === "sell");
   const lastSell = [...sells].sort((a, b) => b.date.localeCompare(a.date))[0];
@@ -121,7 +130,10 @@ export function summarizeStock(
     sellTiming20,
     holdingQty: m.holdingQty,
     holdingAvgPrice: m.holdingAvgPrice,
+    holdingAvgPriceWithCost: m.holdingAvgPriceWithCost,
     unrealizedPnl,
+    unrealizedPnlWithCost,
+    unrealizedPnlPct,
     currentPrice,
   };
 }
@@ -247,6 +259,46 @@ export function getSellTimingSignal(summary: StockSummary): SellTimingSignal {
   };
 }
 
+/** FIFO 기준 매도 건별 실현손익 (매수 수수료·매도 비용 반영) */
+export function computeRealizedPnlByTrade(trades: Trade[]): Record<string, number> {
+  const sorted = [...trades].sort(compareTradesByDateAsc);
+  const lots: Lot[] = [];
+  const result: Record<string, number> = {};
+
+  for (const t of sorted) {
+    if (t.type === "buy") {
+      lots.push({ qty: t.quantity, price: t.price, fee: t.fee });
+      continue;
+    }
+
+    const sellFeeTotal = t.fee + sellTaxTotal(t);
+    let remaining = t.quantity;
+    let matchedCost = 0;
+
+    while (remaining > 0 && lots.length > 0) {
+      const lot = lots[0];
+      const take = Math.min(remaining, lot.qty);
+      const buyFeeShare = lot.qty > 0 ? (lot.fee * take) / lot.qty : 0;
+      matchedCost += take * lot.price + buyFeeShare;
+      lot.fee -= buyFeeShare;
+      lot.qty -= take;
+      remaining -= take;
+      if (lot.qty <= 0) lots.shift();
+    }
+
+    const sellFeeShare = t.quantity > 0 ? (sellFeeTotal * t.quantity) / t.quantity : sellFeeTotal;
+    const proceeds = tradeAmount(t) - sellFeeShare;
+    result[t.id] = proceeds - matchedCost;
+  }
+
+  return result;
+}
+
+export function formatTradeDateTime(t: Trade): string {
+  if (t.executedTime) return `${t.date} ${t.executedTime}`;
+  return t.date;
+}
+
 export function fmt(n: number): string {
   return new Intl.NumberFormat("ko-KR").format(Math.round(n));
 }
@@ -277,18 +329,34 @@ export function tradeSortKey(t: Trade): number {
   return new Date(`${t.date}T12:00:00`).getTime();
 }
 
-/** 화면: 최신순 (같은 날짜면 나중에 입력한 것이 위) */
+/** 화면: 최신순 (같은 날짜면 체결시각/입력 역순) */
 export function compareTradesByDateDesc(a: Trade, b: Trade): number {
   const byDate = b.date.localeCompare(a.date);
   if (byDate !== 0) return byDate;
+  const ta = tradeExecutedMinutes(a);
+  const tb = tradeExecutedMinutes(b);
+  if (ta !== tb) return tb - ta;
   return tradeSortKey(b) - tradeSortKey(a);
 }
 
-/** FIFO·회계: 과거순 (같은 날짜면 먼저 입력한 것이 먼저) */
+/** FIFO·회계: 과거순 (같은 날짜면 체결시각 → createdAt) */
 export function compareTradesByDateAsc(a: Trade, b: Trade): number {
   const byDate = a.date.localeCompare(b.date);
   if (byDate !== 0) return byDate;
+  const ta = tradeExecutedMinutes(a);
+  const tb = tradeExecutedMinutes(b);
+  if (ta !== tb) return ta - tb;
   return tradeSortKey(a) - tradeSortKey(b);
+}
+
+function tradeExecutedMinutes(t: Trade): number {
+  if (t.executedTime) {
+    const [h, m] = t.executedTime.split(":").map((x) => parseInt(x, 10));
+    if (!isNaN(h) && !isNaN(m)) return h * 60 + m;
+  }
+  const d = new Date(t.createdAt);
+  if (!isNaN(d.getTime())) return d.getHours() * 60 + d.getMinutes();
+  return 12 * 60;
 }
 
 function inferCreatedAt(t: Trade, index: number): string {
@@ -357,7 +425,7 @@ export function summarizeInitialCapital(data: AppData): InitialCapitalSummary {
         });
       } else {
         let remaining = t.quantity;
-        const sellFeeTotal = t.fee + t.tax;
+          const sellFeeTotal = t.fee + sellTaxTotal(t);
 
         while (remaining > 0 && lots.length > 0) {
           const lot = lots[0];
@@ -415,10 +483,19 @@ const LEGACY_STOCK_CODES: Record<string, string> = {
 export function migrateAppData(
   raw: Partial<Omit<AppData, "trades">> & { trades?: TradeDraft[] }
 ): AppData {
-  const trades = (raw.trades ?? []).map((t, i) => ({
-    ...t,
-    createdAt: t.createdAt ?? inferCreatedAt(t as Trade, i),
-  }));
+  const trades = (raw.trades ?? []).map((t, i) => {
+    const tax = t.tax ?? 0;
+    const transactionTax = t.transactionTax;
+    const ruralTax = t.ruralTax;
+    return {
+      ...t,
+      tax:
+        t.type === "sell" && transactionTax != null && ruralTax != null
+          ? transactionTax + ruralTax
+          : tax,
+      createdAt: t.createdAt ?? inferCreatedAt(t as Trade, i),
+    };
+  });
   const stocks = (raw.stocks ?? []).map((s) => ({
     ...s,
     code: s.code?.trim() || LEGACY_STOCK_CODES[s.id],

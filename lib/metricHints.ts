@@ -42,6 +42,8 @@ export const TIMING_HINTS = {
   holdingAvgPriceSell: "보유분 평균 매수 단가 (매도선 기준)",
   holdingQty: "현재 보유 주식 수",
   holdingAvgPrice: "보유분 매수 단가 가중평균 (수수료 제외)",
-  unrealizedPnl: "보유분 (현재가−평단) × 수량",
+  holdingAvgPriceWithCost: "보유분 매입단가 (매수 수수료 포함)",
+  unrealizedPnlWithCost: "보유 시가 − 매입원가(수수료 포함)",
+  unrealizedPnlPct: "비용 포함 평가손익 ÷ 매입원가 × 100",
   currentPrice: "미실현 손익·타이밍 판단. KIS 연동 시 「현재가 새로고침」으로 자동 입력",
 } as const;

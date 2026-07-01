@@ -16,7 +16,7 @@ import {
 import { UnitNotice } from "@/components/StatCard";
 import { InitialCapitalPanel } from "@/components/InitialCapitalPanel";
 import { PortfolioSummaryPanel } from "@/components/PortfolioSummaryPanel";
-import { StockPanel } from "@/components/StockPanel";
+import { StockEditModal } from "@/components/StockEditModal";
 import { StockSettlement, TimingRadar } from "@/components/TimingRadar";
 import { TradeHistorySection } from "@/components/TradeSection";
 import { applyPriceUpdates, useKisPrices } from "@/hooks/useKisPrices";
@@ -44,6 +44,7 @@ export function Dashboard({
   const [newStockCode, setNewStockCode] = useState("");
   const [newStockCodeManual, setNewStockCodeManual] = useState(false);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
+  const [editingStock, setEditingStock] = useState<Stock | null>(null);
 
   function beginAddStock() {
     setAddingStock(true);
@@ -178,22 +179,18 @@ export function Dashboard({
   }
 
   function editStock(stock: Stock) {
-    const name = prompt("종목명", stock.name)?.trim();
-    if (!name) return;
-    const codeInput = prompt(
-      "종목코드 6자리 (선택)\n· KIS 「현재가 새로고침」에만 필요\n· 비우면 수동 입력",
-      stock.code ?? ""
-    );
-    if (codeInput === null) return;
-    const codeRaw = codeInput.trim().replace(/\D/g, "");
+    setEditingStock(stock);
+  }
+
+  function saveEditedStock(name: string, code?: string) {
+    if (!editingStock) return;
     persist({
       ...data,
       stocks: data.stocks.map((s) =>
-        s.id === stock.id
-          ? { ...s, name, code: codeRaw ? codeRaw.padStart(6, "0") : undefined }
-          : s
+        s.id === editingStock.id ? { ...s, name, code } : s
       ),
     });
+    setEditingStock(null);
   }
 
   function deleteStock(stockId: string) {
@@ -362,6 +359,14 @@ export function Dashboard({
           )}
         </StockPanel>
       </main>
+
+      {editingStock && (
+        <StockEditModal
+          stock={editingStock}
+          onSave={saveEditedStock}
+          onClose={() => setEditingStock(null)}
+        />
+      )}
 
       <footer className="border-t border-line py-5 text-center text-sm text-ink-muted">
         {cloudEnabled && user

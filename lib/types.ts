@@ -12,11 +12,18 @@ export interface Trade {
   stockId: string;
   type: TradeType;
   date: string;
+  /** 같은 날 FIFO 순서용 체결시각 (HH:mm) */
+  executedTime?: string;
   quantity: number;
   price: number;
   fee: number;
+  /** 매도 세금 합계 (거래세+농특세). legacy 단일 필드 */
   tax: number;
-  /** 표시·동일일 정렬용 (FIFO는 date 기준) */
+  /** 매도 거래세 (선택 — 없으면 tax만 사용) */
+  transactionTax?: number;
+  /** 매도 농특세 (선택) */
+  ruralTax?: number;
+  /** 표시·동일일 정렬용 (FIFO는 date + executedTime 기준) */
   createdAt: string;
 }
 
@@ -48,7 +55,13 @@ export interface StockSummary {
   sellTiming20: number | null;
   holdingQty: number;
   holdingAvgPrice: number;
+  /** 보유분 매입단가 (매수 수수료 포함) */
+  holdingAvgPriceWithCost: number;
   unrealizedPnl: number;
+  /** 비용 포함 평가손익 */
+  unrealizedPnlWithCost: number;
+  /** 비용 포함 평가수익률 % */
+  unrealizedPnlPct: number;
   currentPrice: number;
 }
 

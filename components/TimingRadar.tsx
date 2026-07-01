@@ -188,10 +188,15 @@ export function TimingRadar({
       { label: "보유", hint: TIMING_HINTS.holdingQty, value: `${fmtQty(summary.holdingQty)}주` },
       { label: "평단", hint: TIMING_HINTS.holdingAvgPrice, value: fmt(summary.holdingAvgPrice) },
       {
+        label: "평단(비용)",
+        hint: TIMING_HINTS.holdingAvgPriceWithCost,
+        value: fmt(summary.holdingAvgPriceWithCost),
+      },
+      {
         label: "평가손익",
-        hint: TIMING_HINTS.unrealizedPnl,
-        value: fmtSigned(summary.unrealizedPnl),
-        tone: summary.unrealizedPnl >= 0 ? "gain" : "loss",
+        hint: TIMING_HINTS.unrealizedPnlWithCost,
+        value: `${fmtSigned(summary.unrealizedPnlWithCost)} (${fmtPct(summary.unrealizedPnlPct)})`,
+        tone: summary.unrealizedPnlWithCost >= 0 ? "gain" : "loss",
       }
     );
   }
@@ -278,8 +283,8 @@ export function TimingRadar({
         )}
       </div>
 
-      {/* 데스크톱: 좌측 4행(현재가+보유3)과 매수/매도 카드 6개 상·하단·행간 맞춤 */}
-      <div className="hidden md:grid md:grid-cols-3 md:grid-rows-[auto_auto_auto_auto_auto_auto] md:items-stretch md:gap-x-0 md:gap-y-1.5 md:divide-x md:divide-line">
+      {/* 데스크톱: 좌측(현재가+보유4)과 매수/매도 카드 행간 맞춤 */}
+      <div className="hidden md:grid md:grid-cols-3 md:grid-rows-[auto_auto_auto_auto_auto_auto_auto] md:items-stretch md:gap-x-0 md:gap-y-1.5 md:divide-x md:divide-line">
         <div className="space-y-2 md:col-start-1 md:row-start-1 md:pr-5">
           <SectionTitle unit>매매 타이밍</SectionTitle>
           {onKisRefresh &&
@@ -336,9 +341,14 @@ export function TimingRadar({
                 <TimingCard row={holdingRows[2]} />
               </div>
             )}
+            {holdingRows[3] && (
+              <div className="md:col-start-1 md:row-start-7 md:pr-5">
+                <TimingCard row={holdingRows[3]} />
+              </div>
+            )}
 
             {buyRows.length > 0 && (
-              <div className="md:col-start-2 md:row-start-3 md:row-span-4 md:flex md:h-full md:min-h-0 md:flex-col md:gap-1.5 md:px-5">
+              <div className="md:col-start-2 md:row-start-3 md:row-span-5 md:flex md:h-full md:min-h-0 md:flex-col md:gap-1.5 md:px-5">
                 {buyRows.map((row) => (
                   <TimingCard key={row.label} row={row} fill />
                 ))}
@@ -346,7 +356,7 @@ export function TimingRadar({
             )}
 
             {sellRows.length > 0 && (
-              <div className="md:col-start-3 md:row-start-3 md:row-span-4 md:flex md:h-full md:min-h-0 md:flex-col md:gap-1.5 md:pl-5">
+              <div className="md:col-start-3 md:row-start-3 md:row-span-5 md:flex md:h-full md:min-h-0 md:flex-col md:gap-1.5 md:pl-5">
                 {sellRows.map((row) => (
                   <TimingCard key={row.label} row={row} fill />
                 ))}

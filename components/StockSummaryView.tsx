@@ -1,7 +1,7 @@
 "use client";
 
 import type { BuyTimingSignal, SellTimingSignal, Stock, StockSummary } from "@/lib/types";
-import { fmt, fmtQty, fmtSigned } from "@/lib/calc";
+import { fmt, fmtPct, fmtQty, fmtSigned } from "@/lib/calc";
 
 export function StockSummaryList({
   stocks,
@@ -37,9 +37,9 @@ export function StockSummaryList({
             const buy = buySignals[s.id];
             const sell = sellSignals[s.id];
             const pnlTone =
-              sum.holdingQty > 0 && sum.unrealizedPnl >= 0
+              sum.holdingQty > 0 && sum.unrealizedPnlWithCost >= 0
                 ? "text-gain"
-                : sum.holdingQty > 0 && sum.unrealizedPnl < 0
+                : sum.holdingQty > 0 && sum.unrealizedPnlWithCost < 0
                   ? "text-loss"
                   : "text-ink";
 
@@ -56,7 +56,14 @@ export function StockSummaryList({
                   {sum.holdingQty > 0 ? `${fmtQty(sum.holdingQty)}주` : "0"}
                 </td>
                 <td className={`px-3 py-3 text-right tabular-nums font-bold ${pnlTone}`}>
-                  {sum.holdingQty > 0 ? fmtSigned(sum.unrealizedPnl) : "0"}
+                  {sum.holdingQty > 0 ? (
+                    <>
+                      {fmtSigned(sum.unrealizedPnlWithCost)}
+                      <span className="ml-1 text-xs font-semibold">({fmtPct(sum.unrealizedPnlPct)})</span>
+                    </>
+                  ) : (
+                    "0"
+                  )}
                 </td>
                 <td className="px-3 py-3 text-right font-semibold">{buy?.label ?? "—"}</td>
                 <td className="px-3 py-3 text-right font-semibold text-slate-600">{sell?.label ?? "—"}</td>

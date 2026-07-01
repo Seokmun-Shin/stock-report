@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { Trade, TradeType } from "@/lib/types";
-import { compareTradesByDateDesc, fmt, fmtQty, tradeAmount, tradeCost } from "@/lib/calc";
+import { compareTradesByDateDesc, computeRealizedPnlByTrade, fmt, fmtQty, fmtSigned, tradeAmount, tradeCost } from "@/lib/calc";
+import { calcBuyCommission, calcSellTaxes } from "@/lib/tradeFees";
 import { FormattedNumberInput } from "./FormattedNumberInput";
 import { SectionTitle } from "./StatCard";
 
@@ -30,6 +31,7 @@ export function TradeTable({
 }) {
   const [expanded, setExpanded] = useState(false);
   const sorted = [...trades].sort(compareTradesByDateDesc);
+  const realizedById = computeRealizedPnlByTrade(trades);
 
   useEffect(() => {
     setExpanded(false);
@@ -51,16 +53,17 @@ export function TradeTable({
   return (
     <div className="space-y-2">
       <div className="min-w-0 overflow-x-auto rounded-2xl border border-line">
-        <table className="w-full min-w-[640px] text-sm sm:text-base">
+        <table className="w-full min-w-[760px] text-sm sm:text-base">
           <thead className="bg-surface-dim text-sm text-ink-muted">
             <tr>
               <th className="px-3 py-3 text-center">기준</th>
               <th className="px-3 py-3 text-center">구분</th>
-              <th className="px-3 py-3 text-center">날짜</th>
+              <th className="px-3 py-3 text-center">일시</th>
               <th className="px-3 py-3 text-right">수량</th>
               <th className="px-3 py-3 text-right">단가</th>
               <th className="px-3 py-3 text-right">금액</th>
               <th className="px-3 py-3 text-right">비용</th>
+              <th className="px-3 py-3 text-right">실현손익</th>
               <th className="px-3 py-3 text-center">관리</th>
             </tr>
           </thead>
@@ -89,11 +92,16 @@ export function TradeTable({
                       {t.type === "buy" ? "매수" : "매도"}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-center text-ink">{t.date}</td>
+                  <td className="px-3 py-2.5 text-center text-ink tabular-nums">
+                    {t.executedTime ? `${t.date} ${t.executedTime}` : t.date}
+                  </td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{fmtQty(t.quantity)}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{fmt(t.price)}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{fmt(tradeAmount(t))}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-ink-muted">{fmt(tradeCost(t))}</td>
+                  <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${t.type === "sell" ? (realizedById[t.id] >= 0 ? "text-gain" : "text-loss") : "text-ink-muted"}`}>
+                    {t.type === "sell" ? fmtSigned(realizedById[t.id] ?? 0) : "—"}
+                  </td>
                   <td className="px-3 py-2.5 text-center">
                     <button type="button" onClick={() => onEdit(t)} className="px-1.5 text-xs text-gain hover:underline">
                       수정
@@ -137,35 +145,75 @@ export function TradeForm({
 }) {
   const [type, setType] = useState<TradeType>("buy");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [executedTime, setExecutedTime] = useState("");
   const [quantity, setQuantity] = useState(0);
   const [price, setPrice] = useState(0);
   const [fee, setFee] = useState(0);
-  const [tax, setTax] = useState(0);
+  const [transactionTax, setTransactionTax] = useState(0);
+  const [ruralTax, setRuralTax] = useState(0);
 
   const isEditing = !!editing;
+  const sellAmount = quantity * price;
 
   useEffect(() => {
     if (editing) {
       setType(editing.type);
       setDate(editing.date);
+      setExecutedTime(editing.executedTime ?? "");
       setQuantity(editing.quantity);
       setPrice(editing.price);
       setFee(editing.fee);
-      setTax(editing.tax);
+      if (editing.type === "sell") {
+        if (editing.transactionTax != null || editing.ruralTax != null) {
+          setTransactionTax(editing.transactionTax ?? 0);
+          setRuralTax(editing.ruralTax ?? 0);
+        } else {
+          setTransactionTax(editing.tax);
+          setRuralTax(0);
+        }
+      } else {
+        setTransactionTax(0);
+        setRuralTax(0);
+      }
     } else {
       setType("buy");
       setDate(new Date().toISOString().slice(0, 10));
+      setExecutedTime("");
       setQuantity(0);
       setPrice(0);
       setFee(0);
-      setTax(0);
+      setTransactionTax(0);
+      setRuralTax(0);
     }
   }, [editing]);
+
+  function applyFeePreset() {
+    if (sellAmount <= 0) return;
+    setFee(calcBuyCommission(sellAmount));
+  }
+
+  function applySellTaxPreset() {
+    if (sellAmount <= 0) return;
+    const { transactionTax: tt, ruralTax: rt } = calcSellTaxes(sellAmount);
+    setTransactionTax(tt);
+    setRuralTax(rt);
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (quantity <= 0 || price <= 0) return;
-    onSubmit({ type, date, quantity, price, fee, tax: type === "sell" ? tax : 0 });
+    const taxTotal = type === "sell" ? transactionTax + ruralTax : 0;
+    onSubmit({
+      type,
+      date,
+      executedTime: executedTime.trim() || undefined,
+      quantity,
+      price,
+      fee,
+      tax: taxTotal,
+      transactionTax: type === "sell" ? transactionTax : undefined,
+      ruralTax: type === "sell" ? ruralTax : undefined,
+    });
   }
 
   return (
@@ -196,6 +244,16 @@ export function TradeForm({
           <input type="date" className={`${inputCls} text-center`} value={date} onChange={(e) => setDate(e.target.value)} required />
         </label>
         <label className="text-xs text-ink-muted">
+          체결시각
+          <input
+            type="time"
+            className={`${inputCls} text-center`}
+            value={executedTime}
+            onChange={(e) => setExecutedTime(e.target.value)}
+            title="같은 날 여러 체결 시 FIFO 순서"
+          />
+        </label>
+        <label className="text-xs text-ink-muted">
           수량
           <FormattedNumberInput value={quantity} onChange={setQuantity} className={inputCls} placeholder="0" />
         </label>
@@ -204,14 +262,33 @@ export function TradeForm({
           <FormattedNumberInput value={price} onChange={setPrice} className={inputCls} placeholder="0" />
         </label>
         <label className="text-xs text-ink-muted">
-          수수료
+          <span className="flex items-center justify-between gap-1">
+            수수료
+            <button type="button" onClick={applyFeePreset} className="text-[10px] font-medium text-gain hover:underline">
+              0.015% 적용
+            </button>
+          </span>
           <FormattedNumberInput value={fee} onChange={setFee} className={inputCls} placeholder="0" />
         </label>
         {type === "sell" && (
-          <label className="text-xs text-ink-muted">
-            세금
-            <FormattedNumberInput value={tax} onChange={setTax} className={inputCls} placeholder="0" />
-          </label>
+          <>
+            <label className="text-xs text-ink-muted">
+              <span className="flex items-center justify-between gap-1">
+                거래세
+                <button type="button" onClick={applySellTaxPreset} className="text-[10px] font-medium text-gain hover:underline">
+                  세금 적용
+                </button>
+              </span>
+              <FormattedNumberInput value={transactionTax} onChange={setTransactionTax} className={inputCls} placeholder="0" />
+            </label>
+            <label className="text-xs text-ink-muted">
+              농특세
+              <FormattedNumberInput value={ruralTax} onChange={setRuralTax} className={inputCls} placeholder="0" />
+            </label>
+            <p className="col-span-2 text-xs text-ink-muted sm:col-span-3">
+              매도 세금 합계: {fmt(transactionTax + ruralTax)}원 (코스피 0.15%+0.15% 참고)
+            </p>
+          </>
         )}
       </div>
 
@@ -277,7 +354,7 @@ export function TradeHistorySection({
             매매 내역 — {stockName}
             <span className="ml-1.5 text-xs font-normal text-ink-muted">({trades.length}건)</span>
           </SectionTitle>
-          <p className="mt-1 text-xs text-ink-muted">최신순 · 매수 「★」= 초기 투자금 · 표에서 수정/삭제</p>
+          <p className="mt-1 text-xs text-ink-muted">최신순 · 매수 「★」= 초기 투자금 · 같은 날은 체결시각 순(FIFO)</p>
         </div>
         {!showForm && (
           <button
@@ -291,7 +368,7 @@ export function TradeHistorySection({
       </div>
 
       <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3 text-xs leading-relaxed text-slate-700">
-        <strong className="text-ink">증권 앱 체결 내역을 입력하세요.</strong> 날짜·매수/매도·수량·단가·수수료(매도 시 세금)를
+        <strong className="text-ink">증권 앱 체결 내역을 입력하세요.</strong> 날짜·체결시각·매수/매도·수량·단가·수수료(매도 시 거래세·농특세)를
         등록하면 위 타이밍·정산·전체 요약이 자동으로 갱신됩니다.
       </div>
 
