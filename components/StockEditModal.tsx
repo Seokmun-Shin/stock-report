@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Stock } from "@/lib/types";
+import { suggestStockCode } from "@/lib/stockCodes";
 import { UI } from "@/components/ui/PanelCard";
 
 export function StockEditModal({
