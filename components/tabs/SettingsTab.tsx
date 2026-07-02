@@ -9,6 +9,7 @@ import { buildMarketBrief, formatMarketBriefText } from "@/lib/briefing/marketBr
 import type { MarketBriefingContext } from "@/lib/briefing/types";
 import type { ReportSettings } from "@/lib/reportSettings";
 import { PanelCard, PageSectionTitle, BtnPrimary, BtnSecondary } from "@/components/ui/PanelCard";
+import { APP_VERSION } from "@/lib/appVersion";
 import { StrategySettingsForm } from "@/components/StrategySettingsForm";
 import { SetupStatusPanel } from "@/components/SetupStatusPanel";
 import { CsvImportPanel } from "@/components/CsvImportPanel";
@@ -158,6 +159,9 @@ export function SettingsTab({
           </BtnSecondary>
         </div>
       </PanelCard>
+      <p className="text-center text-[10px] text-ink-muted/70">
+        mtock v{APP_VERSION} · 로컬 실행 중이면 START.bat 재실행 · Vercel은 git push 후 2~3분
+      </p>
     </div>
   );
 }
