@@ -1,4 +1,4 @@
-import type { Trade, TradeType } from "./types";
+import type { Trade, TradeType } from "@/lib/types";
 
 export interface ParsedTradeRow {
   date: string;

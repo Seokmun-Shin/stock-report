@@ -13,6 +13,7 @@ import {
   sellTaxRateFromSettings,
 } from "@/lib/reportSettings";
 import type { TradeSuggestion } from "@/lib/briefing/tradeSuggestions";
+import { FormattedNumberInput } from "@/components/FormattedNumberInput";
 import { insetCard, panelShell, UI } from "@/components/ui/PanelCard";
 
 type TradeInput = Omit<Trade, "id" | "stockId" | "createdAt">;

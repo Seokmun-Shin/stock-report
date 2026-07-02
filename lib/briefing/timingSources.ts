@@ -74,7 +74,7 @@ function row(label: string, value: string | number | null | undefined, hint?: st
   return { label, value: display, hint, missing };
 }
 
-function pctRow(label: string, value: number | null | undefined, hint?: string): TimingSourceRow {
+function pctRow(label: string, value: number | null | undefined, hint?: string, _usedFor?: TimingUseTag): TimingSourceRow {
   if (value == null || !Number.isFinite(value)) return row(label, null, hint);
   return row(label, fmtPct(value), hint);
 }

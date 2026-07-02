@@ -20,11 +20,11 @@ function extractShortSaleRows(data: {
 }): Record<string, unknown>[] {
   const o2 = data.output2;
   if (Array.isArray(o2) && o2.length > 0) return o2;
-  if (o2 && typeof o2 === "object") return [o2];
+  if (o2 && typeof o2 === "object" && !Array.isArray(o2)) return [o2];
 
   const o = data.output;
   if (Array.isArray(o) && o.length > 0) return o;
-  if (o && typeof o === "object") return [o];
+  if (o && typeof o === "object" && !Array.isArray(o)) return [o];
 
   return [];
 }

@@ -5,7 +5,6 @@
 import type { KospiBenchmark, StockQuote, StockSummary } from "../types";
 import type { ReportSettings } from "../reportSettings";
 import { resolveReportSettings } from "../reportSettings";
-import type { ReportSettings } from "../reportSettings";
 import { fmt, fmtPct, getBuyTimingSignal, getSellTimingSignal, estimateSellProfit, type SellProfitEstimate } from "../calc";
 import type { MarketBriefingContext, StockBriefingContext, TradeUrgency } from "./types";
 import { summarizeGlobalRisk } from "./providers/globalMarket";

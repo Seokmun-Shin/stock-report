@@ -165,7 +165,7 @@ export async function fetchMarketInvestorFlows(): Promise<MarketInvestorFlow[]> 
       ]);
 
       const intraday = intradayR.status === "fulfilled" ? intradayR.value : undefined;
-      const daily = dailyR.status === "fulfilled" ? dailyR.value : [];
+      const daily = dailyR.status === "fulfilled" ? (dailyR.value ?? []) : [];
 
       if (!intraday && daily.length === 0) continue;
 

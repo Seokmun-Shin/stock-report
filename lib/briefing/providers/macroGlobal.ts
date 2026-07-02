@@ -1,17 +1,25 @@
 /** 주요국 지수·금리·환율·원자재 (Yahoo Finance + Frankfurter) */
 
-import type { FxSnapshot, GlobalIndexSnapshot, MacroInstrumentSnapshot } from "../types";
+import type { FxSnapshot, GlobalIndexSnapshot, MacroInstrumentSnapshot, MacroRegion } from "../types";
 
-type YahooQuote = {
+type EquityIndexQuote = {
   symbol: string;
   label: string;
-  region: GlobalIndexSnapshot["region"];
-  category: GlobalIndexSnapshot["category"];
+  region: MacroRegion;
+  category: NonNullable<GlobalIndexSnapshot["category"]>;
+  unit?: string;
+};
+
+type MacroInstrumentQuote = {
+  symbol: string;
+  label: string;
+  region: MacroRegion;
+  category: MacroInstrumentSnapshot["category"];
   unit?: string;
 };
 
 /** 주요국·지역 주가지수 · 선물 · 섹터 */
-const EQUITY_INDICES: YahooQuote[] = [
+const EQUITY_INDICES: EquityIndexQuote[] = [
   { symbol: "SP500", label: "S&P 500", region: "US", category: "index" },
   { symbol: "NASDAQ", label: "NASDAQ", region: "US", category: "index" },
   { symbol: "DJI", label: "다우존스", region: "US", category: "index" },
@@ -64,7 +72,7 @@ const YAHOO_SYMBOL: Record<string, string> = {
   COPPER: "HG=F",
 };
 
-const MACRO_INSTRUMENTS: YahooQuote[] = [
+const MACRO_INSTRUMENTS: MacroInstrumentQuote[] = [
   { symbol: "US10Y", label: "미국 10년 국채", region: "US", category: "rate", unit: "%" },
   { symbol: "US5Y", label: "미국 5년 국채", region: "US", category: "rate", unit: "%" },
   { symbol: "US3M", label: "미국 3개월 T-Bill", region: "US", category: "rate", unit: "%" },
@@ -93,7 +101,7 @@ function prevFrankfurterDate(d = new Date()): string {
 
 async function fetchYahooQuote(
   internalSymbol: string,
-  meta: Pick<YahooQuote, "label" | "region" | "category" | "unit">
+  _meta: { label: string; region: MacroRegion; unit?: string }
 ): Promise<{ price: number; changeRate: number } | null> {
   const yahoo = YAHOO_SYMBOL[internalSymbol];
   if (!yahoo) return null;
@@ -143,9 +151,7 @@ export async function fetchExtendedGlobalIndices(): Promise<GlobalIndexSnapshot[
   );
 
   return results
-    .filter((r): r is PromiseFulfilledResult<GlobalIndexSnapshot | null> => r.status === "fulfilled")
-    .map((r) => r.value)
-    .filter((v): v is GlobalIndexSnapshot => v != null);
+    .flatMap((r) => (r.status === "fulfilled" && r.value != null ? [r.value] : []));
 }
 
 export async function fetchMacroInstruments(): Promise<MacroInstrumentSnapshot[]> {
@@ -156,8 +162,8 @@ export async function fetchMacroInstruments(): Promise<MacroInstrumentSnapshot[]
       return {
         symbol: i.symbol,
         label: i.label,
-        category: i.category!,
-        region: i.region!,
+        category: i.category,
+        region: i.region,
         price: q.price,
         changeRate: q.changeRate,
         unit: i.unit,
@@ -167,9 +173,7 @@ export async function fetchMacroInstruments(): Promise<MacroInstrumentSnapshot[]
   );
 
   return results
-    .filter((r): r is PromiseFulfilledResult<MacroInstrumentSnapshot | null> => r.status === "fulfilled")
-    .map((r) => r.value)
-    .filter((v): v is MacroInstrumentSnapshot => v != null);
+    .flatMap((r) => (r.status === "fulfilled" && r.value != null ? [r.value] : []));
 }
 
 export async function fetchMajorFxRates(): Promise<FxSnapshot[]> {
@@ -204,9 +208,7 @@ export async function fetchMajorFxRates(): Promise<FxSnapshot[]> {
   );
 
   return results
-    .filter((r): r is PromiseFulfilledResult<FxSnapshot | null> => r.status === "fulfilled")
-    .map((r) => r.value)
-    .filter((v): v is FxSnapshot => v != null);
+    .flatMap((r) => (r.status === "fulfilled" && r.value != null ? [r.value] : []));
 }
 
 /** USD/KRW — 기존 호환 */

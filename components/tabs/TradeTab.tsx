@@ -33,7 +33,6 @@ export function TradeTab({
   stockSummary,
   activeStock,
   activeRecommendation,
-  recommendations,
   tradeFormOpen,
   onTradeFormOpenChange,
   stockTrades,
@@ -80,7 +79,6 @@ export function TradeTab({
   stockSummary: StockSummary | null;
   activeStock: Stock | undefined;
   activeRecommendation: TradeRecommendation | null;
-  recommendations: TradeRecommendation[];
   tradeFormOpen: boolean;
   onTradeFormOpenChange: (open: boolean) => void;
   stockTrades: Trade[];
@@ -164,27 +162,24 @@ export function TradeTab({
       <StockDetailPanel
         stocks={stocks}
         activeId={activeId}
-        recommendations={recommendations}
-        activeRecommendation={activeRecommendation}
         onSelect={onSelectStock}
         onEdit={onEditStock}
         onDelete={onDeleteStock}
-        essential={
-          stockSummary && activeStock ? (
-            <StockEssentialBar
-              summary={stockSummary}
-              quote={data.stockQuotes?.[activeStock.id]}
-              recommendation={activeRecommendation}
-              kisLoading={kisLoading}
-              onRefreshPrice={onKisRefresh}
-              onAddTrade={() => {
-                onSubViewChange("trade");
-                onTradeFormOpenChange(true);
-              }}
-            />
-          ) : null
-        }
       >
+        {stockSummary && activeStock && (
+          <StockEssentialBar
+            summary={stockSummary}
+            quote={data.stockQuotes?.[activeStock.id]}
+            recommendation={activeRecommendation}
+            kisLoading={kisLoading}
+            onRefreshPrice={onKisRefresh}
+            onAddTrade={() => {
+              onSubViewChange("trade");
+              onTradeFormOpenChange(true);
+            }}
+          />
+        )}
+
         {subView === "trade" && activeStock && stockSummary && buySignal && sellSignal && (
           <TradeHistorySection
             stockName={activeStock.name}
