@@ -185,7 +185,7 @@ export function Dashboard({
         stockSummaries,
         data.stockQuotes,
         data.reportSettings,
-        briefing.context,
+        briefing.context ?? undefined,
         data.kospiBenchmark,
         peakByStock,
         verdictBuildCtx

@@ -76,7 +76,7 @@ function resolveVerdict(
   quote: StockQuote | undefined,
   settings: Partial<ReportSettings> | undefined,
   stockContext: StockBriefingContext | undefined,
-  marketContext: MarketBriefingContext | undefined,
+  marketContext: MarketBriefingContext | null | undefined,
   kospi: KospiBenchmark | undefined,
   peakPrice?: number,
   userTargetPrice?: number,
@@ -104,7 +104,7 @@ export function buildTradeRecommendation(
   quote: StockQuote | undefined,
   settings: Partial<ReportSettings> | undefined,
   stockContext: StockBriefingContext | undefined,
-  marketContext: MarketBriefingContext | undefined,
+  marketContext: MarketBriefingContext | null | undefined,
   kospi: KospiBenchmark | undefined,
   peakPrice?: number,
   options?: {
@@ -169,7 +169,7 @@ export function buildFullTradeAdvice(
   quote: StockQuote | undefined,
   settings: Partial<ReportSettings> | undefined,
   stockContext: StockBriefingContext | undefined,
-  marketContext: MarketBriefingContext | undefined,
+  marketContext: MarketBriefingContext | null | undefined,
   kospi: KospiBenchmark | undefined,
   peakPrice?: number,
   options?: {
@@ -229,7 +229,7 @@ export function buildAllRecommendations(
   sellSignals: Record<string, SellTimingSignal>,
   quotes: Record<string, StockQuote> | undefined,
   settings: Partial<ReportSettings> | undefined,
-  marketContext: MarketBriefingContext | undefined,
+  marketContext: MarketBriefingContext | null | undefined,
   kospi: KospiBenchmark | undefined,
   peakPrices?: Record<string, number>,
   buildCtx?: VerdictBuildContext

@@ -92,7 +92,7 @@ export function buildStockVerdictExtra(
   };
 }
 
-function scoreMarketNews(marketContext: MarketBriefingContext | undefined) {
+function scoreMarketNews(marketContext: MarketBriefingContext | null | undefined) {
   const headlines = [
     ...(marketContext?.marketNews ?? []).slice(0, 8),
     ...(marketContext?.macroNews ?? []).slice(0, 8),
@@ -183,7 +183,7 @@ export function mergeCostGainSignal(
 
 export function applyExtraVerdictFactors(
   summary: StockSummary,
-  marketContext: MarketBriefingContext | undefined,
+  marketContext: MarketBriefingContext | null | undefined,
   stockExtra: StockVerdictExtra,
   buildCtx: VerdictBuildContext | undefined
 ): { buyDelta: number; sellDelta: number; factors: ExtraFactor[]; neutralNotes: string[] } {
@@ -274,7 +274,7 @@ export function applyExtraVerdictFactors(
 
 export function extraDataQualityBoost(
   stockExtra: StockVerdictExtra,
-  marketContext: MarketBriefingContext | undefined,
+  marketContext: MarketBriefingContext | null | undefined,
   buildCtx: VerdictBuildContext | undefined
 ): number {
   let q = 0;

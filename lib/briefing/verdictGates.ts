@@ -28,7 +28,7 @@ export function buildVerdictGateContext(
   buySignal: BuyTimingSignal,
   sellSignal: SellTimingSignal,
   kospi: KospiBenchmark | undefined,
-  marketContext: MarketBriefingContext | undefined
+  marketContext: MarketBriefingContext | null | undefined
 ): VerdictGateContext {
   const inBuyZone = buySignal.status === "zone10" || buySignal.status === "zone20";
   const aboveBuyLine = buySignal.status === "above";
