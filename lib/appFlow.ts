@@ -1,11 +1,22 @@
 import type { AppTab } from "@/components/AppTabNav";
 
+export type AppFlowStep = {
+  step: number;
+  tab: AppTab | null;
+  /** 같은 단계로 묶는 보조 탭 (예: ① 판단 + 원천) */
+  alsoTab?: AppTab;
+  title: string;
+  short: string;
+  detail: string;
+  external: boolean;
+};
+
 /** mtock 사용 흐름 — 5단계 순환 */
-export const APP_FLOW_STEPS = [
+export const APP_FLOW_STEPS: AppFlowStep[] = [
   {
     step: 1,
-    tab: "verdict" as AppTab,
-    alsoTab: "sources" as AppTab,
+    tab: "verdict",
+    alsoTab: "sources",
     title: "판단",
     short: "원천 수집 → 시점·금액",
     detail:
@@ -22,7 +33,7 @@ export const APP_FLOW_STEPS = [
   },
   {
     step: 3,
-    tab: "records" as AppTab,
+    tab: "records",
     title: "기록",
     short: "체결 내역 입력",
     detail:
@@ -31,7 +42,7 @@ export const APP_FLOW_STEPS = [
   },
   {
     step: 4,
-    tab: "report" as AppTab,
+    tab: "report",
     title: "성과",
     short: "손익·수익률 확인",
     detail:
@@ -40,16 +51,16 @@ export const APP_FLOW_STEPS = [
   },
   {
     step: 5,
-    tab: "settings" as AppTab,
+    tab: "settings",
     title: "설정",
     short: "전략·연동·데이터",
     detail:
       "매수/매도 % 규칙, 알림, API 연동 상태, CSV 가져오기, 클라우드 동기화를 관리합니다. 바꾼 뒤에는 판단 탭에서 새로고침하세요.",
     external: false,
   },
-] as const;
+];
 
-export function stepForTab(tab: AppTab): (typeof APP_FLOW_STEPS)[number] | undefined {
+export function stepForTab(tab: AppTab): AppFlowStep | undefined {
   return APP_FLOW_STEPS.find((s) => s.tab === tab || s.alsoTab === tab);
 }
 
