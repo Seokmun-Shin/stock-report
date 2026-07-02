@@ -21,6 +21,7 @@ export function isKrxMarketOpen(now = new Date()): boolean {
 export type QuoteApplyPayload = {
   quotesByStockId: Record<string, StockQuote>;
   kospi?: KospiBenchmark | null;
+  kosdaq?: KospiBenchmark | null;
 };
 
 export function useKisPrices(
@@ -31,7 +32,7 @@ export function useKisPrices(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const onApplyRef = useRef(onApply);
   onApplyRef.current = onApply;
 
@@ -65,7 +66,7 @@ export function useKisPrices(
 
   useEffect(() => {
     const saved = localStorage.getItem("stock-report-kis-auto");
-    if (saved === "true") setAutoRefresh(true);
+    if (saved === "false") setAutoRefresh(false);
   }, []);
 
   const setAutoRefreshPersist = useCallback((v: boolean) => {
@@ -95,7 +96,10 @@ export function useKisPrices(
         prices?: Record<string, number>;
         errors?: Record<string, string>;
         kospi?: KospiBenchmark | null;
+        kosdaq?: KospiBenchmark | null;
         kospiError?: string;
+        kospiWarning?: string;
+        indexWarnings?: string[];
       };
 
       if (!res.ok) {
@@ -115,13 +119,24 @@ export function useKisPrices(
         throw new Error(firstErr ?? "조회된 시세가 없습니다.");
       }
 
-      onApplyRef.current({ quotesByStockId, kospi: data.kospi ?? null });
+      onApplyRef.current({
+        quotesByStockId,
+        kospi: data.kospi ?? null,
+        kosdaq: data.kosdaq ?? null,
+      });
       setLastUpdated(new Date());
 
-      const failCount = data.errors ? Object.keys(data.errors).length : 0;
+      const failEntries = data.errors ? Object.entries(data.errors) : [];
       const msgs: string[] = [];
-      if (failCount > 0) msgs.push(`${failCount}개 종목 조회 실패`);
-      if (data.kospiError) msgs.push(`KOSPI: ${data.kospiError}`);
+      if (failEntries.length > 0) {
+        const detail = failEntries.map(([code, msg]) => `${code}: ${msg}`).join(" · ");
+        msgs.push(`종목 시세 ${failEntries.length}건 실패 (${detail})`);
+      }
+      if (data.kospiWarning) msgs.push(data.kospiWarning);
+      else if (data.kospiError) msgs.push(`KOSPI 지수: ${data.kospiError} (알파·벤치마크 제한)`);
+      for (const w of data.indexWarnings ?? []) {
+        if (!w.startsWith("KOSPI") && !msgs.includes(w)) msgs.push(w);
+      }
       if (msgs.length > 0) setError(msgs.join(" · "));
     } catch (err) {
       setError(err instanceof Error ? err.message : "시세 조회 실패");
@@ -162,6 +177,7 @@ export function applyQuoteUpdates(data: AppData, payload: QuoteApplyPayload): Ap
     currentPrices,
     stockQuotes: { ...(data.stockQuotes ?? {}), ...payload.quotesByStockId },
     kospiBenchmark: payload.kospi ?? data.kospiBenchmark,
+    kosdaqBenchmark: payload.kosdaq ?? data.kosdaqBenchmark,
   };
 }
 

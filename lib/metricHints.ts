@@ -5,9 +5,12 @@ export const PORTFOLIO_HINTS = {
   sellAmount: "전 종목 매도 금액(단가×수량) 합계",
   tradeCost: "수수료·세금 등 매매에 든 비용 전체",
   netProfitRealized: "이미 매도해 확정된 순수익 (FIFO 기준)",
-  unrealizedPnl: "아직 보유 중인 주식의 평가 손익",
+  unrealizedPnl: "아직 보유 중인 주식의 평가 손익 (단가 기준)",
+  unrealizedPnlWithCost: "보유 시가 − 매입원가(수수료 포함) — 평가 탭 핵심",
+  unrealizedReturnRate: "평가손익 ÷ 보유 매입원가 × 100",
+  returnRateRealized: "실현 순수익 ÷ (매도에 대응한 매수원가+비용) × 100",
   returnRate: "(실현+미실현) ÷ (매수총액+매매비용) × 100",
-  totalPnl: "실현 순수익 + 미실현 손익 합계",
+  totalPnl: "실현 순수익 + 평가손익(비용 포함) 합계",
 } as const;
 
 export const INITIAL_CAPITAL_HINTS = {
@@ -34,12 +37,13 @@ export const STOCK_SETTLEMENT_HINTS = {
 } as const;
 
 export const TIMING_HINTS = {
-  timing20: "최근 매도가 대비 −20% — 2차 매수 참고선",
-  timing10: "최근 매도가 대비 −10% — 1차 매수 참고선",
-  lastSellPrice: "가장 최근 매도 체결 단가",
-  sellTiming10: "평단 대비 +10% — 1차 매도 참고선",
-  sellTiming20: "평단 대비 +20% — 2차 익절 참고선",
-  holdingAvgPriceSell: "보유분 평균 매수 단가 (매도선 기준)",
+  timing20: "최근 매도가보다 20% 싸진 가격 — 두 번째로 살 만한 구간",
+  timing10: "최근 매도가보다 10% 싸진 가격 — 첫 번째로 살 만한 구간",
+  lastSellPrice: "가장 최근 매도 체결 단가 (매수 타이밍 기준)",
+  lastBuyPrice: "가장 최근 매수 체결 단가 (참고)",
+  sellTiming10: "내 평균 매수가보다 10% 오른 가격 — 첫 번째로 팔 만한 구간",
+  sellTiming20: "내 평균 매수가보다 20% 오른 가격 — 두 번째로 팔 만한 구간",
+  holdingAvgPriceSell: "보유주식 매수단가 가중평균 (매도 타이밍 기준)",
   holdingQty: "현재 보유 주식 수",
   holdingAvgPrice: "보유분 매수 단가 가중평균 (수수료 제외)",
   holdingAvgPriceWithCost: "보유분 매입단가 (매수 수수료 포함)",

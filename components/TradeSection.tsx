@@ -3,14 +3,21 @@
 import { useEffect, useState } from "react";
 import type { Trade, TradeType } from "@/lib/types";
 import { compareTradesByDateDesc, computeRealizedPnlByTrade, fmt, fmtQty, fmtSigned, tradeAmount, tradeCost } from "@/lib/calc";
-import { calcBuyCommission, calcSellTaxes } from "@/lib/tradeFees";
-import { FormattedNumberInput } from "./FormattedNumberInput";
-import { SectionTitle } from "./StatCard";
+import { calcBuyFees, calcSellFees, calcSellTaxes } from "@/lib/tradeFees";
+import type { ReportSettings } from "@/lib/reportSettings";
+import {
+  buyFeeRateFromSettings,
+  formatFeePct,
+  resolveReportSettings,
+  sellFeeRateFromSettings,
+  sellTaxRateFromSettings,
+} from "@/lib/reportSettings";
+import type { TradeSuggestion } from "@/lib/briefing/tradeSuggestions";
+import { insetCard, panelShell, UI } from "@/components/ui/PanelCard";
 
 type TradeInput = Omit<Trade, "id" | "stockId" | "createdAt">;
 
-const inputCls =
-  "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-right text-base tabular-nums outline-none focus:ring-2 focus:ring-blue-200";
+const inputCls = UI.input;
 
 const DEFAULT_VISIBLE = 5;
 
@@ -29,12 +36,12 @@ export function TradeTable({
   onEdit: (trade: Trade) => void;
   onDelete: (tradeId: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const sorted = [...trades].sort(compareTradesByDateDesc);
   const realizedById = computeRealizedPnlByTrade(trades);
 
   useEffect(() => {
-    setExpanded(false);
+    setExpanded(true);
   }, [stockName]);
 
   const hasMore = sorted.length > DEFAULT_VISIBLE;
@@ -42,18 +49,64 @@ export function TradeTable({
 
   if (sorted.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-line bg-surface-dim/50 p-8 text-center text-sm text-ink-muted">
+      <div className="rounded-lg border border-dashed border-line bg-surface-dim/50 p-8 text-center text-sm text-ink-muted">
         아직 매매 내역이 없습니다.
         <br />
-        <span className="mt-1 inline-block text-ink">우측 상단 「+ 매매 내역 추가」</span>를 눌러 체결 내역을 입력해 주세요.
-      </p>
+        <span className="mt-1 inline-block text-ink">위 「+ 체결 내역 입력」</span>을 눌러 체결 내역을 입력해 주세요.
+      </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      <div className="min-w-0 overflow-x-auto rounded-2xl border border-line">
-        <table className="w-full min-w-[760px] text-sm sm:text-base">
+      <div className="space-y-2 md:hidden">
+        {visible.map((t) => {
+          const isCapital = initialCapitalIds.has(t.id);
+          const realized = realizedById[t.id];
+          return (
+            <div
+              key={t.id}
+              className={`rounded-xl border border-line p-3 text-sm ${isCapital ? "border-amber-200 bg-amber-50/50" : "bg-white"}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${t.type === "buy" ? "bg-gain-soft text-gain" : "bg-loss-soft text-loss"}`}>
+                  {t.type === "buy" ? "매수" : "매도"}
+                </span>
+                <span className="tabular-nums text-ink-muted">{t.executedTime ? `${t.date} ${t.executedTime}` : t.date}</span>
+              </div>
+              <p className="mt-2 tabular-nums">
+                {fmtQty(t.quantity)}주 × {fmt(t.price)} = <strong>{fmt(tradeAmount(t))}</strong>
+              </p>
+              {t.type === "sell" && (
+                <p className={`mt-1 text-xs font-semibold tabular-nums ${realized >= 0 ? "text-gain" : "text-loss"}`}>
+                  실현 {fmtSigned(realized ?? 0)}
+                </p>
+              )}
+              <div className="mt-2 flex flex-wrap gap-2">
+                {t.type === "buy" && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleCapital(t.id)}
+                    className={`rounded-lg px-2 py-1 text-xs font-semibold ${isCapital ? "bg-amber-500 text-white" : "border border-line"}`}
+                  >
+                    {isCapital ? "★ 기준" : "기준"}
+                  </button>
+                )}
+                <button type="button" onClick={() => onEdit(t)} className="text-xs text-gain">
+                  수정
+                </button>
+                <button type="button" onClick={() => onDelete(t.id)} className="text-xs text-loss">
+                  삭제
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden min-w-0 md:block">
+        <div className="rounded-2xl border border-line">
+        <table className="w-full table-fixed text-sm">
           <thead className="bg-surface-dim text-sm text-ink-muted">
             <tr>
               <th className="px-3 py-3 text-center">기준</th>
@@ -116,6 +169,7 @@ export function TradeTable({
             })}
           </tbody>
         </table>
+        </div>
         <p className="border-t border-line bg-surface-dim px-4 py-2 text-center text-xs text-ink-muted">
           {stockName} · 총 {sorted.length}건 · 최신순
         </p>
@@ -138,10 +192,14 @@ export function TradeForm({
   onSubmit,
   editing,
   onCancel,
+  suggestion,
+  reportSettings,
 }: {
   onSubmit: (t: TradeInput) => void;
   editing?: Trade | null;
   onCancel: () => void;
+  suggestion?: TradeSuggestion | null;
+  reportSettings?: Partial<ReportSettings>;
 }) {
   const [type, setType] = useState<TradeType>("buy");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -153,7 +211,14 @@ export function TradeForm({
   const [ruralTax, setRuralTax] = useState(0);
 
   const isEditing = !!editing;
-  const sellAmount = quantity * price;
+  const orderAmount = quantity * price;
+  const resolvedFees = resolveReportSettings(reportSettings);
+  const buyFeeRate = buyFeeRateFromSettings(reportSettings);
+  const sellFeeRate = sellFeeRateFromSettings(reportSettings);
+  const sellTaxRate = sellTaxRateFromSettings(reportSettings);
+  const feeLabel =
+    type === "buy" ? formatFeePct(resolvedFees.buyTotalFeePct!) : formatFeePct(resolvedFees.sellTotalFeePct!);
+  const taxLabel = formatFeePct(resolvedFees.sellTransactionTaxPct!);
 
   useEffect(() => {
     if (editing) {
@@ -187,14 +252,47 @@ export function TradeForm({
     }
   }, [editing]);
 
+  function selectType(next: TradeType) {
+    setType(next);
+    if (next === "buy") {
+      setTransactionTax(0);
+      setRuralTax(0);
+    }
+  }
+
+  function applySuggestion(s: TradeSuggestion) {
+    setDate(s.date);
+    setExecutedTime(s.executedTime);
+    setQuantity(s.quantity);
+    setPrice(s.price);
+    setFee(s.fee);
+    if (type === "sell") {
+      setTransactionTax(s.transactionTax);
+      setRuralTax(s.ruralTax);
+    } else {
+      setTransactionTax(0);
+      setRuralTax(0);
+    }
+  }
+
+  const canApplyReference =
+    !!suggestion &&
+    suggestion.alignedWithVerdict &&
+    suggestion.recommendedAction !== "hold" &&
+    suggestion.recommendedAction === type &&
+    suggestion.quantity > 0 &&
+    suggestion.price > 0;
+
   function applyFeePreset() {
-    if (sellAmount <= 0) return;
-    setFee(calcBuyCommission(sellAmount));
+    if (orderAmount <= 0) return;
+    setFee(
+      type === "buy" ? calcBuyFees(orderAmount, buyFeeRate) : calcSellFees(orderAmount, sellFeeRate)
+    );
   }
 
   function applySellTaxPreset() {
-    if (sellAmount <= 0) return;
-    const { transactionTax: tt, ruralTax: rt } = calcSellTaxes(sellAmount);
+    if (orderAmount <= 0) return;
+    const { transactionTax: tt, ruralTax: rt } = calcSellTaxes(orderAmount, { taxRate: sellTaxRate });
     setTransactionTax(tt);
     setRuralTax(rt);
   }
@@ -217,26 +315,63 @@ export function TradeForm({
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl border border-gain/30 bg-gain-soft/30 p-4">
+    <form onSubmit={submit} className={`${panelShell} p-3 sm:p-5`}>
       <div className="mb-3 flex items-baseline justify-between gap-2">
-        <p className="text-sm font-semibold text-ink">{isEditing ? "매매 수정" : "매매 내역 입력"}</p>
+        <p className="text-sm font-bold text-ink">{isEditing ? "매매 수정" : "체결 내역 입력"}</p>
         <span className="text-xs text-ink-muted">(단위 : 원)</span>
       </div>
+
+      <p className="mb-3 text-xs leading-relaxed text-ink-muted">
+        증권사에서 체결한 <strong className="font-medium text-ink">매수/매도</strong>를 고른 뒤, 확인서 기준으로 수량·단가를 입력하세요.
+      </p>
 
       <div className="mb-3 flex gap-2">
         {(["buy", "sell"] as const).map((t) => (
           <button
             key={t}
             type="button"
-            onClick={() => setType(t)}
+            onClick={() => selectType(t)}
             className={`rounded-lg px-4 py-1.5 text-sm font-medium ${
               type === t ? (t === "buy" ? "bg-gain text-white" : "bg-loss text-white") : "border border-line bg-white text-ink-muted"
             }`}
           >
-            {t === "buy" ? "매수" : "매도"}
+            {t === "buy" ? "매수 체결" : "매도 체결"}
           </button>
         ))}
       </div>
+
+      {!isEditing && suggestion && suggestion.rationale.length > 0 && (
+        <div className={`mb-3 ${insetCard} leading-relaxed`}>
+          <p className="font-semibold text-ink">판단 참고 (자동 입력 없음)</p>
+          <ul className="mt-1 list-inside list-disc">
+            {suggestion.rationale.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+          {suggestion.alignedWithVerdict && suggestion.recommendedAction !== "hold" && (
+            <p className="mt-2 text-ink-muted">
+              판단: <strong className="text-ink">{suggestion.recommendedAction === "buy" ? "매수" : "매도"}</strong>{" "}
+              참고 — 체결과 다르면 아래에 실제 값을 입력하세요.
+            </p>
+          )}
+          {canApplyReference && (
+            <button
+              type="button"
+              onClick={() => suggestion && applySuggestion(suggestion)}
+              className="mt-2 rounded-md border border-line bg-white px-2 py-1 text-xs font-medium text-ink-muted hover:bg-surface-dim"
+            >
+              {type === "buy" ? "매수" : "매도"} 참고값만 넣기 (선택)
+            </button>
+          )}
+          {suggestion.alignedWithVerdict &&
+            suggestion.recommendedAction !== "hold" &&
+            suggestion.recommendedAction !== type && (
+              <p className="mt-2 text-amber-800">
+                판단은 {suggestion.recommendedAction === "buy" ? "매수" : "매도"} 쪽입니다. 다른 체결을 기록 중이면 참고값은 쓰지 마세요.
+              </p>
+            )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <label className="text-xs text-ink-muted">
@@ -265,7 +400,7 @@ export function TradeForm({
           <span className="flex items-center justify-between gap-1">
             수수료
             <button type="button" onClick={applyFeePreset} className="text-[10px] font-medium text-gain hover:underline">
-              0.015% 적용
+              {feeLabel} 적용
             </button>
           </span>
           <FormattedNumberInput value={fee} onChange={setFee} className={inputCls} placeholder="0" />
@@ -274,19 +409,21 @@ export function TradeForm({
           <>
             <label className="text-xs text-ink-muted">
               <span className="flex items-center justify-between gap-1">
-                거래세
+                증권거래세
                 <button type="button" onClick={applySellTaxPreset} className="text-[10px] font-medium text-gain hover:underline">
-                  세금 적용
+                  {taxLabel} 적용
                 </button>
               </span>
               <FormattedNumberInput value={transactionTax} onChange={setTransactionTax} className={inputCls} placeholder="0" />
             </label>
-            <label className="text-xs text-ink-muted">
-              농특세
-              <FormattedNumberInput value={ruralTax} onChange={setRuralTax} className={inputCls} placeholder="0" />
-            </label>
+            {(isEditing && ruralTax > 0) && (
+              <label className="text-xs text-ink-muted">
+                농특세 (과거 기록)
+                <FormattedNumberInput value={ruralTax} onChange={setRuralTax} className={inputCls} placeholder="0" />
+              </label>
+            )}
             <p className="col-span-2 text-xs text-ink-muted sm:col-span-3">
-              매도 세금 합계: {fmt(transactionTax + ruralTax)}원 (코스피 0.15%+0.15% 참고)
+              매도 세금 합계: {fmt(transactionTax + ruralTax)}원 ({taxLabel} 증권거래세 참고 · 매수 시 세금 없음)
             </p>
           </>
         )}
@@ -296,7 +433,7 @@ export function TradeForm({
         <button type="button" onClick={onCancel} className="rounded-lg border border-line bg-white px-4 py-1.5 text-sm text-ink-muted hover:bg-surface-dim">
           취소
         </button>
-        <button type="submit" className="rounded-lg bg-ink px-5 py-1.5 text-sm font-medium text-white hover:bg-slate-800">
+        <button type="submit" className={`${UI.btnPrimary} px-5 py-1.5 text-sm`}>
           {isEditing ? "수정" : "저장"}
         </button>
       </div>
@@ -314,6 +451,11 @@ export function TradeHistorySection({
   onEdit,
   onDelete,
   onCancelEdit,
+  suggestion,
+  formOpen: formOpenProp,
+  onFormOpenChange,
+  hideHeaderAction,
+  reportSettings,
 }: {
   stockName: string;
   trades: Trade[];
@@ -324,17 +466,27 @@ export function TradeHistorySection({
   onEdit: (trade: Trade) => void;
   onDelete: (tradeId: string) => void;
   onCancelEdit: () => void;
+  suggestion?: TradeSuggestion | null;
+  formOpen?: boolean;
+  onFormOpenChange?: (open: boolean) => void;
+  hideHeaderAction?: boolean;
+  reportSettings?: Partial<ReportSettings>;
 }) {
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpenLocal, setFormOpenLocal] = useState(false);
+  const [listOpen, setListOpen] = useState(true);
+  const formOpen = formOpenProp ?? formOpenLocal;
+  const setFormOpen = onFormOpenChange ?? setFormOpenLocal;
   const showForm = formOpen || !!editing;
 
   useEffect(() => {
-    setFormOpen(false);
-  }, [stockName]);
+    if (onFormOpenChange) onFormOpenChange(false);
+    else setFormOpenLocal(false);
+    setListOpen(true);
+  }, [stockName, onFormOpenChange]);
 
   useEffect(() => {
     if (editing) setFormOpen(true);
-  }, [editing]);
+  }, [editing, setFormOpen]);
 
   function closeForm() {
     setFormOpen(false);
@@ -347,47 +499,48 @@ export function TradeHistorySection({
   }
 
   return (
-    <section className="min-w-0 space-y-3 border-t border-line pt-4 sm:pt-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <SectionTitle>
-            매매 내역 — {stockName}
-            <span className="ml-1.5 text-xs font-normal text-ink-muted">({trades.length}건)</span>
-          </SectionTitle>
-          <p className="mt-1 text-xs text-ink-muted">최신순 · 매수 「★」= 초기 투자금 · 같은 날은 체결시각 순(FIFO)</p>
-        </div>
-        {!showForm && (
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="w-full shrink-0 rounded-lg bg-gain px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-auto"
-          >
-            + 매매 내역 추가
-          </button>
-        )}
-      </div>
-
-      <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3 text-xs leading-relaxed text-slate-700">
-        <strong className="text-ink">증권 앱 체결 내역을 입력하세요.</strong> 날짜·체결시각·매수/매도·수량·단가·수수료(매도 시 거래세·농특세)를
-        등록하면 위 타이밍·정산·전체 요약이 자동으로 갱신됩니다.
-      </div>
-
-      {showForm && (
+    <section className="min-w-0 space-y-3">
+      {showForm ? (
         <TradeForm
           editing={editing}
           onSubmit={handleSubmit}
           onCancel={closeForm}
+          suggestion={suggestion}
+          reportSettings={reportSettings}
         />
+      ) : (
+        !hideHeaderAction && (
+          <button
+            type="button"
+            onClick={() => setFormOpen(true)}
+            className="w-full rounded-lg border border-dashed border-line py-2.5 text-sm text-ink-muted hover:border-gain hover:text-gain"
+          >
+            + 체결 내역 입력
+          </button>
+        )
       )}
 
-      <TradeTable
-        trades={trades}
-        stockName={stockName}
-        initialCapitalIds={initialCapitalIds}
-        onToggleCapital={onToggleCapital}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
+      <button
+        type="button"
+        onClick={() => setListOpen((v) => !v)}
+        className={`flex w-full items-center justify-between rounded-lg border border-line/80 bg-surface-dim/50 px-3 py-2 text-left text-sm`}
+      >
+        <span>
+          매매 기록 <span className="text-ink-muted">({trades.length}건)</span>
+        </span>
+        <span className="text-xs text-ink-muted">{listOpen ? "접기 ▲" : "펼치기 ▼"}</span>
+      </button>
+
+      {listOpen && (
+        <TradeTable
+          trades={trades}
+          stockName={stockName}
+          initialCapitalIds={initialCapitalIds}
+          onToggleCapital={onToggleCapital}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      )}
     </section>
   );
 }

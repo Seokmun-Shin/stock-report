@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Stock } from "@/lib/types";
-import { suggestStockCode } from "@/lib/stockCodes";
+import { UI } from "@/components/ui/PanelCard";
 
 export function StockEditModal({
   stock,
@@ -79,7 +79,7 @@ export function StockEditModal({
           <button type="button" onClick={onClose} className="rounded-lg border border-line px-4 py-2 text-sm text-ink-muted hover:bg-surface-dim">
             취소
           </button>
-          <button type="submit" className="rounded-lg bg-gain px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+          <button type="submit" className={`${UI.btnPrimary} px-4 py-2`}>
             저장
           </button>
         </div>

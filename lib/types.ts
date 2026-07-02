@@ -42,6 +42,8 @@ export interface StockPeak {
   asOf: string;
 }
 
+import type { KisStockExtras } from "@/lib/kis/types";
+
 /** KIS 시세 스냅샷 (종목별) */
 export interface StockQuote {
   price: number;
@@ -51,6 +53,8 @@ export interface StockQuote {
   high: number;
   low: number;
   updatedAt: string;
+  /** KIS 부가 API (투자자·호가·프로그램 등) */
+  kis?: KisStockExtras;
 }
 
 /** KOSPI 지수 스냅샷 */
@@ -60,6 +64,8 @@ export interface KospiBenchmark {
   changeAmount: number;
   changeRate: number;
   updatedAt: string;
+  /** KIS 실패 시 Yahoo 등 대체 원천 */
+  source?: "kis" | "yahoo";
 }
 
 export interface AppData {
@@ -78,6 +84,8 @@ export interface AppData {
   stockQuotes?: Record<string, StockQuote>;
   /** KOSPI 벤치마크 */
   kospiBenchmark?: KospiBenchmark;
+  /** KOSDAQ 벤치마크 */
+  kosdaqBenchmark?: KospiBenchmark;
   /** 분할·배당 이벤트 */
   stockEvents?: StockEvent[];
 }
@@ -92,6 +100,8 @@ export interface StockSummary {
   netProfit: number;
   returnRate: number;
   lastSellPrice: number | null;
+  /** 가장 최근 매수 체결 단가 (참고) */
+  lastBuyPrice: number | null;
   /** 최근 매도가 대비 −10% 매수선 */
   timing10: number | null;
   /** 최근 매도가 대비 −20% 매수선 */
@@ -119,6 +129,12 @@ export interface PortfolioSummary {
   netProfitRealized: number;
   returnRateRealized: number;
   unrealizedPnl: number;
+  /** 보유분 비용 포함 평가손익 합계 */
+  unrealizedPnlWithCost: number;
+  /** 보유분 매입원가(수수료 포함) 합계 */
+  holdingCostBasis: number;
+  /** 평가손익 ÷ 매입원가 × 100 */
+  unrealizedReturnRate: number;
   totalPnl: number;
   /** 누적 (실현+미실현) ÷ (매수총액+매매비용) × 100 */
   totalReturnRate: number;

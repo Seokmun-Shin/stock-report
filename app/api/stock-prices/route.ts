@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchKisQuotes, fetchKospiBenchmark, isKisConfigured, normalizeStockCode } from "@/lib/kis/client";
+import { fetchKisQuotes, fetchDomesticIndicesWithFallback, isKisConfigured, normalizeStockCode } from "@/lib/kis/client";
 
 export const dynamic = "force-dynamic";
 
@@ -39,12 +39,20 @@ export async function POST(req: Request) {
   const { quotes, prices, errors } = await fetchKisQuotes(normalized);
 
   let kospi = null;
+  let kosdaq = null;
   let kospiError: string | undefined;
+  let kospiWarning: string | undefined;
+  const indexWarnings: string[] = [];
   if (includeKospi) {
-    try {
-      kospi = await fetchKospiBenchmark();
-    } catch (err) {
-      kospiError = err instanceof Error ? err.message : "KOSPI 조회 실패";
+    const result = await fetchDomesticIndicesWithFallback();
+    kospi = result.kospi;
+    kosdaq = result.kosdaq;
+    indexWarnings.push(...result.warnings);
+    const kospiErr = result.errors.find((e) => e.startsWith("KOSPI:"));
+    if (kospiErr) kospiError = kospiErr.replace(/^KOSPI:\s*/, "");
+    if (!kospi && kospiErr) kospiError = kospiErr;
+    if (result.warnings.some((w) => w.startsWith("KOSPI"))) {
+      kospiWarning = result.warnings.find((w) => w.startsWith("KOSPI"));
     }
   }
 
@@ -53,7 +61,10 @@ export async function POST(req: Request) {
     prices,
     errors,
     kospi,
+    kosdaq,
     kospiError,
+    kospiWarning,
+    indexWarnings,
     updatedAt: new Date().toISOString(),
   });
 }

@@ -9,7 +9,7 @@ export function CollapsibleSection({
   subtitle,
   summary,
   children,
-  defaultOpen = false,
+  defaultOpen = true,
   accent = "default",
 }: {
   title: ReactNode;

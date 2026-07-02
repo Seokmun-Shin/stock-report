@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "주식 매매 리포트",
+  title: "M tock",
   description: "수익과 매매 타이밍을 한눈에",
 };
 

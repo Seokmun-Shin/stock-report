@@ -1,27 +1,47 @@
-/** 국내 주식 매매 비용 추정 (참고용 — 증권사·종목별 상이) */
+/** 국내 주식 매매 비용 추정 (미래에셋 최저 우대·코스피/코스닥 공통 세율 참고) */
 
-/** 온라인 위탁 수수료율 (0.015%) */
-export const DEFAULT_COMMISSION_RATE = 0.00015;
+/** 매수 총 비용 — 위탁수수료 + 유관기관 제비용 (0.01362%) */
+export const DEFAULT_BUY_TOTAL_FEE_RATE = 0.01362 / 100;
 
-/** 코스피 매도 거래세 (0.15%) */
-export const KOSPI_TRANSACTION_TAX_RATE = 0.0015;
+/** 매도 수수료 — 위탁수수료 + 유관기관 제비용 (0.01264%) */
+export const DEFAULT_SELL_TOTAL_FEE_RATE = 0.01264 / 100;
 
-/** 코스피 매도 농특세 (0.15%) */
-export const KOSPI_RURAL_TAX_RATE = 0.0015;
+/** 매도 증권거래세 (0.20%, 코스피/코스닥 공통) */
+export const DEFAULT_SELL_TRANSACTION_TAX_RATE = 0.002;
 
-export function calcBuyCommission(amount: number, rate = DEFAULT_COMMISSION_RATE): number {
+/** @deprecated buyTotalFeePct 설정 사용 */
+export const DEFAULT_COMMISSION_RATE = DEFAULT_BUY_TOTAL_FEE_RATE;
+
+/** @deprecated 0.20% 단일 세율로 대체 */
+export const KOSPI_TRANSACTION_TAX_RATE = DEFAULT_SELL_TRANSACTION_TAX_RATE;
+
+/** @deprecated 현행 0.20% 단일 증권거래세 — 농특세 별도 없음 */
+export const KOSPI_RURAL_TAX_RATE = 0;
+
+export function calcTradeFee(amount: number, rate: number): number {
   return Math.round(amount * rate);
+}
+
+export function calcBuyFees(amount: number, rate?: number): number {
+  return calcTradeFee(amount, rate ?? DEFAULT_BUY_TOTAL_FEE_RATE);
+}
+
+export function calcSellFees(amount: number, rate?: number): number {
+  return calcTradeFee(amount, rate ?? DEFAULT_SELL_TOTAL_FEE_RATE);
+}
+
+/** @deprecated calcBuyFees 사용 */
+export function calcBuyCommission(amount: number, rate?: number): number {
+  return calcBuyFees(amount, rate);
 }
 
 export function calcSellTaxes(
   sellAmount: number,
-  options?: { transactionRate?: number; ruralRate?: number }
+  options?: { taxRate?: number }
 ): { transactionTax: number; ruralTax: number; total: number } {
-  const tr = options?.transactionRate ?? KOSPI_TRANSACTION_TAX_RATE;
-  const rr = options?.ruralRate ?? KOSPI_RURAL_TAX_RATE;
+  const tr = options?.taxRate ?? DEFAULT_SELL_TRANSACTION_TAX_RATE;
   const transactionTax = Math.floor(sellAmount * tr);
-  const ruralTax = Math.floor(sellAmount * rr);
-  return { transactionTax, ruralTax, total: transactionTax + ruralTax };
+  return { transactionTax, ruralTax: 0, total: transactionTax };
 }
 
 export function sellTaxTotal(trade: { tax: number; transactionTax?: number; ruralTax?: number }): number {

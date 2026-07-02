@@ -68,7 +68,6 @@ export function StockEventsPanel({
       title={`기업 이벤트 — ${activeStock.name}`}
       subtitle="분할·배당 기록 (분할은 매매 수량·단가 자동 조정)"
       summary={<span className="text-sm text-ink-muted">{events.length}건</span>}
-      defaultOpen={false}
     >
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2">

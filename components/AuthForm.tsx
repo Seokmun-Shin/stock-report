@@ -49,13 +49,13 @@ export function AuthForm({
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-dim px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-line bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-bold text-ink">주식 매매 리포트</h1>
+      <div className="w-full max-w-sm rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
+        <h1 className="text-sm font-bold text-ink">주식 매매 리포트</h1>
         <p className="mt-1 text-sm text-ink-muted">로그인하면 사무실·집에서 같은 데이터를 사용합니다.</p>
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           <label className="block">
-            <span className="text-sm font-semibold text-slate-700">아이디 (이메일)</span>
+            <span className="text-sm font-semibold text-ink-muted">아이디 (이메일)</span>
             <input
               type="email"
               required
@@ -68,7 +68,7 @@ export function AuthForm({
           </label>
 
           <label className="block">
-            <span className="text-sm font-semibold text-slate-700">비밀번호</span>
+            <span className="text-sm font-semibold text-ink-muted">비밀번호</span>
             <input
               type={showPassword ? "text" : "password"}
               required
@@ -81,7 +81,7 @@ export function AuthForm({
             />
           </label>
 
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-ink-muted">
             <input
               type="checkbox"
               checked={showPassword}
@@ -92,8 +92,8 @@ export function AuthForm({
           </label>
 
           {(email || password) && !isSignUp && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-              <p className="font-medium text-slate-700">입력 확인</p>
+            <div className="rounded-lg border border-line/80 bg-surface-dim/50 px-3 py-2.5 text-xs text-ink-muted">
+              <p className="font-semibold text-ink">입력 확인</p>
               <p className="mt-1 break-all">
                 아이디: <span className="font-semibold text-ink">{email || "—"}</span>
               </p>
@@ -112,7 +112,7 @@ export function AuthForm({
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-ink py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+            className="w-full rounded-lg bg-gain py-2.5 text-sm font-bold text-white hover:bg-gain/90 disabled:opacity-50"
           >
             {loading ? "처리 중…" : isSignUp ? "회원가입" : "로그인"}
           </button>

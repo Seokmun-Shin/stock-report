@@ -6,6 +6,7 @@ import { STOCK_SETTLEMENT_HINTS, TIMING_HINTS } from "@/lib/metricHints";
 import { resolveReportSettings, type ReportSettings } from "@/lib/reportSettings";
 import { FormattedNumberInput } from "./FormattedNumberInput";
 import { HintTooltip, SectionTitle, StatCard } from "./StatCard";
+import { UI } from "./ui/PanelCard";
 import { formatKisUpdatedTime, isKrxMarketOpen } from "@/hooks/useKisPrices";
 
 function buildKisStatusText(
@@ -52,7 +53,7 @@ function KisPriceToolbar({
         type="button"
         onClick={onRefresh}
         disabled={loading || !stockCode}
-        className="w-full shrink-0 rounded-lg bg-gain px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
+        className={`w-full shrink-0 ${UI.btnPrimary} px-4 py-2 sm:w-auto`}
       >
         {loading ? "조회 중…" : "현재가 새로고침"}
       </button>
@@ -85,8 +86,11 @@ function BuyTimingHeader({ summary, signal }: { summary: StockSummary; signal: B
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-ink">매수 타이밍</h3>
-        <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold ${timingBadge(signal.status, "buy")}`}>
+        <div>
+          <h3 className={UI.sectionTitle}>매수 타이밍</h3>
+          <p className="text-xs text-ink-muted">기준 · 최근 매도가</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${timingBadge(signal.status, "buy")}`}>
           {signal.label}
         </span>
       </div>
@@ -94,7 +98,7 @@ function BuyTimingHeader({ summary, signal }: { summary: StockSummary; signal: B
       {timing10 && timing20 && lastSellPrice && (
         <div className="relative mt-3 h-2.5 shrink-0 rounded-full bg-gradient-to-r from-gain via-amber-300 to-slate-200">
           <div
-            className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-white bg-ink shadow"
+            className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-white bg-gain shadow"
             style={{ left: `calc(${clamped}% - 8px)` }}
           />
         </div>
@@ -109,20 +113,24 @@ function getBuyTimingRows(summary: StockSummary, settings: ReportSettings): Timi
   const { timing10, timing20, lastSellPrice } = summary;
   if (!timing10 || !timing20 || !lastSellPrice) return [];
   return [
-    { label: `-${settings.buyTimingPct2}% 매수선`, hint: TIMING_HINTS.timing20, value: fmt(timing20) },
-    { label: `-${settings.buyTimingPct1}% 매수선`, hint: TIMING_HINTS.timing10, value: fmt(timing10) },
+    { label: `매도가보다 ${settings.buyTimingPct2}%↓`, hint: TIMING_HINTS.timing20, value: fmt(timing20) },
+    { label: `매도가보다 ${settings.buyTimingPct1}%↓`, hint: TIMING_HINTS.timing10, value: fmt(timing10) },
     { label: "최근 매도가", hint: TIMING_HINTS.lastSellPrice, value: fmt(lastSellPrice) },
   ];
 }
 
 function getSellTimingRows(summary: StockSummary, settings: ReportSettings): TimingCardRow[] {
-  const { sellTiming10, sellTiming20, holdingAvgPrice, holdingQty } = summary;
+  const { sellTiming10, sellTiming20, holdingAvgPrice, holdingQty, lastBuyPrice } = summary;
   if (!sellTiming10 || !sellTiming20 || holdingQty <= 0) return [];
-  return [
-    { label: `+${settings.sellTimingPct1}% 매도선`, hint: TIMING_HINTS.sellTiming10, value: fmt(sellTiming10) },
-    { label: `+${settings.sellTimingPct2}% 매도선`, hint: TIMING_HINTS.sellTiming20, value: fmt(sellTiming20) },
-    { label: "평단", hint: TIMING_HINTS.holdingAvgPriceSell, value: fmt(holdingAvgPrice) },
+  const rows: TimingCardRow[] = [
+    { label: `평단보다 ${settings.sellTimingPct1}%↑`, hint: TIMING_HINTS.sellTiming10, value: fmt(sellTiming10) },
+    { label: `평단보다 ${settings.sellTimingPct2}%↑`, hint: TIMING_HINTS.sellTiming20, value: fmt(sellTiming20) },
+    { label: "평단(매수가)", hint: TIMING_HINTS.holdingAvgPriceSell, value: fmt(holdingAvgPrice) },
   ];
+  if (lastBuyPrice && lastBuyPrice !== holdingAvgPrice) {
+    rows.push({ label: "최근 매수가", hint: TIMING_HINTS.lastBuyPrice, value: fmt(lastBuyPrice) });
+  }
+  return rows;
 }
 
 function TimingCard({ row, fill = false }: { row: TimingCardRow; fill?: boolean }) {
@@ -138,8 +146,11 @@ function SellTimingHeader({ summary, signal }: { summary: StockSummary; signal: 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-ink">매도 타이밍</h3>
-        <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold ${timingBadge(signal.status, "sell")}`}>
+        <div>
+          <h3 className={UI.sectionTitle}>매도 타이밍</h3>
+          <p className="text-xs text-ink-muted">기준 · 평단(보유 매수가)</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${timingBadge(signal.status, "sell")}`}>
           {signal.label}
         </span>
       </div>
@@ -147,7 +158,7 @@ function SellTimingHeader({ summary, signal }: { summary: StockSummary; signal: 
       {sellTiming10 && sellTiming20 && holdingQty > 0 && (
         <div className="relative mt-3 h-2.5 shrink-0 rounded-full bg-gradient-to-r from-slate-200 via-amber-300 to-gain">
           <div
-            className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-white bg-ink shadow"
+            className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-white bg-gain shadow"
             style={{ left: `calc(${clamped}% - 8px)` }}
           />
         </div>
@@ -257,8 +268,9 @@ export function TimingRadar({
     );
   }
 
-  const buyRows = getBuyTimingRows(summary, timingSettings);
-  const sellRows = getSellTimingRows(summary, timingSettings);
+  const useTimingLines = timingSettings.useTimingPctLines ?? true;
+  const buyRows = useTimingLines ? getBuyTimingRows(summary, timingSettings) : [];
+  const sellRows = useTimingLines ? getSellTimingRows(summary, timingSettings) : [];
   const alignedRows = holdingRows.length > 0;
 
   const kisStatusBlock =
@@ -303,14 +315,14 @@ export function TimingRadar({
           {kisStatusBlock}
         </div>
         <div>
-          <label className="inline-flex items-center text-sm font-semibold text-slate-700">
+          <label className="inline-flex items-center text-sm font-semibold text-ink-muted">
             현재가
             <HintTooltip text={TIMING_HINTS.currentPrice} />
           </label>
           <FormattedNumberInput
             value={summary.currentPrice}
             onChange={onPriceChange}
-            className="mt-1.5 w-full rounded-lg border border-line bg-surface-dim px-3 py-2.5 text-right text-lg font-bold tabular-nums text-ink outline-none focus:ring-2 focus:ring-blue-200"
+            className={UI.inputHero}
             placeholder="0"
           />
           <KisQuoteStrip quote={stockQuote} />
@@ -323,7 +335,12 @@ export function TimingRadar({
             ))}
           </div>
         )}
-        <BuyTimingHeader summary={summary} signal={buySignal} />
+        {!useTimingLines && (
+          <p className="rounded-lg border border-line bg-gain-soft/30 px-3 py-2 text-xs leading-relaxed text-ink-muted">
+            추천은 상단 <strong className="text-ink">매매 타이밍</strong> 카드 참고 (시세·시장·뉴스 자동 분석)
+          </p>
+        )}
+        {useTimingLines && <BuyTimingHeader summary={summary} signal={buySignal} />}
         {buyRows.length > 0 && (
           <div className="flex flex-col gap-1.5">
             {buyRows.map((row) => (
@@ -331,7 +348,7 @@ export function TimingRadar({
             ))}
           </div>
         )}
-        <SellTimingHeader summary={summary} signal={sellSignal} />
+        {useTimingLines && <SellTimingHeader summary={summary} signal={sellSignal} />}
         {sellRows.length > 0 && (
           <div className="flex flex-col gap-1.5">
             {sellRows.map((row) => (
@@ -360,14 +377,20 @@ export function TimingRadar({
           {kisStatusBlock}
         </div>
         <div className="md:col-start-2 md:row-start-1 md:px-5">
-          <BuyTimingHeader summary={summary} signal={buySignal} />
+          {useTimingLines ? (
+            <BuyTimingHeader summary={summary} signal={buySignal} />
+          ) : (
+            <p className="text-xs leading-relaxed text-ink-muted">
+              상단 <strong className="text-ink">매매 타이밍</strong> 카드 참고
+            </p>
+          )}
         </div>
         <div className="md:col-start-3 md:row-start-1 md:pl-5">
-          <SellTimingHeader summary={summary} signal={sellSignal} />
+          {useTimingLines && <SellTimingHeader summary={summary} signal={sellSignal} />}
         </div>
 
         <div className="md:col-start-1 md:row-start-2 md:pr-5">
-          <label className="inline-flex items-center text-sm font-semibold text-slate-700">
+          <label className="inline-flex items-center text-sm font-semibold text-ink-muted">
             현재가
             <HintTooltip text={TIMING_HINTS.currentPrice} />
           </label>
@@ -377,7 +400,7 @@ export function TimingRadar({
           <FormattedNumberInput
             value={summary.currentPrice}
             onChange={onPriceChange}
-            className="min-h-[2.75rem] w-full rounded-lg border border-line bg-surface-dim px-3 py-2.5 text-right text-lg font-bold tabular-nums text-ink outline-none focus:ring-2 focus:ring-blue-200"
+            className={`min-h-[2.75rem] ${UI.inputHero}`}
             placeholder="0"
           />
           <KisQuoteStrip quote={stockQuote} />
@@ -445,22 +468,53 @@ export function TimingRadar({
 }
 
 export function StockSettlement({ stockName, summary }: { stockName: string; summary: StockSummary }) {
-  const rows: { label: string; hint: string; value: string; tone?: "gain" | "loss" }[] = [
-    { label: "매수", hint: STOCK_SETTLEMENT_HINTS.buyAmount, value: fmt(summary.buyAmount) },
-    { label: "매도", hint: STOCK_SETTLEMENT_HINTS.sellAmount, value: fmt(summary.sellAmount) },
-    { label: "비용", hint: STOCK_SETTLEMENT_HINTS.tradeCost, value: fmt(summary.tradeCost) },
-    { label: "순수익", hint: STOCK_SETTLEMENT_HINTS.netProfit, value: fmt(summary.netProfit), tone: summary.netProfit >= 0 ? "gain" : "loss" },
-    { label: "수익률", hint: STOCK_SETTLEMENT_HINTS.returnRate, value: fmtPct(summary.returnRate), tone: summary.returnRate >= 0 ? "gain" : "loss" },
-    { label: "보유", hint: STOCK_SETTLEMENT_HINTS.holdingQty, value: summary.holdingQty > 0 ? `${fmtQty(summary.holdingQty)}주` : "없음" },
-  ];
+  const realizedTone = summary.netProfit >= 0 ? "gain" : "loss";
+  const unrealizedTone = summary.unrealizedPnlWithCost >= 0 ? "gain" : "loss";
 
   return (
-    <section className="min-w-0 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-5">
-      <SectionTitle unit>{stockName} 정산</SectionTitle>
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {rows.map((row) => (
-          <StatCard key={row.label} label={row.label} hint={row.hint} value={row.value} tone={row.tone} />
-        ))}
+    <section className="min-w-0 space-y-3">
+      <div>
+        <p className="text-sm font-bold text-ink">{stockName} 종목 성과</p>
+        <p className="mt-0.5 text-[11px] text-ink-muted">실현(매도 누적) · 평가(현재 보유) 구분</p>
+      </div>
+
+      {summary.holdingQty > 0 ? (
+        <>
+          <p className="text-xs font-bold text-amber-800">평가 (보유 · 미실현)</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <StatCard label="보유" hint={STOCK_SETTLEMENT_HINTS.holdingQty} value={`${fmtQty(summary.holdingQty)}주`} />
+            <StatCard label="평단" hint={TIMING_HINTS.holdingAvgPrice} value={fmt(summary.holdingAvgPrice)} />
+            <StatCard
+              label="평가 손익"
+              hint={TIMING_HINTS.unrealizedPnlWithCost}
+              value={`${fmtSigned(summary.unrealizedPnlWithCost)} (${fmtPct(summary.unrealizedPnlPct)})`}
+              tone={unrealizedTone}
+            />
+          </div>
+        </>
+      ) : (
+        <p className="rounded-lg border border-dashed border-line bg-surface-dim/40 px-3 py-2 text-xs text-ink-muted">
+          현재 보유 없음 — 평가 손익 없음
+        </p>
+      )}
+
+      <p className="text-xs font-bold text-gain">실현 (매도 확정)</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <StatCard label="매수" hint={STOCK_SETTLEMENT_HINTS.buyAmount} value={fmt(summary.buyAmount)} />
+        <StatCard label="매도" hint={STOCK_SETTLEMENT_HINTS.sellAmount} value={fmt(summary.sellAmount)} />
+        <StatCard label="비용" hint={STOCK_SETTLEMENT_HINTS.tradeCost} value={fmt(summary.tradeCost)} />
+        <StatCard
+          label="실현 순수익"
+          hint={STOCK_SETTLEMENT_HINTS.netProfit}
+          value={fmt(summary.netProfit)}
+          tone={realizedTone}
+        />
+        <StatCard
+          label="실현 수익률"
+          hint={STOCK_SETTLEMENT_HINTS.returnRate}
+          value={fmtPct(summary.returnRate)}
+          tone={realizedTone}
+        />
       </div>
     </section>
   );

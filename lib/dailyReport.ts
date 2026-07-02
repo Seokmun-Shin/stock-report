@@ -170,12 +170,12 @@ function buildStockAlerts(
     alerts.push({
       stockId: stock.id,
       kind: "sell",
-      title: "익절·매도 관심",
+      title: "매도 관심",
       detail: `평단(비용) 대비 +${gainFromAvgPct.toFixed(1)}% (기준 +${settings.sellGainFromAvgPct}%)`,
     });
   }
 
-  if (buySignal.status === "zone10" || buySignal.status === "zone20") {
+  if (settings.useTimingPctLines && (buySignal.status === "zone10" || buySignal.status === "zone20")) {
     alerts.push({
       stockId: stock.id,
       kind: "buy",
@@ -184,7 +184,7 @@ function buildStockAlerts(
     });
   }
 
-  if (sellSignal.status === "zone10" || sellSignal.status === "zone20") {
+  if (settings.useTimingPctLines && (sellSignal.status === "zone10" || sellSignal.status === "zone20")) {
     alerts.push({
       stockId: stock.id,
       kind: "sell",
@@ -307,6 +307,7 @@ function emptySummary(stock: Stock): StockSummary {
     netProfit: 0,
     returnRate: 0,
     lastSellPrice: null,
+    lastBuyPrice: null,
     timing10: null,
     timing20: null,
     sellTiming10: null,

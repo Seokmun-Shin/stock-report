@@ -41,18 +41,20 @@ export function collectPortfolioAlerts(
     if (sum.holdingQty > 0 && sum.holdingAvgPriceWithCost > 0) {
       const gain =
         ((sum.currentPrice - sum.holdingAvgPriceWithCost) / sum.holdingAvgPriceWithCost) * 100;
-      if (gain >= settings.sellGainFromAvgPct) {
+      const sell = sellSignals[stock.id];
+      const inSellZone = sell?.status === "zone10" || sell?.status === "zone20";
+      if (gain >= settings.sellGainFromAvgPct && inSellZone) {
         alerts.push({
           stockId: stock.id,
           stockName: stock.name,
           kind: "sell",
-          message: `${stock.name} 평단(비용) 대비 +${gain.toFixed(1)}%`,
+          message: `${stock.name} ${sell!.label} (평단比 +${gain.toFixed(1)}%)`,
         });
       }
     }
 
     const buy = buySignals[stock.id];
-    if (buy?.status === "zone10" || buy?.status === "zone20") {
+    if (settings.useTimingPctLines && (buy?.status === "zone10" || buy?.status === "zone20")) {
       alerts.push({
         stockId: stock.id,
         stockName: stock.name,
@@ -62,7 +64,7 @@ export function collectPortfolioAlerts(
     }
 
     const sell = sellSignals[stock.id];
-    if (sell?.status === "zone10" || sell?.status === "zone20") {
+    if (settings.useTimingPctLines && (sell?.status === "zone10" || sell?.status === "zone20")) {
       alerts.push({
         stockId: stock.id,
         stockName: stock.name,

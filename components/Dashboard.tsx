@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AppData, Stock, Trade } from "@/lib/types";
 import { SEED } from "@/lib/seed";
@@ -13,23 +13,27 @@ import {
   summarizeStock,
   uid,
 } from "@/lib/calc";
+import { fmtPct, today } from "@/lib/calc";
 import { UnitNotice } from "@/components/StatCard";
-import { DailyReportPanel } from "@/components/DailyReportPanel";
+import { AppHeaderBlock, HEADER_DESC } from "@/components/AppHeader";
+import { AppFlowBanner } from "@/components/AppFlowBanner";
 import { applyDailySnapshot, applyPeakPrices } from "@/lib/dailyReport";
-import { InitialCapitalPanel } from "@/components/InitialCapitalPanel";
-import { PortfolioSummaryPanel } from "@/components/PortfolioSummaryPanel";
 import { StockEditModal } from "@/components/StockEditModal";
-import { StockPanel } from "@/components/StockPanel";
-import { StockSettlement, TimingRadar } from "@/components/TimingRadar";
-import { TradeHistorySection } from "@/components/TradeSection";
 import { applyQuoteUpdates, useKisPrices } from "@/hooks/useKisPrices";
-import { BenchmarkPanel } from "@/components/BenchmarkPanel";
-import { PeriodReportPanel } from "@/components/PeriodReportPanel";
-import { StockEventsPanel } from "@/components/StockEventsPanel";
-import { CsvImportPanel, mergeCsvTrades } from "@/components/CsvImportPanel";
 import type { ParsedTradeRow } from "@/lib/import/tradeCsv";
 import { collectPortfolioAlerts, notifyAlertsIfEnabled } from "@/lib/alerts";
+import { buildFullTradeAdvice } from "@/lib/briefing/tradeRecommendation";
+import { buildAllTradingVerdicts } from "@/lib/briefing/tradingVerdict";
+import { buildTimingSourceReport } from "@/lib/briefing/timingSources";
 import { resolveReportSettings, type ReportSettings } from "@/lib/reportSettings";
+import { useBriefingData } from "@/hooks/useBriefingData";
+import { AppTabNav, type AppTab } from "@/components/AppTabNav";
+import { TradingVerdictView } from "@/components/TradingVerdictView";
+import { ReportTab } from "@/components/tabs/ReportTab";
+import { SettingsTab } from "@/components/tabs/SettingsTab";
+import { RecordsTab } from "@/components/tabs/RecordsTab";
+import { TimingSourcesTab } from "@/components/tabs/TimingSourcesTab";
+import { mergeCsvTrades } from "@/components/CsvImportPanel";
 
 export function Dashboard({
   data,
@@ -48,6 +52,7 @@ export function Dashboard({
   syncError: string | null;
   cloudEnabled: boolean;
 }) {
+  const [activeTab, setActiveTab] = useState<AppTab>("verdict");
   const [activeId, setActiveId] = useState(data.stocks[0]?.id ?? "");
   const [addingStock, setAddingStock] = useState(false);
   const [newStockName, setNewStockName] = useState("");
@@ -55,12 +60,14 @@ export function Dashboard({
   const [newStockCodeManual, setNewStockCodeManual] = useState(false);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
+  const [tradeFormOpen, setTradeFormOpen] = useState(false);
 
   function beginAddStock() {
     setAddingStock(true);
     setNewStockName("");
     setNewStockCode("");
     setNewStockCodeManual(false);
+    setActiveTab("records");
   }
 
   function cancelAddStock() {
@@ -72,9 +79,7 @@ export function Dashboard({
 
   function onNewStockNameChange(name: string) {
     setNewStockName(name);
-    if (!newStockCodeManual) {
-      setNewStockCode(suggestStockCode(name) ?? "");
-    }
+    if (!newStockCodeManual) setNewStockCode(suggestStockCode(name) ?? "");
   }
 
   function onNewStockCodeChange(code: string) {
@@ -90,6 +95,8 @@ export function Dashboard({
     persist(applyQuoteUpdates(dataRef.current, payload));
   });
 
+  const briefing = useBriefingData(data.stocks);
+
   useEffect(() => {
     if (!data.stocks.some((s) => s.id === activeId)) {
       setActiveId(data.stocks[0]?.id ?? "");
@@ -101,13 +108,7 @@ export function Dashboard({
   const stockSummaries = useMemo(() => {
     const map: Record<string, ReturnType<typeof summarizeStock>> = {};
     for (const s of data.stocks) {
-      map[s.id] = summarizeStock(
-        s.id,
-        s.name,
-        data.trades,
-        data.currentPrices[s.id] ?? 0,
-        data.reportSettings
-      );
+      map[s.id] = summarizeStock(s.id, s.name, data.trades, data.currentPrices[s.id] ?? 0, data.reportSettings);
     }
     return map;
   }, [data]);
@@ -149,16 +150,136 @@ export function Dashboard({
   }, [data, stockSummaries, stockBuySignals, stockSellSignals]);
 
   function patchReportSettings(patch: Partial<ReportSettings> | ReportSettings) {
-    persist({
-      ...data,
-      reportSettings: { ...reportSettings, ...patch },
-    });
+    persist({ ...data, reportSettings: { ...reportSettings, ...patch } });
   }
+
   const activeStock = data.stocks.find((s) => s.id === activeId) ?? data.stocks[0];
   const stockSummary = activeStock ? stockSummaries[activeStock.id] : null;
   const buySignal = stockSummary ? getBuyTimingSignal(stockSummary, data.reportSettings) : null;
   const sellSignal = stockSummary ? getSellTimingSignal(stockSummary, data.reportSettings) : null;
   const stockTrades = data.trades.filter((t) => t.stockId === activeId);
+
+  const peakByStock = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const s of data.stocks) {
+      const p = data.peakPrices?.[s.id]?.price;
+      if (p && p > 0) m[s.id] = p;
+    }
+    return m;
+  }, [data.stocks, data.peakPrices]);
+
+  const verdictBuildCtx = useMemo(() => {
+    const sorted = [...(data.dailySnapshots ?? [])].sort((a, b) => b.date.localeCompare(a.date));
+    const reportDate = today();
+    const prev = sorted.find((s) => s.date < reportDate);
+    return {
+      dailySnapshots: data.dailySnapshots,
+      stockEvents: data.stockEvents,
+      portfolioReturnChange: prev ? portfolio.totalReturnRate - prev.portfolioTotalReturnRate : null,
+    };
+  }, [data.dailySnapshots, data.stockEvents, portfolio.totalReturnRate]);
+
+  const tradingVerdicts = useMemo(
+    () =>
+      buildAllTradingVerdicts(
+        stockSummaries,
+        data.stockQuotes,
+        data.reportSettings,
+        briefing.context,
+        data.kospiBenchmark,
+        peakByStock,
+        verdictBuildCtx
+      ),
+    [stockSummaries, data.stockQuotes, data.reportSettings, briefing.context, data.kospiBenchmark, peakByStock, verdictBuildCtx]
+  );
+
+  const activeVerdict = tradingVerdicts.find((v) => v.stockId === activeId) ?? null;
+
+  const timingSourceReport = useMemo(() => {
+    if (!activeStock || !stockSummary) return null;
+    const stockCtx = briefing.context?.stocks.find((s) => s.stockId === activeId);
+    return buildTimingSourceReport({
+      stock: activeStock,
+      summary: stockSummary,
+      quote: data.stockQuotes?.[activeId],
+      settings: data.reportSettings,
+      buySignal: stockBuySignals[activeId] ?? { status: "watch", label: "—", hint: "" },
+      sellSignal: stockSellSignals[activeId] ?? { status: "watch", label: "—", hint: "" },
+      peak: data.peakPrices?.[activeId],
+      targetPrice: reportSettings.targetPrices?.[activeId],
+      stockContext: stockCtx,
+      marketContext: briefing.context,
+      kospi: data.kospiBenchmark,
+      kosdaq: data.kosdaqBenchmark,
+      buildCtx: verdictBuildCtx,
+      verdict: activeVerdict,
+    });
+  }, [
+    activeStock,
+    stockSummary,
+    activeId,
+    data.stockQuotes,
+    data.reportSettings,
+    data.peakPrices,
+    data.kospiBenchmark,
+    data.kosdaqBenchmark,
+    stockBuySignals,
+    stockSellSignals,
+    reportSettings.targetPrices,
+    briefing.context,
+    verdictBuildCtx,
+    activeVerdict,
+  ]);
+
+  const verdictRefreshing = kis.loading || briefing.loading;
+
+  const verdictLastUpdated = useMemo(() => {
+    const times = [kis.lastUpdated, briefing.lastFetched].filter((d): d is Date => d != null);
+    if (times.length === 0) return null;
+    return new Date(Math.max(...times.map((d) => d.getTime())));
+  }, [kis.lastUpdated, briefing.lastFetched]);
+
+  const refreshVerdict = useCallback(async () => {
+    await Promise.all([kis.refresh(), briefing.refresh()]);
+  }, [kis.refresh, briefing.refresh]);
+
+  function selectStock(id: string) {
+    setActiveId(id);
+    setEditingTrade(null);
+    setTradeFormOpen(false);
+  }
+
+  const tradeSuggestion = useMemo(() => {
+    if (!stockSummary || !buySignal || !sellSignal) return null;
+    const stockCtx = briefing.context?.stocks.find((s) => s.stockId === activeId);
+    return buildFullTradeAdvice(
+      stockSummary,
+      buySignal,
+      sellSignal,
+      data.stockQuotes?.[activeId],
+      data.reportSettings,
+      stockCtx,
+      briefing.context ?? undefined,
+      data.kospiBenchmark,
+      peakByStock[activeId],
+      {
+        verdict: activeVerdict,
+        userTargetPrice: reportSettings.targetPrices?.[activeId],
+        buildCtx: verdictBuildCtx,
+      }
+    ).suggestion;
+  }, [
+    stockSummary,
+    buySignal,
+    sellSignal,
+    data,
+    activeId,
+    peakByStock,
+    briefing.context,
+    activeVerdict,
+    reportSettings.targetPrices,
+    verdictBuildCtx,
+  ]);
 
   function addOrUpdateTrade(partial: Omit<Trade, "id" | "stockId" | "createdAt">) {
     if (!activeStock) return;
@@ -215,6 +336,7 @@ export function Dashboard({
     setNewStockCode("");
     setNewStockCodeManual(false);
     setAddingStock(false);
+    setActiveTab("verdict");
   }
 
   function editStock(stock: Stock) {
@@ -225,9 +347,7 @@ export function Dashboard({
     if (!editingStock) return;
     persist({
       ...data,
-      stocks: data.stocks.map((s) =>
-        s.id === editingStock.id ? { ...s, name, code } : s
-      ),
+      stocks: data.stocks.map((s) => (s.id === editingStock.id ? { ...s, name, code } : s)),
     });
     setEditingStock(null);
   }
@@ -270,6 +390,7 @@ export function Dashboard({
     if (rows.length === 0) return;
     if (!confirm(`${rows.length}건의 매매 내역을 추가할까요?`)) return;
     persist(mergeCsvTrades(data, rows));
+    setActiveTab("verdict");
   }
 
   function resetDemo() {
@@ -277,184 +398,166 @@ export function Dashboard({
       persist(SEED);
       setActiveId("sk");
       setEditingTrade(null);
+      setActiveTab("verdict");
     }
   }
 
+  const kospiLabel = data.kospiBenchmark ? `KOSPI ${fmtPct(data.kospiBenchmark.changeRate)}` : undefined;
+
   return (
-    <div className="min-h-screen min-w-0 overflow-x-hidden bg-slate-100">
-      <header className="border-b border-slate-200/90 bg-white px-3 py-3 shadow-sm sm:px-6 sm:py-4">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">주식 매매 리포트</h1>
-            <p className="mt-0.5 text-sm text-ink-muted">
-              수익 · 타이밍 · 한 화면 · <UnitNotice />
-              {cloudEnabled && user && (
-                <span className="ml-2 text-gain">
-                  · 클라우드 {syncing ? "저장 중…" : "동기화"}
+    <div className="min-h-screen min-w-0 overflow-x-hidden bg-slate-100 pb-[calc(3.25rem+env(safe-area-inset-bottom))]">
+      <header className="border-b border-slate-200/90 bg-white shadow-sm">
+        <div className="mx-auto max-w-5xl px-3 py-3 sm:px-6">
+          <AppHeaderBlock
+            tab={activeTab}
+            meta={
+              cloudEnabled && user ? (
+                <span className="rounded-full border border-gain/20 bg-gain-soft px-2.5 py-0.5 text-[11px] font-semibold text-gain">
+                  {syncing ? "저장 중…" : "동기화"}
                 </span>
-              )}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {user && (
-              <span className="max-w-[180px] truncate text-sm text-ink-muted" title={user.email ?? ""}>
-                {user.email}
-              </span>
-            )}
-            {user && (
-              <button
-                type="button"
-                onClick={signOut}
-                className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink-muted hover:bg-surface-dim"
-              >
-                로그아웃
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={resetDemo}
-              className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink-muted hover:bg-surface-dim"
-            >
-              샘플 초기화
-            </button>
-          </div>
+              ) : undefined
+            }
+            desc={
+              <>
+                {HEADER_DESC[activeTab]}
+                {" · "}
+                <UnitNotice />
+              </>
+            }
+          />
+          {syncError && <p className="mt-1.5 text-sm text-loss">동기화 오류: {syncError}</p>}
         </div>
-        {syncError && (
-          <p className="mx-auto mt-2 max-w-5xl text-sm text-loss">동기화 오류: {syncError}</p>
-        )}
       </header>
 
-      <main className="mx-auto min-w-0 max-w-5xl space-y-4 px-3 py-4 sm:px-6 sm:py-5">
-        <DailyReportPanel
-          data={data}
-          portfolio={portfolio}
-          summaries={stockSummaries}
-          buySignals={stockBuySignals}
-          sellSignals={stockSellSignals}
-          onSettingsChange={patchReportSettings}
-          onOpenStock={(id) => {
-            setActiveId(id);
-            setEditingTrade(null);
-          }}
-        />
+      <main className="mx-auto min-w-0 max-w-5xl px-3 py-4 sm:px-6">
+        <AppFlowBanner tab={activeTab} />
+        {activeTab === "verdict" && (
+          <TradingVerdictView
+            stocks={data.stocks}
+            activeId={activeId}
+            activeStockName={activeStock?.name}
+            activeStockCode={activeStock?.code}
+            onSelectStock={selectStock}
+            verdict={activeVerdict}
+            summary={stockSummary}
+            summaries={stockSummaries}
+            stockQuotes={data.stockQuotes}
+            quote={activeStock ? data.stockQuotes?.[activeStock.id] : undefined}
+            buySignal={buySignal}
+            sellSignal={sellSignal}
+            portfolioPnl={portfolio.totalPnl}
+            kospiLabel={kospiLabel}
+            kisLoading={kis.loading}
+            briefingLoading={briefing.loading}
+            kisError={kis.error}
+            briefingError={briefing.error}
+            kisConfigured={kis.configured}
+            kisLastUpdated={kis.lastUpdated}
+            kisAutoRefresh={kis.autoRefresh}
+            onKisAutoRefreshChange={kis.setAutoRefresh}
+            onKisRefresh={kis.refresh}
+            onBriefingRefresh={briefing.refresh}
+            onVerdictRefresh={() => void refreshVerdict()}
+            verdictRefreshing={verdictRefreshing}
+            verdictLastUpdated={verdictLastUpdated}
+            onAddStock={beginAddStock}
+            allVerdicts={tradingVerdicts}
+            marketContext={briefing.context}
+            onOpenRecords={() => {
+              setActiveTab("records");
+            }}
+            onPriceChange={setCurrentPrice}
+            reportSettings={data.reportSettings}
+            targetPrice={reportSettings.targetPrices?.[activeStock?.id ?? ""]}
+            onTargetPriceChange={(p) => activeStock && setTargetPrice(activeStock.id, p)}
+          />
+        )}
 
-        <BenchmarkPanel data={data} portfolio={portfolio} summaries={stockSummaries} />
+        {activeTab === "sources" && (
+          <TimingSourcesTab
+            report={timingSourceReport}
+            onRefresh={() => void refreshVerdict()}
+            refreshing={verdictRefreshing}
+            stocks={data.stocks}
+            activeId={activeId}
+            onSelectStock={selectStock}
+          />
+        )}
 
-        <PeriodReportPanel data={data} />
+        {activeTab === "records" && (
+          <RecordsTab
+            stocks={data.stocks}
+            activeId={activeId}
+            onSelectStock={selectStock}
+            onEditStock={editStock}
+            onDeleteStock={deleteStock}
+            addingStock={addingStock}
+            newStockName={newStockName}
+            newStockCode={newStockCode}
+            onNewStockNameChange={onNewStockNameChange}
+            onNewStockCodeChange={onNewStockCodeChange}
+            onAddStock={addStock}
+            onCancelAddStock={cancelAddStock}
+            stockSummary={stockSummary}
+            activeStock={activeStock}
+            stockTrades={stockTrades}
+            capitalIds={capitalIds}
+            editingTrade={editingTrade}
+            onSubmitTrade={addOrUpdateTrade}
+            onToggleCapital={toggleCapital}
+            onEditTrade={setEditingTrade}
+            onDeleteTrade={deleteTrade}
+            onCancelEditTrade={() => setEditingTrade(null)}
+            tradeSuggestion={tradeSuggestion}
+            tradeFormOpen={tradeFormOpen}
+            onTradeFormOpenChange={setTradeFormOpen}
+            buySignal={buySignal}
+            sellSignal={sellSignal}
+            reportSettings={data.reportSettings}
+          />
+        )}
 
-        <PortfolioSummaryPanel portfolio={portfolio} />
+        {activeTab === "report" && (
+          <ReportTab
+            data={data}
+            portfolio={portfolio}
+            capital={capital}
+            stocks={data.stocks}
+            summaries={stockSummaries}
+            activeId={activeId}
+            onSelectStock={selectStock}
+            onEditStock={editStock}
+            onDeleteStock={deleteStock}
+          />
+        )}
 
-        <InitialCapitalPanel summary={capital} />
-
-        <StockPanel
-          stocks={data.stocks}
-          activeId={activeId}
-          summaries={stockSummaries}
-          stockQuotes={data.stockQuotes}
-          buySignals={stockBuySignals}
-          sellSignals={stockSellSignals}
-          onSelect={(id) => {
-            setActiveId(id);
-            setEditingTrade(null);
-          }}
-          onAdd={beginAddStock}
-          onEdit={editStock}
-          onDelete={deleteStock}
-          summaryAddon={
-            addingStock ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface-dim p-3">
-                <span className="w-full text-sm font-medium text-ink-muted">종목 추가</span>
-                <input
-                  className="min-w-[120px] flex-1 rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                  placeholder="종목명 (필수)"
-                  value={newStockName}
-                  onChange={(e) => onNewStockNameChange(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addStock()}
-                  autoFocus
-                />
-                <input
-                  className="w-36 rounded-lg border border-line bg-white px-3 py-2 text-sm tabular-nums"
-                  placeholder="코드 (선택·KIS용)"
-                  value={newStockCode}
-                  onChange={(e) => onNewStockCodeChange(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addStock()}
-                />
-                <p className="w-full text-xs text-ink-muted">
-                  종목코드는 KIS 자동 시세에만 필요합니다. 등록된 종목명은 입력 시 코드가 따라 바뀝니다 (코드를 직접 수정하면 고정).
-                </p>
-                <button type="button" onClick={addStock} className="rounded-lg bg-gain px-4 py-1.5 text-sm font-medium text-white">
-                  추가
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelAddStock}
-                  className="rounded-lg border border-line bg-white px-4 py-1.5 text-sm text-ink-muted"
-                >
-                  취소
-                </button>
-              </div>
-            ) : (
-              <CsvImportPanel stocks={data.stocks} onImport={importCsvRows} />
-            )
-          }
-        >
-          {activeStock && (
-            <>
-              {stockSummary && buySignal && sellSignal && (
-                <div className="flex flex-col gap-5">
-                  <StockSettlement stockName={activeStock.name} summary={stockSummary} />
-                  <TimingRadar
-                    summary={stockSummary}
-                    buySignal={buySignal}
-                    sellSignal={sellSignal}
-                    onPriceChange={setCurrentPrice}
-                    kisConfigured={kis.configured}
-                    kisLoading={kis.loading}
-                    kisError={kis.error}
-                    kisLastUpdated={kis.lastUpdated}
-                    kisAutoRefresh={kis.autoRefresh}
-                    onKisAutoRefreshChange={kis.setAutoRefresh}
-                    onKisRefresh={kis.refresh}
-                    kisStockCode={activeStock.code}
-                    stockQuote={data.stockQuotes?.[activeStock.id]}
-                    reportSettings={data.reportSettings}
-                    targetPrice={reportSettings.targetPrices?.[activeStock.id]}
-                    onTargetPriceChange={(p) => setTargetPrice(activeStock.id, p)}
-                  />
-                </div>
-              )}
-
-              <StockEventsPanel data={data} activeStock={activeStock} onPersist={persist} />
-
-              <TradeHistorySection
-                stockName={activeStock.name}
-                trades={stockTrades}
-                initialCapitalIds={capitalIds}
-                editing={editingTrade}
-                onSubmit={addOrUpdateTrade}
-                onToggleCapital={toggleCapital}
-                onEdit={setEditingTrade}
-                onDelete={deleteTrade}
-                onCancelEdit={() => setEditingTrade(null)}
-              />
-            </>
-          )}
-        </StockPanel>
+        {activeTab === "settings" && (
+          <SettingsTab
+            data={data}
+            portfolio={portfolio}
+            summaries={stockSummaries}
+            buySignals={stockBuySignals}
+            sellSignals={stockSellSignals}
+            marketContext={briefing.context}
+            briefingLoading={briefing.loading}
+            briefingError={briefing.error}
+            onBriefingRefresh={briefing.refresh}
+            onSettingsChange={patchReportSettings}
+            onImportCsv={importCsvRows}
+            user={user}
+            signOut={signOut}
+            onResetDemo={resetDemo}
+            cloudEnabled={cloudEnabled}
+            syncing={syncing}
+          />
+        )}
       </main>
 
-      {editingStock && (
-        <StockEditModal
-          stock={editingStock}
-          onSave={saveEditedStock}
-          onClose={() => setEditingStock(null)}
-        />
-      )}
+      <AppTabNav active={activeTab} onChange={setActiveTab} />
 
-      <footer className="border-t border-line py-5 text-center text-sm text-ink-muted">
-        {cloudEnabled && user
-          ? "데이터는 클라우드(Supabase)에 저장 · 사무실·집 동일 계정으로 접속"
-          : "데이터는 이 브라우저에 저장됩니다 · .env 설정 시 클라우드 동기화"}
-      </footer>
+      {editingStock && (
+        <StockEditModal stock={editingStock} onSave={saveEditedStock} onClose={() => setEditingStock(null)} />
+      )}
     </div>
   );
 }

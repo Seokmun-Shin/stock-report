@@ -29,8 +29,8 @@ export function PeriodReportPanel({ data }: { data: AppData }) {
             key={k}
             type="button"
             onClick={() => setKind(k)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              kind === k ? "bg-ink text-white" : "border border-line text-ink-muted hover:bg-surface-dim"
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
+              kind === k ? "bg-gain text-white" : "border border-line text-ink-muted hover:bg-surface-dim"
             }`}
           >
             {k === "month" ? "월별" : "연별"}
@@ -43,8 +43,8 @@ export function PeriodReportPanel({ data }: { data: AppData }) {
           매매 내역이 없습니다.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-line">
-          <table className="w-full min-w-[520px] text-sm">
+        <div className="rounded-xl border border-line">
+          <table className="w-full table-fixed text-sm">
             <thead className="bg-surface-dim text-xs text-ink-muted">
               <tr>
                 <th className="px-3 py-2.5 text-left">기간</th>

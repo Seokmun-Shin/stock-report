@@ -6,9 +6,12 @@ import type { PortfolioSummary } from "@/lib/types";
 import type { BuyTimingSignal, SellTimingSignal, StockSummary } from "@/lib/types";
 import { fmt, fmtPct, fmtSigned } from "@/lib/calc";
 import { buildDailyReport, formatDailyReportText } from "@/lib/dailyReport";
+import { buildMarketBrief, formatMarketBriefText } from "@/lib/briefing/marketBrief";
+import type { MarketBriefingContext, TradeRecommendation } from "@/lib/briefing/types";
 import type { ReportSettings } from "@/lib/reportSettings";
 import { CollapsibleSection, SummaryChip } from "./CollapsibleSection";
 import { StrategySettingsForm } from "./StrategySettingsForm";
+import { TimingZonesBriefRow, TimingZonesPanel } from "./TimingZonesPanel";
 
 function AlertBadge({ kind }: { kind: "buy" | "sell" | "watch" }) {
   if (kind === "buy") {
@@ -34,6 +37,8 @@ export function DailyReportPanel({
   sellSignals,
   onSettingsChange,
   onOpenStock,
+  marketContext,
+  recommendations = [],
 }: {
   data: AppData;
   portfolio: PortfolioSummary;
@@ -42,10 +47,27 @@ export function DailyReportPanel({
   sellSignals: Record<string, SellTimingSignal>;
   onSettingsChange: (settings: ReportSettings) => void;
   onOpenStock: (stockId: string) => void;
+  marketContext?: MarketBriefingContext | null;
+  recommendations?: TradeRecommendation[];
 }) {
   const report = useMemo(
     () => buildDailyReport(data, portfolio, summaries, buySignals, sellSignals),
     [data, portfolio, summaries, buySignals, sellSignals]
+  );
+
+  const marketBrief = useMemo(
+    () => buildMarketBrief(data, portfolio, summaries, buySignals, sellSignals),
+    [data, portfolio, summaries, buySignals, sellSignals]
+  );
+
+  const planByStock = useMemo(
+    () => new Map(marketBrief.stockPlans.map((p) => [p.stockId, p])),
+    [marketBrief]
+  );
+
+  const recByStock = useMemo(
+    () => new Map(recommendations.map((r) => [r.stockId, r])),
+    [recommendations]
   );
 
   const [copied, setCopied] = useState(false);
@@ -55,7 +77,7 @@ export function DailyReportPanel({
   const alertCount = report.headlineAlerts.length;
 
   async function copyReport() {
-    await navigator.clipboard.writeText(formatDailyReportText(report));
+    await navigator.clipboard.writeText(formatDailyReportText(report) + formatMarketBriefText(marketBrief));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -91,6 +113,17 @@ export function DailyReportPanel({
       }
     >
       <div className="space-y-4">
+        <div className="rounded-xl border border-line bg-surface-dim/30 p-3">
+          <p className="text-sm font-semibold text-ink">시장·데이터 원천</p>
+          <p className="mt-1 text-xs leading-relaxed text-ink-muted">{marketBrief.marketSummary.join(" · ")}</p>
+          <p className="mt-2 text-[11px] text-ink-muted">
+            자동: {marketBrief.sources.map((s) => s.label).join(", ")}
+            {marketContext?.sources && (
+              <> · 외부 {marketContext.sources.filter((s) => s.ok).length}/{marketContext.sources.length} 원천</>
+            )}
+          </p>
+        </div>
+
         {report.headlineAlerts.length > 0 ? (
           <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
             <p className="text-sm font-semibold text-ink">오늘의 시그널</p>
@@ -125,6 +158,8 @@ export function DailyReportPanel({
                 <th className="px-3 py-2.5 text-right">고점比</th>
                 <th className="px-3 py-2.5 text-right">평단比</th>
                 <th className="px-3 py-2.5 text-right">평가손익</th>
+                <th className="px-3 py-2.5 text-center">매매 구간</th>
+                <th className="px-3 py-2.5 text-center">추천</th>
                 <th className="px-3 py-2.5 text-center">타이밍</th>
               </tr>
             </thead>
@@ -172,6 +207,27 @@ export function DailyReportPanel({
                         "—"
                       )}
                     </td>
+                    <td className="px-3 py-2.5 text-center text-xs text-ink">
+                      {planByStock.get(stock.id) ? (
+                        <TimingZonesBriefRow plan={planByStock.get(stock.id)!} />
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-center text-xs">
+                      {(() => {
+                        const rec = recByStock.get(stock.id);
+                        if (!rec) return "—";
+                        const label = rec.action === "buy" ? "매수" : rec.action === "sell" ? "매도" : "관망";
+                        const tone =
+                          rec.action === "buy" ? "text-gain" : rec.action === "sell" ? "text-loss" : "text-ink-muted";
+                        return (
+                          <span className={tone}>
+                            {label} · {fmt(rec.suggestedPrice)}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td className="px-3 py-2.5 text-center text-xs">
                       <span className="text-gain">{buySignal.label}</span>
                       <span className="text-ink-muted"> / </span>
@@ -183,6 +239,24 @@ export function DailyReportPanel({
             </tbody>
           </table>
         </div>
+
+        {marketBrief.stockPlans.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-ink">종목별 매매 타이밍·구간</p>
+            {marketBrief.stockPlans.map((plan) => (
+              <div key={plan.stockId} className="rounded-xl border border-line p-3">
+                <button
+                  type="button"
+                  className="mb-2 text-left font-semibold text-gain hover:underline"
+                  onClick={() => onOpenStock(plan.stockId)}
+                >
+                  {plan.stockName}
+                </button>
+                <TimingZonesPanel plan={plan} compact />
+              </div>
+            ))}
+          </div>
+        )}
 
         <StrategySettingsForm settings={settings} onSave={saveSettings} />
 

@@ -1,0 +1,180 @@
+"use client";
+
+import { useMemo } from "react";
+import type { AppData, BuyTimingSignal, PortfolioSummary, SellTimingSignal, StockSummary } from "@/lib/types";
+import { fmt, fmtPct, fmtSigned } from "@/lib/calc";
+import { buildDailyReport } from "@/lib/dailyReport";
+import type { MarketBriefingContext, TradeRecommendation } from "@/lib/briefing/types";
+import { compareToKospi, computePortfolioDayChange } from "@/lib/benchmark";
+import { ActionBadge, actionSoftClass, actionTextClass, urgencyLabel } from "./TimingBadges";
+
+function TimingRow({
+  rec,
+  summary,
+  changePct,
+  onClick,
+}: {
+  rec: TradeRecommendation;
+  summary: StockSummary | undefined;
+  changePct: number | null;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full min-w-0 items-center gap-3 rounded-xl border px-3 py-3 text-left transition hover:shadow-sm sm:px-4 ${actionSoftClass(rec.action)}`}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-bold text-ink">{rec.stockName}</span>
+          <ActionBadge action={rec.action} />
+        </div>
+        {summary && (
+          <p className="mt-0.5 text-sm tabular-nums text-ink-muted">
+            {fmt(summary.currentPrice)}
+            {changePct != null && (
+              <span className={`ml-2 font-semibold ${changePct >= 0 ? "text-gain" : "text-loss"}`}>
+                {fmtPct(changePct)}
+              </span>
+            )}
+          </p>
+        )}
+      </div>
+      <div className="shrink-0 text-right text-xs sm:text-sm">
+        <p className={`font-bold tabular-nums ${actionTextClass(rec.action)}`}>{fmt(rec.suggestedPrice)}</p>
+        <p className="text-ink-muted">{urgencyLabel(rec.urgency)}</p>
+      </div>
+    </button>
+  );
+}
+
+export function TradingTimingHub({
+  data,
+  portfolio,
+  summaries,
+  buySignals,
+  sellSignals,
+  recommendations,
+  briefingLoading,
+  briefingError,
+  onBriefingRefresh,
+  kisConfigured,
+  kisLoading,
+  kisError,
+  onKisRefresh,
+  onSelectStock,
+  onAddStock,
+}: {
+  data: AppData;
+  portfolio: PortfolioSummary;
+  summaries: Record<string, StockSummary>;
+  buySignals: Record<string, BuyTimingSignal>;
+  sellSignals: Record<string, SellTimingSignal>;
+  recommendations: TradeRecommendation[];
+  marketContext?: MarketBriefingContext | null;
+  briefingLoading: boolean;
+  briefingError: string | null;
+  lastBriefingFetched?: Date | null;
+  onBriefingRefresh: () => void;
+  kisConfigured: boolean | null;
+  kisLoading: boolean;
+  kisError: string | null;
+  kisLastUpdated?: Date | null;
+  onKisRefresh: () => void;
+  onSelectStock: (id: string) => void;
+  onAddStock: () => void;
+}) {
+  const report = useMemo(
+    () => buildDailyReport(data, portfolio, summaries, buySignals, sellSignals),
+    [data, portfolio, summaries, buySignals, sellSignals]
+  );
+
+  const portfolioDay = computePortfolioDayChange(data.stocks, summaries, data.stockQuotes);
+  const cmp = compareToKospi(portfolioDay, data.kospiBenchmark);
+  const kospi = data.kospiBenchmark;
+
+  const sortedRecs = useMemo(() => {
+    const order = { buy: 0, sell: 1, hold: 2 };
+    return [...recommendations].sort(
+      (a, b) => order[a.action] - order[b.action] || b.confidence - a.confidence
+    );
+  }, [recommendations]);
+
+  const changeByStock = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of report.rows) {
+      if (row.priceChangePctFromPrev != null) map.set(row.stock.id, row.priceChangePctFromPrev);
+    }
+    return map;
+  }, [report.rows]);
+
+  const pnlTone = portfolio.totalPnl >= 0 ? "text-gain" : "text-loss";
+
+  return (
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-3 sm:px-4">
+        <div className="min-w-0">
+          <p className={`text-lg font-bold tabular-nums ${pnlTone}`}>누적 {fmtSigned(portfolio.totalPnl)}</p>
+          {kospi && (
+            <p className="text-xs text-ink-muted">
+              KOSPI {fmtPct(kospi.changeRate)}
+              {cmp.portfolio != null && ` · 보유 ${fmtPct(cmp.portfolio)}`}
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 gap-1.5">
+          <button
+            type="button"
+            onClick={onKisRefresh}
+            disabled={kisLoading || kisConfigured === false}
+            className="rounded-lg bg-gain px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          >
+            {kisLoading ? "…" : "시세"}
+          </button>
+          <button
+            type="button"
+            onClick={onBriefingRefresh}
+            disabled={briefingLoading}
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-dim disabled:opacity-50"
+          >
+            {briefingLoading ? "…" : "뉴스"}
+          </button>
+          <button
+            type="button"
+            onClick={onAddStock}
+            className="rounded-lg border border-dashed border-line px-3 py-1.5 text-xs font-semibold text-ink-muted hover:border-gain hover:text-gain"
+          >
+            +종목
+          </button>
+        </div>
+      </div>
+
+      {(kisError || briefingError) && (
+        <p className="border-b border-line bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
+          {[kisError, briefingError].filter(Boolean).join(" · ")}
+        </p>
+      )}
+
+      <div className="space-y-2 p-3 sm:p-4">
+        {sortedRecs.length > 0 ? (
+          sortedRecs.map((rec) => (
+            <TimingRow
+              key={rec.stockId}
+              rec={rec}
+              summary={summaries[rec.stockId]}
+              changePct={changeByStock.get(rec.stockId) ?? null}
+              onClick={() => onSelectStock(rec.stockId)}
+            />
+          ))
+        ) : (
+          <p className="py-8 text-center text-sm text-ink-muted">종목을 추가한 뒤 시세를 새로고침하세요.</p>
+        )}
+      </div>
+
+      <p className="border-t border-line px-3 py-2 text-center text-xs text-ink-muted">
+        종목을 누르면 매매 메뉴로 이동합니다
+      </p>
+    </section>
+  );
+}

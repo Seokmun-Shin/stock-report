@@ -8,8 +8,9 @@ import type {
   TimingSignal,
   Trade,
 } from "./types";
-import { sellTaxTotal } from "./tradeFees";
-import { resolveReportSettings, timingLineFromAvg, timingLineFromSell } from "./reportSettings";
+import { sellTaxTotal, calcSellFees, calcSellTaxes } from "./tradeFees";
+import { resolveReportSettings, timingLineFromAvg, timingLineFromSell, sellFeeRateFromSettings, sellTaxRateFromSettings } from "./reportSettings";
+import type { ReportSettings } from "./reportSettings";
 
 export function tradeAmount(t: Trade): number {
   return t.quantity * t.price;
@@ -108,16 +109,22 @@ export function summarizeStock(
     m.holdingCostBasis > 0 ? (unrealizedPnlWithCost / m.holdingCostBasis) * 100 : 0;
 
   const sells = rows.filter((t) => t.type === "sell");
+  const buys = rows.filter((t) => t.type === "buy");
   const lastSell = [...sells].sort((a, b) => b.date.localeCompare(a.date))[0];
+  const lastBuy = [...buys].sort((a, b) => b.date.localeCompare(a.date))[0];
   const lastSellPrice = lastSell?.price ?? null;
-  const timing10 = lastSellPrice ? timingLineFromSell(lastSellPrice, settings.buyTimingPct1) : null;
-  const timing20 = lastSellPrice ? timingLineFromSell(lastSellPrice, settings.buyTimingPct2) : null;
+  const lastBuyPrice = lastBuy?.price ?? null;
+  const useTiming = settings.useTimingPctLines ?? true;
+  const timing10 =
+    useTiming && lastSellPrice ? timingLineFromSell(lastSellPrice, settings.buyTimingPct1) : null;
+  const timing20 =
+    useTiming && lastSellPrice ? timingLineFromSell(lastSellPrice, settings.buyTimingPct2) : null;
   const sellTiming10 =
-    m.holdingQty > 0 && m.holdingAvgPrice > 0
+    useTiming && m.holdingQty > 0 && m.holdingAvgPrice > 0
       ? timingLineFromAvg(m.holdingAvgPrice, settings.sellTimingPct1)
       : null;
   const sellTiming20 =
-    m.holdingQty > 0 && m.holdingAvgPrice > 0
+    useTiming && m.holdingQty > 0 && m.holdingAvgPrice > 0
       ? timingLineFromAvg(m.holdingAvgPrice, settings.sellTimingPct2)
       : null;
 
@@ -131,6 +138,7 @@ export function summarizeStock(
     netProfit: m.netProfit,
     returnRate: m.returnRate,
     lastSellPrice,
+    lastBuyPrice,
     timing10,
     timing20,
     sellTiming10,
@@ -145,12 +153,50 @@ export function summarizeStock(
   };
 }
 
+/** 보유 원가 (매수 수수료 포함) — 현재 평가손익과 역산 */
+export function holdingCostBasis(summary: StockSummary): number {
+  if (summary.holdingQty <= 0) return 0;
+  if (summary.currentPrice > 0) {
+    return summary.currentPrice * summary.holdingQty - summary.unrealizedPnlWithCost;
+  }
+  return summary.holdingAvgPriceWithCost * summary.holdingQty;
+}
+
+export interface SellProfitEstimate {
+  sellPrice: number;
+  /** 매도대금 − 원가 − 매도 수수료 − 세금 */
+  netProfit: number;
+  /** netProfit ÷ 원가 × 100 */
+  netProfitPct: number;
+}
+
+/** 특정 단가에 전량 매도했을 때 예상 실현 손익 (증권거래세·수수료 참고) */
+export function estimateSellProfit(
+  summary: StockSummary,
+  sellPrice: number,
+  feeSettings?: Partial<ReportSettings>
+): SellProfitEstimate | null {
+  const qty = summary.holdingQty;
+  if (qty <= 0 || sellPrice <= 0) return null;
+
+  const basis = holdingCostBasis(summary);
+  const gross = sellPrice * qty;
+  const fee = calcSellFees(gross, sellFeeRateFromSettings(feeSettings));
+  const tax = calcSellTaxes(gross, { taxRate: sellTaxRateFromSettings(feeSettings) }).total;
+  const netProfit = gross - basis - fee - tax;
+  const netProfitPct = basis > 0 ? (netProfit / basis) * 100 : 0;
+
+  return { sellPrice, netProfit, netProfitPct };
+}
+
 export function summarizePortfolio(data: AppData): PortfolioSummary {
   let buyAmount = 0;
   let sellAmount = 0;
   let tradeCost = 0;
   let netProfitRealized = 0;
   let unrealizedPnl = 0;
+  let unrealizedPnlWithCost = 0;
+  let holdingCostBasis = 0;
   let matchedBuyAmount = 0;
 
   for (const stock of data.stocks) {
@@ -179,19 +225,27 @@ export function summarizePortfolio(data: AppData): PortfolioSummary {
       }
     }
 
-    unrealizedPnl += summarizeStock(
+    const stockSummary = summarizeStock(
       stock.id,
       stock.name,
       data.trades,
       data.currentPrices[stock.id] ?? 0,
       data.reportSettings
-    ).unrealizedPnl;
+    );
+    unrealizedPnl += stockSummary.unrealizedPnl;
+    unrealizedPnlWithCost += stockSummary.unrealizedPnlWithCost;
+    if (stockSummary.holdingQty > 0) {
+      holdingCostBasis += stockSummary.holdingAvgPriceWithCost * stockSummary.holdingQty;
+    }
   }
 
   const returnRateRealized =
     matchedBuyAmount + tradeCost > 0 ? (netProfitRealized / (matchedBuyAmount + tradeCost)) * 100 : 0;
 
-  const totalPnl = netProfitRealized + unrealizedPnl;
+  const unrealizedReturnRate =
+    holdingCostBasis > 0 ? (unrealizedPnlWithCost / holdingCostBasis) * 100 : 0;
+
+  const totalPnl = netProfitRealized + unrealizedPnlWithCost;
   const totalReturnRate = buyAmount + tradeCost > 0 ? (totalPnl / (buyAmount + tradeCost)) * 100 : 0;
 
   return {
@@ -201,6 +255,9 @@ export function summarizePortfolio(data: AppData): PortfolioSummary {
     netProfitRealized,
     returnRateRealized,
     unrealizedPnl,
+    unrealizedPnlWithCost,
+    holdingCostBasis,
+    unrealizedReturnRate,
     totalPnl,
     totalReturnRate,
   };
@@ -211,6 +268,13 @@ export function getBuyTimingSignal(
   settingsInput?: Partial<import("./reportSettings").ReportSettings>
 ): BuyTimingSignal {
   const settings = resolveReportSettings(settingsInput);
+  if (!settings.useTimingPctLines) {
+    return {
+      status: "watch",
+      label: "자동 분석",
+      hint: "상단 매매 타이밍 카드의 추천을 참고하세요.",
+    };
+  }
   const { currentPrice, timing10, timing20, lastSellPrice } = summary;
   const p1 = settings.buyTimingPct1;
   const p2 = settings.buyTimingPct2;
@@ -220,21 +284,21 @@ export function getBuyTimingSignal(
   if (currentPrice <= timing20) {
     return {
       status: "zone20",
-      label: "2차 분할 구간",
-      hint: `최근 매도가(${fmt(lastSellPrice)}) 대비 -${p2}% 이하. 적극 분할 매수 검토.`,
+      label: "2단계 (20%↓)",
+      hint: `최근에 팔았던 ${fmt(lastSellPrice)}원보다 20% 이상 싸짐. 추가로 나눠서 살 만한 구간입니다.`,
     };
   }
   if (currentPrice <= timing10) {
     return {
       status: "zone10",
-      label: "1차 분할 구간",
-      hint: `최근 매도가 대비 -${p1}% 이하. 1차 분할 매수 검토.`,
+      label: "1단계 (10%↓)",
+      hint: `최근 매도가보다 10% 이상 싸짐. 첫 번째로 나눠서 살 만한 구간입니다.`,
     };
   }
   return {
     status: "above",
-    label: "관망",
-    hint: `현재가가 1차 매수선(${fmt(timing10)}) 위. 급하게 매수하지 않아도 됩니다.`,
+    label: "아직 비쌈",
+    hint: `아직 목표보다 비쌉니다. ${fmt(timing10)}원 이하로 내려오면 매수를 검토하세요.`,
   };
 }
 
@@ -248,6 +312,13 @@ export function getSellTimingSignal(
   settingsInput?: Partial<import("./reportSettings").ReportSettings>
 ): SellTimingSignal {
   const settings = resolveReportSettings(settingsInput);
+  if (!settings.useTimingPctLines) {
+    return {
+      status: "watch",
+      label: "자동 분석",
+      hint: "상단 매매 타이밍 카드의 추천을 참고하세요.",
+    };
+  }
   const { currentPrice, sellTiming10, sellTiming20, holdingAvgPrice, holdingQty } = summary;
   const p1 = settings.sellTimingPct1;
   const p2 = settings.sellTimingPct2;
@@ -261,21 +332,21 @@ export function getSellTimingSignal(
   if (currentPrice >= sellTiming20) {
     return {
       status: "zone20",
-      label: "2차 익절 구간",
-      hint: `평단(${fmt(holdingAvgPrice)}) 대비 +${p2}% 이상. 분할 매도·익절 검토.`,
+      label: "2단계 (20%↑)",
+      hint: `내 평균 매수가 ${fmt(holdingAvgPrice)}원보다 20% 이상 올랐습니다. 나눠서 팔기 좋은 구간입니다.`,
     };
   }
   if (currentPrice >= sellTiming10) {
     return {
       status: "zone10",
-      label: "1차 익절 구간",
-      hint: `평단 대비 +${p1}% 이상. 1차 분할 매도 검토.`,
+      label: "1단계 (10%↑)",
+      hint: `평단보다 10% 이상 올랐습니다. 첫 번째로 나눠서 팔 만한 구간입니다.`,
     };
   }
   return {
     status: "below",
-    label: "보유 유지",
-    hint: `1차 매도선(${fmt(sellTiming10)})까지 추가 상승을 기다립니다.`,
+    label: "목표가까지 보유",
+    hint: `아직 팔 목표가 ${fmt(sellTiming10)}원에 못 미쳤습니다. 급하게 팔 필요 없음.`,
   };
 }
 

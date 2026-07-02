@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 1 54 23" width="54" height="23" role="img" aria-labelledby="mtock-title">
+  <title id="mtock-title">M tock</title>
+  <text
+    x="5"
+    y="22"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="24"
+    font-weight="700"
+    fill="#0F172A"
+    transform="rotate(-14 14 11)"
+  >M</text>
+  <text
+    x="29"
+    y="22"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="12"
+    font-weight="500"
+    fill="#0F172A"
+    fill-opacity="0.65"
+    letter-spacing="-0.48"
+  >tock</text>
+</svg>
