@@ -680,7 +680,7 @@ export function buildTimingSourceReport(input: {
         row("추적 고점", peak?.price, "매수 관심 (−% 알림)", "buy"),
         row("고점 기록일", peak?.asOf),
         pctRow("고점 대비 하락률", dropFromPeak, `알림 기준 −${settings.buyDropFromPeakPct}%`, "buy"),
-        row("사용자 목표가", targetPrice, "설정 탭에서 입력 · 미입력 시 (없음)", "sell"),
+        row("사용자 목표가", targetPrice, "① 판단 탭에서 입력 · 미입력 시 (없음)", "sell"),
       ],
     },
     {

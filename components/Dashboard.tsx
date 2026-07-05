@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import type { AppData, Stock, Trade } from "@/lib/types";
+import type { AppData, Stock, StockQuote, Trade } from "@/lib/types";
 import { SEED } from "@/lib/seed";
 import { suggestStockCode } from "@/lib/stockCodes";
 import {
@@ -34,6 +34,7 @@ import { SettingsTab } from "@/components/tabs/SettingsTab";
 import { RecordsTab } from "@/components/tabs/RecordsTab";
 import { TimingSourcesTab } from "@/components/tabs/TimingSourcesTab";
 import { mergeCsvTrades } from "@/components/CsvImportPanel";
+import { assessDataReadiness } from "@/lib/dataReadiness";
 
 export function Dashboard({
   data,
@@ -383,7 +384,23 @@ export function Dashboard({
 
   function setCurrentPrice(price: number) {
     if (!activeStock) return;
-    persist({ ...data, currentPrices: { ...data.currentPrices, [activeStock.id]: price } });
+    const prevQuote = data.stockQuotes?.[activeStock.id];
+    const nextQuote: StockQuote = prevQuote
+      ? { ...prevQuote, price, updatedAt: new Date().toISOString() }
+      : {
+          price,
+          prevClose: price,
+          changeAmount: 0,
+          changeRate: 0,
+          high: price,
+          low: price,
+          updatedAt: new Date().toISOString(),
+        };
+    persist({
+      ...data,
+      currentPrices: { ...data.currentPrices, [activeStock.id]: price },
+      stockQuotes: { ...(data.stockQuotes ?? {}), [activeStock.id]: nextQuote },
+    });
   }
 
   function importCsvRows(rows: ParsedTradeRow[]) {
@@ -403,6 +420,18 @@ export function Dashboard({
   }
 
   const kospiLabel = data.kospiBenchmark ? `KOSPI ${fmtPct(data.kospiBenchmark.changeRate)}` : undefined;
+
+  const readinessItems = useMemo(
+    () =>
+      assessDataReadiness({
+        data,
+        kisConfigured: kis.configured,
+        kisCodedCount: kis.codedCount,
+        briefingContext: briefing.context,
+        briefingLoading: briefing.loading,
+      }),
+    [data, kis.configured, kis.codedCount, briefing.context, briefing.loading]
+  );
 
   return (
     <div className="min-h-screen min-w-0 overflow-x-hidden bg-slate-100 pb-[calc(3.25rem+env(safe-area-inset-bottom))]">
@@ -470,6 +499,7 @@ export function Dashboard({
             reportSettings={data.reportSettings}
             targetPrice={reportSettings.targetPrices?.[activeStock?.id ?? ""]}
             onTargetPriceChange={(p) => activeStock && setTargetPrice(activeStock.id, p)}
+            readinessItems={readinessItems}
           />
         )}
 
@@ -549,6 +579,7 @@ export function Dashboard({
             onResetDemo={resetDemo}
             cloudEnabled={cloudEnabled}
             syncing={syncing}
+            readinessItems={readinessItems}
           />
         )}
       </main>

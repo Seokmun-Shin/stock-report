@@ -12,6 +12,8 @@ import { PanelCard, PageSectionTitle, BtnPrimary, BtnSecondary } from "@/compone
 import { APP_VERSION } from "@/lib/appVersion";
 import { StrategySettingsForm } from "@/components/StrategySettingsForm";
 import { SetupStatusPanel } from "@/components/SetupStatusPanel";
+import { DataReadinessPanel } from "@/components/DataReadinessPanel";
+import type { ReadinessItem } from "@/lib/dataReadiness";
 import { CsvImportPanel } from "@/components/CsvImportPanel";
 import type { ParsedTradeRow } from "@/lib/import/tradeCsv";
 
@@ -32,6 +34,7 @@ export function SettingsTab({
   onResetDemo,
   cloudEnabled,
   syncing,
+  readinessItems = [],
 }: {
   data: AppData;
   portfolio: PortfolioSummary;
@@ -49,6 +52,7 @@ export function SettingsTab({
   onResetDemo: () => void;
   cloudEnabled: boolean;
   syncing: boolean;
+  readinessItems?: ReadinessItem[];
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -73,6 +77,8 @@ export function SettingsTab({
       <StrategySettingsForm settings={data.reportSettings} onSave={onSettingsChange} />
 
       <SetupStatusPanel />
+
+      <DataReadinessPanel items={readinessItems} />
 
       <PanelCard>
         <PageSectionTitle>매매 데이터</PageSectionTitle>

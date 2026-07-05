@@ -4,12 +4,48 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Stock } from "@/lib/types";
 import type { MarketBriefingContext } from "@/lib/briefing/types";
 
+const CACHE_KEY = "mtock-briefing-cache";
+const CACHE_TTL_MS = 30 * 60 * 1000;
+
+type BriefingCache = {
+  stocksKey: string;
+  fetchedAt: number;
+  context: MarketBriefingContext;
+};
+
+function readCache(stocksKey: string): BriefingCache | null {
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as BriefingCache;
+    if (parsed.stocksKey !== stocksKey) return null;
+    if (Date.now() - parsed.fetchedAt > CACHE_TTL_MS) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(stocksKey: string, context: MarketBriefingContext) {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    const payload: BriefingCache = { stocksKey, fetchedAt: Date.now(), context };
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    /* quota */
+  }
+}
+
 export function useBriefingData(stocks: Stock[]) {
-  const [context, setContext] = useState<MarketBriefingContext | null>(null);
+  const stocksKey = stocks.map((s) => `${s.id}:${s.name}:${s.code ?? ""}`).join("|");
+  const initialCache = readCache(stocksKey);
+  const [context, setContext] = useState<MarketBriefingContext | null>(initialCache?.context ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastFetched, setLastFetched] = useState<Date | null>(null);
-  const stocksKey = stocks.map((s) => `${s.id}:${s.name}:${s.code ?? ""}`).join("|");
+  const [lastFetched, setLastFetched] = useState<Date | null>(
+    initialCache ? new Date(initialCache.fetchedAt) : null
+  );
 
   const refresh = useCallback(async () => {
     if (stocks.length === 0) {
@@ -34,6 +70,7 @@ export function useBriefingData(stocks: Stock[]) {
 
       setContext(data);
       setLastFetched(new Date());
+      writeCache(stocksKey, data);
 
       if (data.errors?.length) {
         setError(data.errors.join(" · "));
@@ -43,15 +80,24 @@ export function useBriefingData(stocks: Stock[]) {
     } finally {
       setLoading(false);
     }
-  }, [stocks]);
+  }, [stocks, stocksKey]);
 
   const autoRef = useRef(false);
   useEffect(() => {
     if (autoRef.current) return;
     if (stocks.length === 0) return;
     autoRef.current = true;
+    if (context) return;
     void refresh();
-  }, [stocksKey, refresh, stocks.length]);
+  }, [stocksKey, refresh, stocks.length, context]);
+
+  useEffect(() => {
+    const cached = readCache(stocksKey);
+    if (cached) {
+      setContext(cached.context);
+      setLastFetched(new Date(cached.fetchedAt));
+    }
+  }, [stocksKey]);
 
   return { context, loading, error, lastFetched, refresh };
 }

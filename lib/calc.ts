@@ -601,6 +601,7 @@ export function migrateAppData(
     peakPrices: raw.peakPrices ?? {},
     stockQuotes: raw.stockQuotes ?? {},
     kospiBenchmark: raw.kospiBenchmark,
+    kosdaqBenchmark: raw.kosdaqBenchmark,
     stockEvents: raw.stockEvents ?? [],
   };
 }

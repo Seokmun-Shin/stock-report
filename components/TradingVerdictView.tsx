@@ -8,6 +8,8 @@ import type { ReportSettings } from "@/lib/reportSettings";
 import { fmt, fmtPct, fmtSigned } from "@/lib/calc";
 import { VerdictCard } from "./VerdictCard";
 import { TimingRadar } from "./TimingRadar";
+import { DataReadinessBanner } from "./DataReadinessPanel";
+import type { ReadinessItem } from "@/lib/dataReadiness";
 
 /** 종목 전환 — 페이지 타이틀 + 탭 (활성: 대형·밑줄 / 비활성: 플랫 텍스트 탭) */
 function StockPageTitleBar({
@@ -138,6 +140,7 @@ export function TradingVerdictView({
   reportSettings,
   targetPrice,
   onTargetPriceChange,
+  readinessItems = [],
 }: {
   stocks: { id: string; name: string }[];
   activeId: string;
@@ -174,6 +177,7 @@ export function TradingVerdictView({
   reportSettings?: Partial<ReportSettings>;
   targetPrice?: number;
   onTargetPriceChange?: (price: number) => void;
+  readinessItems?: ReadinessItem[];
 }) {
   const pnlTone = portfolioPnl >= 0 ? "text-gain" : "text-loss";
   const displayName =
@@ -197,6 +201,7 @@ export function TradingVerdictView({
       />
 
       <div className="space-y-4 p-3 sm:p-5">
+        <DataReadinessBanner items={readinessItems} />
         <section className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
           <div className="min-w-0">
             {summary ? (

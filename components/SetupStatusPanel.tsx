@@ -33,7 +33,7 @@ export function SetupStatusPanel() {
         };
         if (cancelled) return;
         setStatus({
-          kis: !!kisJson.configured || !!briefJson.configured?.kis,
+          kis: !!kisJson.configured,
           dart: !!briefJson.configured?.dart,
           fred: !!briefJson.configured?.fred,
           bok: !!briefJson.configured?.bok,
@@ -53,7 +53,7 @@ export function SetupStatusPanel() {
   }, []);
 
   const rows = [
-    { key: "kis", label: "KIS Open API", tier: "필수", ok: status.kis, hint: "시세·수급 — 없으면 판단 신뢰도 급락" },
+    { key: "kis", label: "KIS Open API", tier: "필수", ok: status.kis, hint: "APP_KEY + APP_SECRET 둘 다 필요 · 시세·수급" },
     { key: "dart", label: "DART", tier: "권장", ok: status.dart, hint: "공시·감성" },
     { key: "fred", label: "FRED", tier: "권장", ok: status.fred, hint: "미국 거시" },
     { key: "bok", label: "BOK ECOS", tier: "권장", ok: status.bok, hint: "한국 거시" },

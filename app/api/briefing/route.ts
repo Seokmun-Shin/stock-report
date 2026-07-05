@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { aggregateBriefingContext, type BriefingStockInput } from "@/lib/briefing/providers/aggregate";
+import { isKisConfigured } from "@/lib/kis/clientCore";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function GET() {
       bok: !!process.env.BOK_API_KEY?.trim(),
       rss: true,
       global: true,
-      kis: !!process.env.KIS_APP_KEY?.trim(),
+      kis: isKisConfigured(),
     },
   });
 }

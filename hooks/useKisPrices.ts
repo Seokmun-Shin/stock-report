@@ -155,6 +155,15 @@ export function useKisPrices(
     return () => window.clearInterval(id);
   }, [autoRefresh, configured, refresh]);
 
+  /** 앱 열 때 1회 시세 조회 (장외에도 저장된 시세·지수 반영) */
+  const initialFetchRef = useRef(false);
+  useEffect(() => {
+    if (configured !== true || initialFetchRef.current) return;
+    if (stocks.filter((s) => s.code?.trim()).length === 0) return;
+    initialFetchRef.current = true;
+    void refresh();
+  }, [configured, stocks, refresh]);
+
   return {
     configured,
     loading,

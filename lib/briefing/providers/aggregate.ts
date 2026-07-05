@@ -145,9 +145,18 @@ export async function aggregateBriefingContext(stocks: BriefingStockInput[]): Pr
 
   let allDisclosures: Awaited<ReturnType<typeof fetchRecentDisclosures>> = [];
   if (isDartConfigured()) {
-    if (dartR.status === "fulfilled") allDisclosures = dartR.value;
-    else errors.push(`DART: ${String(dartR.reason)}`);
-    sources.push({ id: "dart", label: "DART 공시", ok: dartR.status === "fulfilled" });
+    if (codes.length === 0) {
+      sources.push({
+        id: "dart",
+        label: "DART 공시",
+        ok: false,
+        note: "종목코드 6자리 필요",
+      });
+    } else {
+      if (dartR.status === "fulfilled") allDisclosures = dartR.value;
+      else errors.push(`DART: ${String(dartR.reason)}`);
+      sources.push({ id: "dart", label: "DART 공시", ok: dartR.status === "fulfilled" });
+    }
   } else {
     sources.push({
       id: "dart",
