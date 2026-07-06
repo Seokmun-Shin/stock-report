@@ -645,7 +645,7 @@ export function StockTrendChart({
                     {chart.areaPath && (
                       <path
                         d={chart.areaPath}
-                        fill={`url(#chart-area-${data.periodChangePct >= 0 ? "up" : "down"})`}
+                        fill={`url(#chart-area-${chart.accent === MARKET.up ? "up" : "down"})`}
                       />
                     )}
                     <path
