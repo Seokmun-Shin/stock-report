@@ -266,17 +266,14 @@ export function parseTradeCsv(text: string, preferred: BrokerCsvFormat = "mirae"
 
   const headers = parseCsvLine(lines[headerIdx]).map((h) => h.replace(/"/g, "").trim());
   const detected = detectFormat(headers);
-  const format: BrokerCsvFormat | "generic" =
-    detected !== "generic" ? detected : preferred;
+  const format: BrokerCsvFormat = detected !== "generic" ? detected : preferred;
 
   let rows: ParsedTradeRow[] = [];
 
   if (format === "mirae" && isMiraeJournal(headers)) {
     rows = parseMiraeJournal(lines, headerIdx, headers, errors);
-  } else if (format !== "generic") {
-    rows = parseExecutionRows(lines, headerIdx, headers, format, errors);
   } else {
-    errors.push("증권사 형식을 확인할 수 없습니다. 상단에서 증권사를 선택해 주세요.");
+    rows = parseExecutionRows(lines, headerIdx, headers, format, errors);
   }
 
   if (rows.length === 0 && errors.length === 0) {
