@@ -208,7 +208,7 @@ export function VerdictCardPair({
             buy.stance === "skip" ? (
               <p className="text-xs text-ink-muted">{buy.reasons[0]}</p>
             ) : (
-              <p className={`text-xl font-bold leading-snug sm:text-2xl ${buy.stance === "skip" ? "text-ink-muted" : "text-ink"}`}>
+              <p className="text-xl font-bold leading-snug text-ink sm:text-2xl">
                 <span className={`mr-1 ${buyAccent}`}>{stanceIcon(buy.stance)}</span>
                 {buy.headline}
               </p>
@@ -218,7 +218,7 @@ export function VerdictCardPair({
             sell.stance === "skip" ? (
               <p className="text-xs text-ink-muted">{sell.reasons[0]}</p>
             ) : (
-              <p className={`text-xl font-bold leading-snug sm:text-2xl ${sell.stance === "skip" ? "text-ink-muted" : "text-ink"}`}>
+              <p className="text-xl font-bold leading-snug text-ink sm:text-2xl">
                 <span className={`mr-1 ${sellAccent}`}>{stanceIcon(sell.stance)}</span>
                 {sell.headline}
               </p>
