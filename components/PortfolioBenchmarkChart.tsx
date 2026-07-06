@@ -114,7 +114,16 @@ export function PortfolioBenchmarkChart({ dailySnapshots }: { dailySnapshots?: D
           </div>
         )}
 
-        {error && !loading && <p className="px-3 py-8 text-center text-xs text-amber-800">{error}</p>}
+        {error && !loading && (
+          <p className="px-3 py-8 text-center text-xs text-amber-800">
+            {error}
+            {snapCount >= 2 && (
+              <span className="mt-1 block text-ink-muted">
+                KOSPI 외부 조회 실패 시 스냅샷 데이터만으로 표시됩니다. ① 판단 탭에서 시세를 새로고침해 주세요.
+              </span>
+            )}
+          </p>
+        )}
 
         {!loading && snapCount < 2 && (
           <p className="px-3 py-8 text-center text-xs text-ink-muted">

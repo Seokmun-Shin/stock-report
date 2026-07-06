@@ -86,7 +86,7 @@ export function RecordsTab({
         <PanelCard>
           <PageSectionTitle>체결 일괄 가져오기</PageSectionTitle>
           <p className="mt-1 text-xs text-ink-muted">미래에셋 HTS 체결 CSV (한투·키움 선택 가능) · 설정 탭과 동일</p>
-          <CsvImportPanel stocks={stocks} onImport={onImportCsv} />
+          <CsvImportPanel stocks={stocks} trades={data.trades} onImport={onImportCsv} />
         </PanelCard>
       )}
 

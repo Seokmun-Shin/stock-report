@@ -25,6 +25,7 @@ import {
   mapSellVerdict,
   refineBuyPrices,
   refineSellPrices,
+  type VerdictGateContext,
 } from "./verdictGates";
 
 export type { VerdictBuildContext };
@@ -34,6 +35,29 @@ export type VerdictTiming = TradeUrgency | "skip";
 export interface SellProfitPreview {
   atNow: SellProfitEstimate;
   atTarget: SellProfitEstimate | null;
+}
+
+export interface VerdictGateDetail {
+  inBuyZone: boolean;
+  inSellZone: boolean;
+  aboveBuyLine: boolean;
+  belowSellLine: boolean;
+  fallingKnife: boolean;
+  breadthBearish: boolean;
+  marketDown: boolean;
+}
+
+export interface VerdictFactorDetail {
+  text: string;
+  buy: number;
+  sell: number;
+}
+
+export interface VerdictSideDetail {
+  rawScore: number;
+  effectiveScore?: number;
+  factors: VerdictFactorDetail[];
+  gates?: VerdictGateDetail;
 }
 
 export interface SideVerdict {
@@ -48,6 +72,7 @@ export interface SideVerdict {
   /** 0~1 — 입력 데이터 충족도 */
   dataQuality: number;
   sellProfitPreview?: SellProfitPreview;
+  detail?: VerdictSideDetail;
 }
 
 export interface StockTradingVerdict {
@@ -202,6 +227,26 @@ function mapSellScore(score: number) {
   if (score >= 16) return { stance: "yes" as const, timing: "this_week" as VerdictTiming, when: "이번 주", headline: "이번 주 매도 검토" };
   if (score >= 6) return { stance: "wait" as const, timing: "wait" as VerdictTiming, when: "조금 더", headline: "조금 더 보유" };
   return { stance: "wait" as const, timing: "wait" as VerdictTiming, when: "보유 유지", headline: "지금은 매도 구간 아님" };
+}
+
+function buildGateDetail(gateCtx: VerdictGateContext): VerdictGateDetail {
+  return {
+    inBuyZone: gateCtx.inBuyZone,
+    inSellZone: gateCtx.inSellZone,
+    aboveBuyLine: gateCtx.aboveBuyLine,
+    belowSellLine: gateCtx.belowSellLine,
+    fallingKnife: gateCtx.fallingKnife,
+    breadthBearish: gateCtx.breadthBearish,
+    marketDown: gateCtx.marketDown,
+  };
+}
+
+function buildFactorDetails(factors: ScoredFactor[]): VerdictFactorDetail[] {
+  return factors
+    .filter((f) => f.buy > 0 || f.sell > 0)
+    .sort((a, b) => Math.max(b.buy, b.sell) - Math.max(a.buy, a.sell))
+    .slice(0, 8)
+    .map((f) => ({ text: f.text, buy: f.buy, sell: f.sell }));
 }
 
 /** 신뢰도: yes=신호 강도, wait/skip=판단(보유·관망) 신뢰도 — 데이터·앵커 반영 */
@@ -684,6 +729,11 @@ export function buildStockTradingVerdict(
       ),
       dataQuality: sellDataQ,
       reasons: sellReasons.length ? sellReasons.slice(0, 5) : ["특별한 매도 신호 없음 — 보유 유지"],
+      detail: {
+        rawScore: sellScore,
+        factors: buildFactorDetails(sellFactors),
+        gates: buildGateDetail(gateCtx),
+      },
     };
   }
 
@@ -705,6 +755,12 @@ export function buildStockTradingVerdict(
       ),
       dataQuality: buyDataQ,
       reasons: buyReasons.length ? buyReasons : ["시세·매매 기록을 불러오는 중"],
+      detail: {
+        rawScore: buyScore,
+        effectiveScore: effectiveBuyScore,
+        factors: buildFactorDetails(buyFactors),
+        gates: buildGateDetail(gateCtx),
+      },
     },
     sell,
   };

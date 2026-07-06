@@ -178,6 +178,11 @@ export function Dashboard({
     void notifyAlertsIfEnabled(data, alerts);
   }, [data, stockSummaries, stockBuySignals, stockSellSignals]);
 
+  const portfolioAlerts = useMemo(
+    () => collectPortfolioAlerts(data, stockSummaries, stockBuySignals, stockSellSignals),
+    [data, stockSummaries, stockBuySignals, stockSellSignals]
+  );
+
   function patchReportSettings(patch: Partial<ReportSettings> | ReportSettings) {
     persist({ ...data, reportSettings: { ...reportSettings, ...patch } });
   }
@@ -497,8 +502,14 @@ export function Dashboard({
 
   function importCsvRows(rows: ParsedTradeRow[]) {
     if (rows.length === 0) return;
-    if (!confirm(`${rows.length}건의 매매 내역을 추가할까요?`)) return;
-    persist(mergeCsvTrades(data, rows));
+    const { data: next, added, skippedDuplicates } = mergeCsvTrades(data, rows);
+    if (added === 0) {
+      alert(`중복된 체결 ${skippedDuplicates}건 — 추가할 새 건이 없습니다.`);
+      return;
+    }
+    const dupNote = skippedDuplicates > 0 ? `\n(중복 ${skippedDuplicates}건 제외)` : "";
+    if (!confirm(`${added}건의 매매 내역을 추가할까요?${dupNote}`)) return;
+    persist(next);
     setActiveTab("verdict");
   }
 
@@ -593,6 +604,7 @@ export function Dashboard({
             readinessItems={readinessItems}
             dailySnapshots={data.dailySnapshots}
             stockTrades={stockTrades}
+            portfolioAlerts={portfolioAlerts}
           />
         )}
 

@@ -27,7 +27,12 @@ export async function POST(req: Request) {
     const cacheKey = `portfolio-benchmark:${range}:${snapshots.map((s) => s.date).join(",")}`;
 
     const result = await cached(cacheKey, 60_000, async () => {
-      const kospiPoints = await withRetry(() => fetchYahooKospiHistory(range, "1d"));
+      let kospiPoints: Awaited<ReturnType<typeof fetchYahooKospiHistory>> = [];
+      try {
+        kospiPoints = await withRetry(() => fetchYahooKospiHistory(range, "1d"), 1, 300);
+      } catch {
+        /* Yahoo 실패 시 일별 스냅샷 kospiClose 로 대체 */
+      }
       return buildPortfolioBenchmarkSeries(snapshots, kospiPoints);
     });
 

@@ -6,7 +6,10 @@ import type { StockTradingVerdict } from "@/lib/briefing/tradingVerdict";
 import type { MarketBriefingContext } from "@/lib/briefing/types";
 import type { ReportSettings } from "@/lib/reportSettings";
 import { fmt, fmtPct, fmtSigned } from "@/lib/calc";
+import type { AlertItem } from "@/lib/alerts";
 import { VerdictCardPair } from "./VerdictCard";
+import { VerdictDetailPanel } from "./VerdictDetailPanel";
+import { PortfolioAlertBanner } from "./PortfolioAlertBanner";
 import { TimingRadar } from "./TimingRadar";
 import { DataReadinessBanner } from "./DataReadinessPanel";
 import type { ReadinessItem } from "@/lib/dataReadiness";
@@ -52,6 +55,7 @@ export function TradingVerdictView({
   readinessItems = [],
   dailySnapshots,
   stockTrades = [],
+  portfolioAlerts = [],
 }: {
   stocks: { id: string; name: string }[];
   activeId: string;
@@ -91,6 +95,7 @@ export function TradingVerdictView({
   readinessItems?: ReadinessItem[];
   dailySnapshots?: DailySnapshot[];
   stockTrades?: Trade[];
+  portfolioAlerts?: AlertItem[];
 }) {
   const pnlTone = portfolioPnl >= 0 ? "text-gain" : "text-loss";
   const displayName =
@@ -134,6 +139,7 @@ export function TradingVerdictView({
 
       <div className="space-y-4 p-3 sm:p-5">
         <DataReadinessBanner items={readinessItems} />
+        <PortfolioAlertBanner alerts={portfolioAlerts} onSelectStock={onSelectStock} />
         <section className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
           <div className="min-w-0">
             {summary ? (
@@ -252,6 +258,7 @@ export function TradingVerdictView({
               stockName={displayName}
               feeSettings={reportSettings}
             />
+            <VerdictDetailPanel buy={verdict.buy} sell={verdict.sell} />
           </div>
         ) : (
           <p className="py-6 text-center text-sm text-ink-muted">시세·뉴스를 새로고침하세요</p>

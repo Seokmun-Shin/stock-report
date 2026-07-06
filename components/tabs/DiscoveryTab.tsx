@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   DiscoveryPick,
   DiscoveryReasonDetail,
   DiscoveryReasonImpact,
   StockDiscoveryReport,
 } from "@/lib/briefing/stockDiscovery";
+import { buildDiscoveryVerdictHint } from "@/lib/briefing/discoveryVerdict";
+import { computeDiscoveryTrackStats, trackDiscoveryPicks } from "@/lib/discoveryTracking";
 import { fmt, fmtPct } from "@/lib/calc";
 import {
   BtnSecondary,
@@ -62,16 +64,21 @@ function ReasonBlock({ detail }: { detail: DiscoveryReasonDetail }) {
 
 function PickRow({
   pick,
+  report,
   onAdd,
   onAddWatchlist,
   inWatchlist,
 }: {
   pick: DiscoveryPick;
+  report: StockDiscoveryReport | null;
   onAdd?: (code: string, name: string) => void;
   onAddWatchlist?: (code: string, name: string) => void;
   inWatchlist?: boolean;
 }) {
   const tone = pick.changeRate >= 0 ? "text-gain" : "text-loss";
+  const hint = buildDiscoveryVerdictHint(pick, report);
+  const hintTone =
+    hint.tone === "gain" ? "text-gain" : hint.tone === "loss" ? "text-loss" : "text-ink-muted";
 
   return (
     <article className="overflow-hidden rounded-xl border border-line bg-white">
@@ -108,6 +115,9 @@ function PickRow({
                 {SIGNAL_LABEL[s]}
               </span>
             ))}
+            <span className={`rounded border border-line bg-white px-1.5 py-0.5 text-[10px] font-semibold ${hintTone}`}>
+              {hint.label} · {hint.headline}
+            </span>
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-stretch gap-1 sm:flex-row sm:items-center">
@@ -171,8 +181,25 @@ export function DiscoveryTab({
   onPromoteWatchlist?: (code: string, name: string) => void;
 }) {
   const [marketTab, setMarketTab] = useState<"KSP" | "KSQ">("KSP");
+  const [minScore, setMinScore] = useState(0);
+  const [hidePortfolio, setHidePortfolio] = useState(false);
 
-  const picks = marketTab === "KSP" ? report?.kospi ?? [] : report?.kosdaq ?? [];
+  const rawPicks = marketTab === "KSP" ? report?.kospi ?? [] : report?.kosdaq ?? [];
+  const picks = useMemo(() => {
+    return rawPicks.filter((p) => {
+      if (p.score < minScore) return false;
+      if (hidePortfolio && p.inPortfolio) return false;
+      return true;
+    });
+  }, [rawPicks, minScore, hidePortfolio]);
+
+  const allPicks = useMemo(() => [...(report?.kospi ?? []), ...(report?.kosdaq ?? [])], [report]);
+
+  useEffect(() => {
+    if (report && allPicks.length > 0) trackDiscoveryPicks(allPicks);
+  }, [report, allPicks]);
+
+  const trackStats = useMemo(() => computeDiscoveryTrackStats(allPicks), [allPicks]);
 
   return (
     <div className="space-y-3">
@@ -219,6 +246,42 @@ export function DiscoveryTab({
 
         <UnderlineTabBar tabs={MARKET_TABS} active={marketTab} onChange={setMarketTab} ariaLabel="시장 구분" />
 
+        <div className="mx-3 flex flex-wrap items-center gap-3 border-b border-line px-1 py-2 text-xs sm:mx-5">
+          <label className="flex items-center gap-1.5 text-ink-muted">
+            최소 점수
+            <select
+              value={minScore}
+              onChange={(e) => setMinScore(Number(e.target.value))}
+              className="rounded border border-line bg-white px-2 py-1 text-ink"
+            >
+              <option value={0}>전체</option>
+              <option value={5}>5+</option>
+              <option value={6}>6+</option>
+              <option value={7}>7+</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5 text-ink-muted">
+            <input type="checkbox" checked={hidePortfolio} onChange={(e) => setHidePortfolio(e.target.checked)} />
+            보유 종목 숨기기
+          </label>
+        </div>
+
+        {trackStats.length > 0 && (
+          <div className="mx-3 rounded-lg border border-line bg-surface-dim/40 px-3 py-2.5 sm:mx-5">
+            <p className="text-[11px] font-semibold text-ink-muted">발굴 신호 사후 추적 (참고)</p>
+            <ul className="mt-1.5 space-y-1 text-[11px]">
+              {trackStats.map((s) => (
+                <li key={s.code} className="flex justify-between gap-2 tabular-nums">
+                  <span className="truncate text-ink">{s.name}</span>
+                  <span className={s.changePct >= 0 ? "text-gain" : "text-loss"}>
+                    {s.daysHeld}일 {fmtPct(s.changePct)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="space-y-3 p-3 sm:p-5">
           {error && <p className="text-xs text-amber-800">{error}</p>}
 
@@ -232,7 +295,11 @@ export function DiscoveryTab({
             </p>
           )}
 
-          {report?.rankings && picks.length === 0 && !loading && (
+          {report?.rankings && rawPicks.length > 0 && picks.length === 0 && !loading && (
+            <p className="py-6 text-center text-sm text-ink-muted">필터 조건에 맞는 종목이 없습니다.</p>
+          )}
+
+          {report?.rankings && rawPicks.length === 0 && !loading && (
             <p className="py-6 text-center text-sm text-ink-muted">
               {marketTab === "KSP" ? "코스피" : "코스닥"} 후보가 없습니다. 시장 환경이 약세일 수 있습니다.
             </p>
@@ -242,6 +309,7 @@ export function DiscoveryTab({
             <PickRow
               key={`${pick.market}-${pick.stockCode}`}
               pick={pick}
+              report={report}
               onAdd={onAddStock}
               onAddWatchlist={onAddWatchlist}
               inWatchlist={watchlistCodes?.has(pick.stockCode.replace(/\D/g, "").padStart(6, "0"))}

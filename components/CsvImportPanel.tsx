@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { AppData, Stock } from "@/lib/types";
+import { suggestStockCode } from "@/lib/stockCodes";
+import type { AppData, Stock, Trade } from "@/lib/types";
 import { uid } from "@/lib/calc";
 import { parseTradeCsv, type ParsedTradeRow } from "@/lib/import/tradeCsv";
 import {
@@ -11,15 +12,17 @@ import {
   savePreferredBroker,
   type BrokerCsvFormat,
 } from "@/lib/import/brokerCsv";
-import { suggestStockCode } from "@/lib/stockCodes";
+import { dedupeTradeRows, existingTradeFingerprints } from "@/lib/import/tradeDedup";
 
 const BROKERS: BrokerCsvFormat[] = ["mirae", "kis", "kiwoom"];
 
 export function CsvImportPanel({
   stocks,
+  trades,
   onImport,
 }: {
   stocks: Stock[];
+  trades: Trade[];
   onImport: (rows: ParsedTradeRow[]) => void;
 }) {
   const [broker, setBroker] = useState<BrokerCsvFormat>("mirae");
@@ -27,6 +30,7 @@ export function CsvImportPanel({
   const [guideOpen, setGuideOpen] = useState(false);
   const [preview, setPreview] = useState<ParsedTradeRow[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [duplicateCount, setDuplicateCount] = useState(0);
   const [format, setFormat] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -44,7 +48,10 @@ export function CsvImportPanel({
     reader.onload = () => {
       const text = String(reader.result ?? "");
       const result = parseTradeCsv(text, broker);
-      setPreview(result.rows.length > 0 ? result.rows : null);
+      const existing = existingTradeFingerprints(trades, stocks);
+      const { unique, skipped } = dedupeTradeRows(result.rows, existing);
+      setPreview(unique.length > 0 ? unique : null);
+      setDuplicateCount(skipped);
       setErrors(result.errors);
       setFormat(result.format);
       setOpen(true);
@@ -57,6 +64,7 @@ export function CsvImportPanel({
     onImport(preview);
     setPreview(null);
     setErrors([]);
+    setDuplicateCount(0);
     setOpen(false);
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -129,6 +137,9 @@ export function CsvImportPanel({
             <>
               <p className="text-sm font-semibold text-ink">
                 가져오기 미리보기 · {preview.length}건
+                {duplicateCount > 0 && (
+                  <span className="ml-2 text-xs font-normal text-amber-800">({duplicateCount}건 중복 제외)</span>
+                )}
                 {format && (
                   <span className="ml-2 text-xs font-normal text-ink-muted">
                     ({BROKER_CSV_LABEL[format as BrokerCsvFormat] ?? format})
@@ -216,10 +227,18 @@ export function CsvImportPanel({
   );
 }
 
-export function mergeCsvTrades(data: AppData, rows: ParsedTradeRow[]): AppData {
+export interface CsvMergeResult {
+  data: AppData;
+  added: number;
+  skippedDuplicates: number;
+}
+
+export function mergeCsvTrades(data: AppData, rows: ParsedTradeRow[]): CsvMergeResult {
+  const existing = existingTradeFingerprints(data.trades, data.stocks);
+  const { unique, skipped } = dedupeTradeRows(rows, existing);
   let next: AppData = { ...data, stocks: [...data.stocks], trades: [...data.trades] };
 
-  for (const row of rows) {
+  for (const row of unique) {
     let stock = next.stocks.find(
       (s) => s.name === row.stockName || s.name.replace(/\s/g, "") === row.stockName.replace(/\s/g, "")
     );
@@ -249,5 +268,5 @@ export function mergeCsvTrades(data: AppData, rows: ParsedTradeRow[]): AppData {
     });
   }
 
-  return next;
+  return { data: next, added: unique.length, skippedDuplicates: skipped };
 }

@@ -8,6 +8,7 @@ import { PerformanceOverview } from "@/components/PerformanceOverview";
 import { PortfolioBenchmarkChart } from "@/components/PortfolioBenchmarkChart";
 import { PortfolioSummaryPanel } from "@/components/PortfolioSummaryPanel";
 import { StockDetailPanel } from "@/components/StockDetailPanel";
+import { TimingBacktestPanel } from "@/components/TimingBacktestPanel";
 import { StockSettlement } from "@/components/TimingRadar";
 
 export function ReportTab({
@@ -44,6 +45,8 @@ export function ReportTab({
       <PerformanceOverview portfolio={portfolio} />
 
       <PortfolioBenchmarkChart dailySnapshots={data.dailySnapshots} />
+
+      <TimingBacktestPanel data={data} />
 
       <PortfolioSummaryPanel portfolio={portfolio} />
 

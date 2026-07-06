@@ -159,7 +159,16 @@ export async function fetchYahooKospiHistory(
   interval: HistoryInterval
 ): Promise<PriceHistoryPoint[]> {
   const effectiveRange = resolveRangeForInterval(range, interval);
-  return fetchYahooSeries("%5EKS11", effectiveRange, interval);
+  const symbols = ["%5EKS11", "%5EKQ11", "0001.KS"];
+  let lastErr: Error | null = null;
+  for (const sym of symbols) {
+    try {
+      return await fetchYahooSeries(sym, effectiveRange, interval);
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+    }
+  }
+  throw lastErr ?? new Error("Yahoo KOSPI 조회 실패");
 }
 
 function periodChangePct(points: PriceHistoryPoint[]): number {
