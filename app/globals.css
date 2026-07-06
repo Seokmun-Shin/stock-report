@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/** 한국 증시 관례: 상승·이익=빨강, 하락·손실=파랑 */
+:root {
+  --market-up: #dc2626;
+  --market-up-soft: #fef2f2;
+  --market-down: #2563eb;
+  --market-down-soft: #eff6ff;
+}
+
 html {
   overflow-x: clip;
   max-width: 100%;

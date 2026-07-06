@@ -66,7 +66,7 @@ export function StockEventsPanel({
   return (
     <CollapsibleSection
       title={`기업 이벤트 — ${activeStock.name}`}
-      subtitle="분할·배당 기록 (분할은 매매 수량·단가 자동 조정)"
+      subtitle="DART 공시에서 분할·배당 자동 등록 · 분할 매매 반영은 「매매에 반영」 버튼"
       summary={<span className="text-sm text-ink-muted">{events.length}건</span>}
     >
       <div className="space-y-3">
@@ -139,7 +139,28 @@ export function StockEventsPanel({
         {events.length > 0 && (
           <ul className="space-y-2 text-sm">
             {events.map((e) => (
-              <EventRow key={e.id} event={e} stock={activeStock} onRemove={() => removeEvent(e.id)} />
+              <EventRow
+                key={e.id}
+                event={e}
+                stock={activeStock}
+                onRemove={() => removeEvent(e.id)}
+                onApplySplit={
+                  e.type === "split" && e.ratio && e.ratio > 1
+                    ? () => {
+                        if (
+                          !confirm(
+                            `${e.ratio}:1 분할을 매매 내역에 반영할까요? (${e.date} 이전 체결만 조정)`
+                          )
+                        )
+                          return;
+                        onPersist({
+                          ...data,
+                          trades: applySplitToTrades(data.trades, e),
+                        });
+                      }
+                    : undefined
+                }
+              />
             ))}
           </ul>
         )}
@@ -152,15 +173,19 @@ function EventRow({
   event,
   stock,
   onRemove,
+  onApplySplit,
 }: {
   event: StockEvent;
   stock: Stock;
   onRemove: () => void;
+  onApplySplit?: () => void;
 }) {
   const detail =
     event.type === "split"
-      ? `${event.ratio}:1 분할`
-      : `배당 ${event.amount != null ? fmt(event.amount) : "—"}원/주`;
+      ? event.ratio
+        ? `${event.ratio}:1 분할`
+        : "분할(공시에서 비율 확인 필요)"
+      : `배당 ${event.amount != null ? fmt(event.amount) : "금액 미상"}원/주`;
 
   return (
     <li className="flex items-center justify-between rounded-lg border border-line px-3 py-2">
@@ -169,9 +194,16 @@ function EventRow({
         <span className="ml-2 text-ink-muted">{stock.name} · {detail}</span>
         {event.memo && <span className="ml-1 text-xs text-ink-muted">({event.memo})</span>}
       </span>
-      <button type="button" onClick={onRemove} className="text-xs text-loss hover:underline">
-        삭제
-      </button>
+      <span className="flex items-center gap-2">
+        {onApplySplit && (
+          <button type="button" onClick={onApplySplit} className="text-xs font-medium text-gain hover:underline">
+            매매 반영
+          </button>
+        )}
+        <button type="button" onClick={onRemove} className="text-xs text-loss hover:underline">
+          삭제
+        </button>
+      </span>
     </li>
   );
 }

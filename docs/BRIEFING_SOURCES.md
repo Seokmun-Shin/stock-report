@@ -8,11 +8,12 @@
 | **DART Open API** | DART_API_KEY | 최근 14일 공시 (종목코드 필수) |
 | **FRED** | FRED_API_KEY | 미국 CPI·근원CPI·실업률·Fed금리·10Y·2Y·10Y-2Y·HY OAS·GDP·PPI |
 | **BOK ECOS** | BOK_API_KEY | 한국 기준금리·CPI·GDP·산업생산·수출·국고채10Y·**원/달러(공식)** |
-| **Google RSS** | 없음 | 국내·미국 시장·미·일·중·영 거시·금리·국제정세·Fed/한은 정책·반도체 뉴스 |
+| **Google RSS** | 없음 | 국내·미국 시장·미·일·중·영·EU·대만 거시·금리·국제정세·Fed/한은 정책·반도체·2차전지·코스닥·수출 뉴스 |
 | **Yahoo Finance** | 없음 | 미·일·중·대만·영·EU 지수, **KOSPI200**, VIX/VIX3M, SOX, S&P/NQ 선물, BTC, 미국 국채, DXY, 금·유가 |
 | **Frankfurter** | 없음 | USD/EUR/JPY/GBP/CNY → KRW (전일比) · BOK ECOS와 대조 |
 | **Naver Finance** | 없음 | KOSPI·KOSDAQ **등락 종목 수** (breadth) |
 | **KIS 시장 수급** | KIS_APP_KEY | 코스피·코스닥 시장 전체 외국인/기관/개인 · **코스피 공매도 상위** |
+| **KIS 순위 API** | KIS_APP_KEY | 코스피·코스닥 **거래대금·등락률·외국인 순매수** 상위 30 (종목 발굴) |
 | **내 매매 FIFO** | 없음 | 평단·타이밍선·매매 구간 |
 
 ## 통합 매매 추천
@@ -40,6 +41,15 @@
 9. 종목 뉴스·DART 공시 키워드 감성
 
 > **투자 조언이 아닙니다.** 참고용 자동 요약입니다.
+
+## 종목 발굴 (추천 탭)
+
+| 항목 | 설명 |
+|------|------|
+| **데이터** | KIS 거래대금·등락률·외국인 순매수 순위 (코스피·코스닥 각 30건) |
+| **점수** | 순위 가중 + 복수 신호 보너스 + 시장 환경 게이트 |
+| **출력** | 시장별 Top 10 관심 종목 |
+| **추가** | 「+ 추가」로 포트폴리오 등록 → 판단 탭에서 타이밍 분석 |
 
 ## 설정
 
@@ -70,3 +80,5 @@ BOK_API_KEY=...    # https://ecos.bok.or.kr/api/
 
 - `GET /api/briefing` — 원천 설정 상태
 - `POST /api/briefing` — `{ stocks: [{ id, name, code }] }` → 뉴스·공시·지수 수집
+- `GET /api/discovery` — 발굴 API 설정 상태
+- `POST /api/discovery` — `{ portfolioCodes?: string[] }` → 코스피·코스닥 관심 종목 Top 10

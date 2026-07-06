@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AppData, Stock, StockQuote, Trade } from "@/lib/types";
 import { SEED } from "@/lib/seed";
@@ -27,14 +27,17 @@ import { buildAllTradingVerdicts } from "@/lib/briefing/tradingVerdict";
 import { buildTimingSourceReport } from "@/lib/briefing/timingSources";
 import { resolveReportSettings, type ReportSettings } from "@/lib/reportSettings";
 import { useBriefingData } from "@/hooks/useBriefingData";
+import { useStockDiscovery } from "@/hooks/useStockDiscovery";
 import { AppTabNav, type AppTab } from "@/components/AppTabNav";
 import { TradingVerdictView } from "@/components/TradingVerdictView";
+import { DiscoveryTab } from "@/components/tabs/DiscoveryTab";
 import { ReportTab } from "@/components/tabs/ReportTab";
 import { SettingsTab } from "@/components/tabs/SettingsTab";
 import { RecordsTab } from "@/components/tabs/RecordsTab";
 import { TimingSourcesTab } from "@/components/tabs/TimingSourcesTab";
 import { mergeCsvTrades } from "@/components/CsvImportPanel";
 import { assessDataReadiness } from "@/lib/dataReadiness";
+import { mergeCorporateActionsFromBriefing } from "@/lib/corporateActionsFromDart";
 
 export function Dashboard({
   data,
@@ -62,6 +65,11 @@ export function Dashboard({
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
   const [tradeFormOpen, setTradeFormOpen] = useState(false);
+
+  /** 하단 탭 전환 시 항상 페이지 최상단 */
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [activeTab]);
 
   function beginAddStock() {
     setAddingStock(true);
@@ -97,6 +105,26 @@ export function Dashboard({
   });
 
   const briefing = useBriefingData(data.stocks);
+
+  const portfolioCodes = useMemo(
+    () => data.stocks.map((s) => s.code?.replace(/\D/g, "").padStart(6, "0")).filter(Boolean) as string[],
+    [data.stocks]
+  );
+  const discovery = useStockDiscovery(portfolioCodes, briefing.context);
+
+  const dartEventsSyncRef = useRef("");
+  useEffect(() => {
+    if (!briefing.context?.stocks?.length) return;
+    const syncKey = `${briefing.context.fetchedAt ?? ""}:${data.stocks.map((s) => s.id).join(",")}`;
+    if (dartEventsSyncRef.current === syncKey) return;
+    dartEventsSyncRef.current = syncKey;
+
+    const next = mergeCorporateActionsFromBriefing(
+      dataRef.current,
+      briefing.context.stocks.map((s) => ({ stockId: s.stockId, disclosures: s.disclosures }))
+    );
+    if (next) persist(next);
+  }, [briefing.context, data.stocks, persist]);
 
   useEffect(() => {
     if (!data.stocks.some((s) => s.id === activeId)) {
@@ -241,7 +269,8 @@ export function Dashboard({
   }, [kis.lastUpdated, briefing.lastFetched]);
 
   const refreshVerdict = useCallback(async () => {
-    await Promise.all([kis.refresh(), briefing.refresh()]);
+    await kis.refresh();
+    await briefing.refresh();
   }, [kis.refresh, briefing.refresh]);
 
   function selectStock(id: string) {
@@ -318,6 +347,69 @@ export function Dashboard({
         ? data.initialCapitalTradeIds.filter((id) => id !== tradeId)
         : [...data.initialCapitalTradeIds, tradeId],
     });
+  }
+
+  function normalizeStockCode(code: string) {
+    return code.replace(/\D/g, "").padStart(6, "0");
+  }
+
+  function addToWatchlist(code: string, name: string) {
+    const normalized = normalizeStockCode(code);
+    if (data.stocks.some((s) => normalizeStockCode(s.code ?? "") === normalized)) return;
+    if ((data.watchlist ?? []).some((w) => w.code === normalized)) return;
+    persist({
+      ...data,
+      watchlist: [
+        ...(data.watchlist ?? []),
+        { id: uid(), name, code: normalized, addedAt: new Date().toISOString() },
+      ],
+    });
+  }
+
+  function removeFromWatchlist(id: string) {
+    persist({ ...data, watchlist: (data.watchlist ?? []).filter((w) => w.id !== id) });
+  }
+
+  function promoteWatchlistToPortfolio(code: string, name: string) {
+    const normalized = normalizeStockCode(code);
+    const existing = data.stocks.find((s) => normalizeStockCode(s.code ?? "") === normalized);
+    if (existing) {
+      persist({
+        ...data,
+        watchlist: (data.watchlist ?? []).filter((w) => w.code !== normalized),
+      });
+      setActiveId(existing.id);
+      setActiveTab("verdict");
+      return;
+    }
+    const id = uid();
+    persist({
+      ...data,
+      stocks: [...data.stocks, { id, name, code: normalized }],
+      currentPrices: { ...data.currentPrices, [id]: 0 },
+      watchlist: (data.watchlist ?? []).filter((w) => w.code !== normalized),
+    });
+    setActiveId(id);
+    setActiveTab("verdict");
+  }
+
+  function addStockFromDiscovery(code: string, name: string) {
+    const normalized = normalizeStockCode(code);
+    const existing = data.stocks.find((s) => s.code?.replace(/\D/g, "").padStart(6, "0") === normalized);
+    if (existing) {
+      setActiveId(existing.id);
+      setActiveTab("verdict");
+      return;
+    }
+    const id = uid();
+    persist({
+      ...data,
+      stocks: [...data.stocks, { id, name, code: normalized }],
+      currentPrices: { ...data.currentPrices, [id]: 0 },
+      watchlist: (data.watchlist ?? []).filter((w) => w.code !== normalized),
+    });
+    setActiveId(id);
+    setActiveTab("verdict");
   }
 
   function addStock() {
@@ -459,7 +551,6 @@ export function Dashboard({
       </header>
 
       <main className="mx-auto min-w-0 max-w-5xl px-3 py-4 sm:px-6">
-        <AppFlowBanner tab={activeTab} />
         {activeTab === "verdict" && (
           <TradingVerdictView
             stocks={data.stocks}
@@ -500,6 +591,24 @@ export function Dashboard({
             targetPrice={reportSettings.targetPrices?.[activeStock?.id ?? ""]}
             onTargetPriceChange={(p) => activeStock && setTargetPrice(activeStock.id, p)}
             readinessItems={readinessItems}
+            dailySnapshots={data.dailySnapshots}
+            stockTrades={stockTrades}
+          />
+        )}
+
+        {activeTab === "discover" && (
+          <DiscoveryTab
+            report={discovery.report}
+            loading={discovery.loading}
+            error={discovery.error}
+            lastFetched={discovery.lastFetched}
+            onRefresh={() => void discovery.refresh()}
+            onAddStock={addStockFromDiscovery}
+            onAddWatchlist={addToWatchlist}
+            watchlist={data.watchlist ?? []}
+            watchlistCodes={new Set((data.watchlist ?? []).map((w) => w.code))}
+            onRemoveWatchlist={removeFromWatchlist}
+            onPromoteWatchlist={promoteWatchlistToPortfolio}
           />
         )}
 
@@ -516,6 +625,8 @@ export function Dashboard({
 
         {activeTab === "records" && (
           <RecordsTab
+            data={data}
+            onPersist={persist}
             stocks={data.stocks}
             activeId={activeId}
             onSelectStock={selectStock}
@@ -544,6 +655,7 @@ export function Dashboard({
             buySignal={buySignal}
             sellSignal={sellSignal}
             reportSettings={data.reportSettings}
+            onImportCsv={importCsvRows}
           />
         )}
 
@@ -582,6 +694,8 @@ export function Dashboard({
             readinessItems={readinessItems}
           />
         )}
+
+        <AppFlowBanner tab={activeTab} />
       </main>
 
       <AppTabNav active={activeTab} onChange={setActiveTab} />

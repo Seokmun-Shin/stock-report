@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import { fmtPct } from "@/lib/calc";
+import { AreaSectionTitle } from "./ui/PanelCard";
 
 export function UnitNotice() {
-  return <span className="ml-1 text-sm font-normal text-ink-muted">(단위 : 원)</span>;
+  return <span className="ml-1 text-xs font-normal text-ink-muted">(단위 : 원)</span>;
 }
 
 export function SectionTitle({ children, unit }: { children: React.ReactNode; unit?: boolean }) {
   return (
-    <h2 className="text-sm font-bold text-ink">
+    <AreaSectionTitle as="h2" unit={unit}>
       {children}
-      {unit && <UnitNotice />}
-    </h2>
+    </AreaSectionTitle>
   );
 }
 
@@ -28,7 +28,7 @@ export function HintTooltip({ text, align = "center" }: { text: string; align?: 
         aria-label={`${text} (설명)`}
         onClick={() => setOpen((v) => !v)}
         onBlur={() => setOpen(false)}
-        className="ml-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold leading-none text-ink-muted/60 hover:bg-surface-dim hover:text-ink-muted focus:outline-none focus:ring-2 focus:ring-blue-200"
+        className="ml-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold leading-none text-ink-muted/60 hover:bg-surface-dim hover:text-ink-muted focus:outline-none focus:ring-2 focus:ring-gain/25"
       >
         ?
       </button>
@@ -78,11 +78,11 @@ export function StatCard({
 
   if (inline) {
     return (
-      <div className={`flex min-h-[2.75rem] min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${bg} ${fill ? "flex-1" : ""}`}>
-        <div className="min-w-0 flex-1 text-sm font-semibold text-ink-muted">
+      <div className={`flex min-h-[2.5rem] min-w-0 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 ${bg} ${fill ? "flex-1" : ""}`}>
+        <div className="min-w-0 flex-1 text-xs font-medium text-ink-muted sm:text-sm">
           <CardLabel label={label} hint={hint} hintAlign={hintAlign} />
         </div>
-        <span className={`shrink-0 truncate text-right text-base font-bold tabular-nums ${valColor}`} title={value}>
+        <span className={`shrink-0 text-right text-sm font-bold tabular-nums leading-snug ${valColor}`} title={value}>
           {value}
         </span>
       </div>
@@ -90,16 +90,21 @@ export function StatCard({
   }
 
   return (
-    <div className={`flex min-h-[4.25rem] min-w-0 flex-col rounded-lg border p-3 ${bg}`}>
-      <p className="text-xs font-medium text-ink-muted sm:text-sm">
+    <div className={`flex min-w-0 flex-col rounded-lg border p-2.5 ${bg}`}>
+      <p className="text-xs font-medium text-ink-muted">
         <CardLabel label={label} hint={hint} hintAlign={hintAlign} />
       </p>
-      <div className="mt-auto pt-1.5">
-        <p className={`truncate text-right text-base font-bold tabular-nums sm:text-lg ${valColor}`} title={value}>
+      <div className="mt-1.5">
+        <p
+          className={`text-right text-sm font-bold tabular-nums leading-snug sm:text-base ${valColor}`}
+          title={value}
+        >
           {value}
         </p>
         {sub && (
-          <p className={`mt-0.5 truncate text-right text-sm tabular-nums ${tone !== "neutral" ? valColor : "text-ink-muted"}`}>
+          <p
+            className={`mt-0.5 text-right text-xs tabular-nums sm:text-sm ${tone !== "neutral" ? valColor : "text-ink-muted"}`}
+          >
             {sub}
           </p>
         )}
@@ -139,7 +144,7 @@ export function ZoneDivider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-1">
       <div className="h-px flex-1 bg-line" />
-      <span className="shrink-0 rounded-full border border-line bg-white px-3 py-1 text-sm font-semibold text-ink-muted">
+      <span className="shrink-0 rounded-full border border-line bg-white px-2.5 py-0.5 text-xs font-semibold text-ink-muted">
         {label}
       </span>
       <div className="h-px flex-1 bg-line" />

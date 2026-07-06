@@ -116,6 +116,31 @@ export async function fetchDomesticIndicesWithFallback(): Promise<{
   return { kospi, kosdaq, warnings, errors };
 }
 
+/** KIS 미설정 환경 — Yahoo 지수만 조회 */
+export async function fetchDomesticIndicesYahooOnly(): Promise<{
+  kospi: KospiBenchmark | null;
+  kosdaq: KospiBenchmark | null;
+  warnings: string[];
+  errors: string[];
+}> {
+  const warnings = ["KIS 미설정 — Yahoo Finance 지수 사용"];
+  const errors: string[] = [];
+  let kospi: KospiBenchmark | null = null;
+  let kosdaq: KospiBenchmark | null = null;
+
+  for (const def of INDEX_DEFS) {
+    try {
+      const benchmark = await fetchIndexFromYahoo(def.yahoo);
+      if (def.key === "kospi") kospi = benchmark;
+      else kosdaq = benchmark;
+    } catch (err) {
+      errors.push(`${def.label}: ${err instanceof Error ? err.message : "Yahoo 조회 실패"}`);
+    }
+  }
+
+  return { kospi, kosdaq, warnings, errors };
+}
+
 /** @deprecated fetchDomesticIndicesWithFallback 사용 */
 export async function fetchKospiBenchmarkWithFallback(): Promise<{
   kospi: KospiBenchmark | null;

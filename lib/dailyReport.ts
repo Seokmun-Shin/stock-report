@@ -249,6 +249,8 @@ export function applyDailySnapshot(
     portfolioTotalReturnRate: portfolio.totalReturnRate,
     stockPrices,
     stockUnrealizedPnl,
+    kospiClose: data.kospiBenchmark?.price,
+    kospiChangeRate: data.kospiBenchmark?.changeRate,
   };
 
   const next = [...existing, snap].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 90);

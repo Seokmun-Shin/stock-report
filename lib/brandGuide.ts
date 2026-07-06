@@ -75,8 +75,10 @@ export const BRAND_CLASSES = {
 export const BRAND_COLORS = [
   { name: "Ink", role: "Primary text · M", hex: "#0F172A", token: "text-ink", bg: "bg-ink" },
   { name: "Ink Muted", role: "tock · 보조 텍스트", hex: "#64748B", token: "text-ink/65", bg: "bg-ink-muted" },
-  { name: "Gain", role: "Accent · UI 강조", hex: "#2563EB", token: "text-gain", bg: "bg-gain" },
-  { name: "Gain Soft", role: "배경 · 배지", hex: "#EFF6FF", token: "bg-gain-soft", bg: "bg-gain-soft" },
+  { name: "Gain (상승·이익)", role: "한국 증시 빨강", hex: "#DC2626", token: "text-gain", bg: "bg-gain" },
+  { name: "Gain Soft", role: "상승 배경", hex: "#FEF2F2", token: "bg-gain-soft", bg: "bg-gain-soft" },
+  { name: "Loss (하락·손실)", role: "한국 증시 파랑", hex: "#2563EB", token: "text-loss", bg: "bg-loss" },
+  { name: "Loss Soft", role: "하락 배경", hex: "#EFF6FF", token: "bg-loss-soft", bg: "bg-loss-soft" },
   { name: "White", role: "배경 · 역상 로고", hex: "#FFFFFF", token: "bg-white", bg: "bg-white" },
 ] as const;
 

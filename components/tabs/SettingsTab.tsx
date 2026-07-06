@@ -82,7 +82,7 @@ export function SettingsTab({
 
       <PanelCard>
         <PageSectionTitle>매매 데이터</PageSectionTitle>
-        <p className="mt-1 text-xs text-ink-muted">③ 기록 — CSV 일괄 가져오기 · 텍스트 리포트 복사</p>
+        <p className="mt-1 text-xs text-ink-muted">③ 기록 — 증권사 체결 CSV 가져오기 · 일일 리포트 복사</p>
         <div className="mt-3 space-y-3">
           <CsvImportPanel stocks={data.stocks} onImport={onImportCsv} />
           <button type="button" onClick={copyReport} className="text-xs font-bold text-gain hover:underline">

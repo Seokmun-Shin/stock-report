@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import type { BuyTimingSignal, SellTimingSignal, Stock, StockQuote, StockSummary } from "@/lib/types";
 import { BackToSummaryIcon, StockMiniCards } from "./StockMiniCards";
 import { StockSummaryList } from "./StockSummaryView";
+import { HeaderActionButton, PanelHeaderActions } from "./ui/PanelCard";
 
 export function StockPanel({
   stocks,
@@ -62,26 +63,16 @@ export function StockPanel({
               </h2>
             </div>
           </div>
-          <div className="flex shrink-0 gap-1 self-end sm:self-auto">
-            <button
-              type="button"
-              onClick={() => onEdit(active)}
-              className="rounded-lg border border-line px-2.5 py-1 text-sm text-ink-muted hover:bg-surface-dim"
-            >
-              이름 수정
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDelete(active.id)}
-              className="rounded-lg border border-line px-2.5 py-1 text-sm text-loss hover:bg-loss-soft"
-            >
+          <PanelHeaderActions className="self-end sm:self-auto">
+            <HeaderActionButton onClick={() => onEdit(active)}>이름 수정</HeaderActionButton>
+            <HeaderActionButton variant="danger" onClick={() => handleDelete(active.id)}>
               삭제
-            </button>
-          </div>
+            </HeaderActionButton>
+          </PanelHeaderActions>
         </div>
 
         <div className="px-3 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4">
-          <div className="min-w-0 overflow-hidden rounded-xl border border-blue-400 bg-white">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-gain/50 bg-white">
             <div className="overflow-x-auto bg-surface-dim px-2 pb-0 pt-3 sm:px-3">
               <StockMiniCards
                 stocks={stocks}
@@ -93,7 +84,7 @@ export function StockPanel({
               />
             </div>
             {children && (
-              <div className="relative space-y-4 border-t border-blue-400 bg-white p-3 pt-3 sm:space-y-5 sm:p-5 sm:pt-4">{children}</div>
+              <div className="relative space-y-4 border-t border-gain/50 bg-white p-3 pt-3 sm:space-y-5 sm:p-5 sm:pt-4">{children}</div>
             )}
           </div>
         </div>

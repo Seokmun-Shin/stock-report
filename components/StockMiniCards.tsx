@@ -55,7 +55,7 @@ export function StockMiniCards({
               connected
                 ? `shrink-0 min-w-0 max-w-full flex-1 basis-[calc(50%-0.25rem)] px-3 py-2.5 text-left transition sm:basis-[calc(33%-0.35rem)] sm:px-4 sm:py-3 ${
                     isActive
-                      ? "relative z-10 -mb-px rounded-t-lg border-2 border-blue-400 border-b-white bg-white"
+                      ? "relative z-10 -mb-px rounded-t-lg border-2 border-gain border-b-white bg-white"
                       : "mb-px rounded-lg border border-transparent bg-white/70 text-ink-muted hover:border-slate-300 hover:bg-white hover:text-ink"
                   }`
                 : `min-w-[8.5rem] rounded-xl px-4 py-3 text-left transition ${

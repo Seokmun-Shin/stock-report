@@ -36,6 +36,42 @@ export const DEFAULT_REPORT_SETTINGS: ReportSettings = {
   sellTransactionTaxPct: 0.2,
 };
 
+export type StrategyPresetId = "conservative" | "balanced" | "aggressive";
+
+export const STRATEGY_PRESET_LABEL: Record<StrategyPresetId, string> = {
+  conservative: "보수",
+  balanced: "균형",
+  aggressive: "공격",
+};
+
+/** 매매 전략 % 프리셋 — 설정 탭에서 한 번에 적용 */
+export const STRATEGY_PRESETS: Record<StrategyPresetId, Pick<ReportSettings, "buyTimingPct1" | "buyTimingPct2" | "sellTimingPct1" | "sellTimingPct2" | "buyDropFromPeakPct" | "sellGainFromAvgPct">> = {
+  conservative: {
+    buyTimingPct1: 5,
+    buyTimingPct2: 10,
+    sellTimingPct1: 5,
+    sellTimingPct2: 12,
+    buyDropFromPeakPct: 5,
+    sellGainFromAvgPct: 7,
+  },
+  balanced: {
+    buyTimingPct1: 10,
+    buyTimingPct2: 20,
+    sellTimingPct1: 10,
+    sellTimingPct2: 20,
+    buyDropFromPeakPct: 7,
+    sellGainFromAvgPct: 10,
+  },
+  aggressive: {
+    buyTimingPct1: 15,
+    buyTimingPct2: 25,
+    sellTimingPct1: 15,
+    sellTimingPct2: 30,
+    buyDropFromPeakPct: 10,
+    sellGainFromAvgPct: 15,
+  },
+};
+
 export function resolveReportSettings(raw?: Partial<ReportSettings>): ReportSettings {
   return {
     useTimingPctLines: raw?.useTimingPctLines ?? DEFAULT_REPORT_SETTINGS.useTimingPctLines ?? true,

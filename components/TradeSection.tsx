@@ -14,7 +14,8 @@ import {
 } from "@/lib/reportSettings";
 import type { TradeSuggestion } from "@/lib/briefing/tradeSuggestions";
 import { FormattedNumberInput } from "@/components/FormattedNumberInput";
-import { insetCard, panelShell, UI } from "@/components/ui/PanelCard";
+import { SectionCollapseToggle } from "@/components/CollapsibleSection";
+import { insetCard, panelShell, UI, HeaderActionButton, AreaSectionTitle } from "@/components/ui/PanelCard";
 
 type TradeInput = Omit<Trade, "id" | "stockId" | "createdAt">;
 
@@ -60,7 +61,7 @@ export function TradeTable({
 
   return (
     <div className="space-y-2">
-      <div className="space-y-2 md:hidden">
+      <div className="space-y-2 lg:hidden">
         {visible.map((t) => {
           const isCapital = initialCapitalIds.has(t.id);
           const realized = realizedById[t.id];
@@ -88,37 +89,39 @@ export function TradeTable({
                   <button
                     type="button"
                     onClick={() => onToggleCapital(t.id)}
-                    className={`rounded-lg px-2 py-1 text-xs font-semibold ${isCapital ? "bg-amber-500 text-white" : "border border-line"}`}
+                    title={isCapital ? "기준 매수" : "기준으로 지정"}
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold ${
+                      isCapital ? "bg-amber-500 text-white" : "border border-line"
+                    }`}
                   >
-                    {isCapital ? "★ 기준" : "기준"}
+                    {isCapital ? "★" : "○"}
                   </button>
                 )}
-                <button type="button" onClick={() => onEdit(t)} className="text-xs text-gain">
+                <HeaderActionButton onClick={() => onEdit(t)} className="px-2 py-0.5">
                   수정
-                </button>
-                <button type="button" onClick={() => onDelete(t.id)} className="text-xs text-loss">
+                </HeaderActionButton>
+                <HeaderActionButton variant="danger" onClick={() => onDelete(t.id)} className="px-2 py-0.5">
                   삭제
-                </button>
+                </HeaderActionButton>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="hidden min-w-0 md:block">
-        <div className="rounded-2xl border border-line">
-        <table className="w-full table-fixed text-sm">
-          <thead className="bg-surface-dim text-sm text-ink-muted">
+      <div className={`hidden min-w-0 lg:block ${UI.dataTableWrap}`}>
+        <table className={`${UI.dataTable} min-w-[42rem]`}>
+          <thead className="bg-surface-dim text-xs text-ink-muted">
             <tr>
-              <th className="px-3 py-3 text-center">기준</th>
-              <th className="px-3 py-3 text-center">구분</th>
-              <th className="px-3 py-3 text-center">일시</th>
-              <th className="px-3 py-3 text-right">수량</th>
-              <th className="px-3 py-3 text-right">단가</th>
-              <th className="px-3 py-3 text-right">금액</th>
-              <th className="px-3 py-3 text-right">비용</th>
-              <th className="px-3 py-3 text-right">실현손익</th>
-              <th className="px-3 py-3 text-center">관리</th>
+              <th className={`${UI.dataTh} w-14 text-center`}>기준</th>
+              <th className={`${UI.dataTh} w-16 text-center`}>구분</th>
+              <th className={`${UI.dataTh} text-left`}>일시</th>
+              <th className={`${UI.dataTh} text-right`}>수량</th>
+              <th className={`${UI.dataTh} text-right`}>단가</th>
+              <th className={`${UI.dataTh} text-right`}>금액</th>
+              <th className={`${UI.dataTh} text-right`}>비용</th>
+              <th className={`${UI.dataTh} text-right`}>실현손익</th>
+              <th className={`${UI.dataTh} text-center`}>관리</th>
             </tr>
           </thead>
           <tbody>
@@ -126,52 +129,53 @@ export function TradeTable({
               const isCapital = initialCapitalIds.has(t.id);
               return (
                 <tr key={t.id} className={`border-t border-line ${isCapital ? "bg-amber-50/60" : ""}`}>
-                  <td className="px-3 py-2.5 text-center">
+                  <td className={`${UI.dataTd} text-center`}>
                     {t.type === "buy" ? (
                       <button
                         type="button"
                         onClick={() => onToggleCapital(t.id)}
-                        className={`rounded-lg px-2 py-1 text-xs font-semibold ${
+                        title={isCapital ? "기준 매수" : "기준으로 지정"}
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold ${
                           isCapital ? "bg-amber-500 text-white" : "border border-line bg-white text-ink-muted"
                         }`}
                       >
-                        {isCapital ? "★" : "기준"}
+                        {isCapital ? "★" : "○"}
                       </button>
                     ) : (
                       <span className="text-ink-muted">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 text-center">
+                  <td className={`${UI.dataTd} text-center`}>
                     <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-semibold ${t.type === "buy" ? "bg-gain-soft text-gain" : "bg-loss-soft text-loss"}`}>
                       {t.type === "buy" ? "매수" : "매도"}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 text-center text-ink tabular-nums">
+                  <td className={`${UI.dataTd} text-left text-ink`}>
                     {t.executedTime ? `${t.date} ${t.executedTime}` : t.date}
                   </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{fmtQty(t.quantity)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{fmt(t.price)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{fmt(tradeAmount(t))}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-ink-muted">{fmt(tradeCost(t))}</td>
-                  <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${t.type === "sell" ? (realizedById[t.id] >= 0 ? "text-gain" : "text-loss") : "text-ink-muted"}`}>
+                  <td className={`${UI.dataTd} text-right`}>{fmtQty(t.quantity)}</td>
+                  <td className={`${UI.dataTd} text-right`}>{fmt(t.price)}</td>
+                  <td className={`${UI.dataTd} text-right`}>{fmt(tradeAmount(t))}</td>
+                  <td className={`${UI.dataTd} text-right text-ink-muted`}>{fmt(tradeCost(t))}</td>
+                  <td className={`${UI.dataTd} text-right font-medium ${t.type === "sell" ? (realizedById[t.id] >= 0 ? "text-gain" : "text-loss") : "text-ink-muted"}`}>
                     {t.type === "sell" ? fmtSigned(realizedById[t.id] ?? 0) : "—"}
                   </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <button type="button" onClick={() => onEdit(t)} className="px-1.5 text-xs text-gain hover:underline">
-                      수정
-                    </button>
-                    <span className="text-ink-muted">|</span>
-                    <button type="button" onClick={() => onDelete(t.id)} className="px-1.5 text-xs text-loss hover:underline">
-                      삭제
-                    </button>
+                  <td className={`${UI.dataTd} text-center`}>
+                    <div className="inline-flex items-center justify-center gap-1.5">
+                      <HeaderActionButton onClick={() => onEdit(t)} className="px-2 py-0.5">
+                        수정
+                      </HeaderActionButton>
+                      <HeaderActionButton variant="danger" onClick={() => onDelete(t.id)} className="px-2 py-0.5">
+                        삭제
+                      </HeaderActionButton>
+                    </div>
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        </div>
-        <p className="border-t border-line bg-surface-dim px-4 py-2 text-center text-xs text-ink-muted">
+        <p className="border-t border-line bg-surface-dim px-3 py-1.5 text-center text-xs text-ink-muted">
           {stockName} · 총 {sorted.length}건 · 최신순
         </p>
       </div>
@@ -318,7 +322,7 @@ export function TradeForm({
   return (
     <form onSubmit={submit} className={`${panelShell} p-3 sm:p-5`}>
       <div className="mb-3 flex items-baseline justify-between gap-2">
-        <p className="text-sm font-bold text-ink">{isEditing ? "매매 수정" : "체결 내역 입력"}</p>
+        <AreaSectionTitle as="p">{isEditing ? "매매 수정" : "체결 내역 입력"}</AreaSectionTitle>
         <span className="text-xs text-ink-muted">(단위 : 원)</span>
       </div>
 
@@ -524,12 +528,12 @@ export function TradeHistorySection({
       <button
         type="button"
         onClick={() => setListOpen((v) => !v)}
-        className={`flex w-full items-center justify-between rounded-lg border border-line/80 bg-surface-dim/50 px-3 py-2 text-left text-sm`}
+        className="flex w-full items-center gap-3 rounded-lg border border-line/80 bg-surface-dim/50 px-3 py-2 text-left"
       >
-        <span>
+        <span className="min-w-0 flex-1 text-sm">
           매매 기록 <span className="text-ink-muted">({trades.length}건)</span>
         </span>
-        <span className="text-xs text-ink-muted">{listOpen ? "접기 ▲" : "펼치기 ▼"}</span>
+        <SectionCollapseToggle open={listOpen} />
       </button>
 
       {listOpen && (

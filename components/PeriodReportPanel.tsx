@@ -5,6 +5,7 @@ import type { AppData } from "@/lib/types";
 import { fmt, fmtSigned } from "@/lib/calc";
 import { buildPeriodReport, summarizePeriodTotals, type PeriodKind } from "@/lib/periodReport";
 import { CollapsibleSection, SummaryChip } from "./CollapsibleSection";
+import { UI } from "./ui/PanelCard";
 
 export function PeriodReportPanel({ data }: { data: AppData }) {
   const [kind, setKind] = useState<PeriodKind>("month");
@@ -43,24 +44,24 @@ export function PeriodReportPanel({ data }: { data: AppData }) {
           매매 내역이 없습니다.
         </p>
       ) : (
-        <div className="rounded-xl border border-line">
-          <table className="w-full table-fixed text-sm">
+        <div className={UI.dataTableWrap}>
+          <table className={UI.dataTable}>
             <thead className="bg-surface-dim text-xs text-ink-muted">
               <tr>
-                <th className="px-3 py-2.5 text-left">기간</th>
-                <th className="px-3 py-2.5 text-right">매수</th>
-                <th className="px-3 py-2.5 text-right">매도</th>
-                <th className="px-3 py-2.5 text-right">실현손익</th>
+                <th className={`${UI.dataTh} text-left`}>기간</th>
+                <th className={`${UI.dataTh} text-right`}>매수</th>
+                <th className={`${UI.dataTh} text-right`}>매도</th>
+                <th className={`${UI.dataTh} text-right`}>실현손익</th>
               </tr>
             </thead>
             <tbody>
               {buckets.map((b) => (
                 <tr key={b.key} className="border-t border-line">
-                  <td className="px-3 py-2.5 font-semibold text-ink">{b.label}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-ink-muted">{b.buyCount}건</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-ink-muted">{b.sellCount}건</td>
+                  <td className={`${UI.dataTd} text-left font-semibold text-ink`}>{b.label}</td>
+                  <td className={`${UI.dataTd} text-right text-ink-muted`}>{b.buyCount}건</td>
+                  <td className={`${UI.dataTd} text-right text-ink-muted`}>{b.sellCount}건</td>
                   <td
-                    className={`px-3 py-2.5 text-right tabular-nums font-bold ${b.realizedPnl >= 0 ? "text-gain" : "text-loss"}`}
+                    className={`${UI.dataTd} text-right font-bold ${b.realizedPnl >= 0 ? "text-gain" : "text-loss"}`}
                   >
                     {fmtSigned(b.realizedPnl)}
                   </td>

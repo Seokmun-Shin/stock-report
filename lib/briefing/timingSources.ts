@@ -64,8 +64,26 @@ export interface TimingSourceReport {
   /** 시장 공통 원천 (글로벌·거시·뉴스 등) */
   commonSections: TimingSourceSection[];
   fetchedAt?: string;
+  /** — (없음) 행 전체 */
   missingCount: number;
+  /** 판단에 필수인데 없는 행 */
+  actionableMissingCount: number;
+  /** 미수집 행 목록 (섹션·라벨) */
+  missingFields: { section: string; label: string; optional: boolean }[];
 }
+
+/** 미입력·아직 쌓이지 않은 값 — 「— (없음)」이어도 판단 가능 */
+const OPTIONAL_SOURCE_LABELS = new Set([
+  "사용자 목표가",
+  "포트폴리오 수익률 변화",
+  "신용·수익률곡선",
+  "추적 고점",
+  "고점 기록일",
+  "고점 대비 하락률",
+  "스냅샷 추세",
+  "추세 기간",
+  "등록된 이벤트",
+]);
 
 function row(label: string, value: string | number | null | undefined, hint?: string, usedFor?: TimingUseTag): TimingSourceRow {
   const missing = value == null || value === "" || (typeof value === "number" && !Number.isFinite(value));
@@ -81,6 +99,29 @@ function pctRow(label: string, value: number | null | undefined, hint?: string, 
 
 function countMissing(sections: TimingSourceSection[]): number {
   return sections.reduce((n, s) => n + s.rows.filter((r) => r.missing).length, 0);
+}
+
+function summarizeMissing(sections: TimingSourceSection[]) {
+  const missingFields: { section: string; label: string; optional: boolean }[] = [];
+  let actionableMissingCount = 0;
+  let optionalMissingCount = 0;
+
+  for (const section of sections) {
+    for (const row of section.rows) {
+      if (!row.missing) continue;
+      const optional = OPTIONAL_SOURCE_LABELS.has(row.label);
+      missingFields.push({ section: section.title, label: row.label, optional });
+      if (optional) optionalMissingCount++;
+      else actionableMissingCount++;
+    }
+  }
+
+  return {
+    missingFields,
+    missingCount: actionableMissingCount + optionalMissingCount,
+    actionableMissingCount,
+    optionalMissingCount,
+  };
 }
 
 function tag(label: TimingUseTag): TimingUseTag[] {
@@ -729,7 +770,7 @@ export function buildTimingSourceReport(input: {
               e.memo
             )
           )
-        : [row("등록된 이벤트", null, "KIS 미제공 · 기록 탭에서 직접 입력")],
+        : [row("등록된 이벤트", "없음 — DART 연동 시 「데이터」 새로고침으로 자동 등록", "DART_API_KEY + 종목코드")],
     },
     {
       id: "stock-news",
@@ -1201,6 +1242,7 @@ export function buildTimingSourceReport(input: {
   ];
 
   const allSections = [...summarySections, ...stockSections, ...commonSections];
+  const missing = summarizeMissing(allSections);
 
   return {
     stockId: stock.id,
@@ -1210,6 +1252,8 @@ export function buildTimingSourceReport(input: {
     stockSections,
     commonSections,
     fetchedAt: marketContext?.fetchedAt,
-    missingCount: countMissing(allSections),
+    missingCount: missing.missingCount,
+    actionableMissingCount: missing.actionableMissingCount,
+    missingFields: missing.missingFields,
   };
 }

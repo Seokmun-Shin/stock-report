@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ReportSettings } from "@/lib/reportSettings";
-import { DEFAULT_REPORT_SETTINGS, resolveReportSettings, formatFeePct } from "@/lib/reportSettings";
+import { DEFAULT_REPORT_SETTINGS, resolveReportSettings, formatFeePct, STRATEGY_PRESETS, STRATEGY_PRESET_LABEL, type StrategyPresetId } from "@/lib/reportSettings";
 import { SectionTitle } from "./StatCard";
 
 type FormState = {
@@ -65,6 +65,20 @@ export function StrategySettingsForm({
         아래 %는 <strong className="font-medium text-ink">판단 탭의 매수/매도 시점·목표가</strong>에 직접 쓰입니다. 시세·뉴스·수급은
         별도로 더해지며, 이 규칙은 「최근 매도가·평단」 기준 뼈대입니다.
       </p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(Object.keys(STRATEGY_PRESETS) as StrategyPresetId[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, ...STRATEGY_PRESETS[id] }))}
+            className="rounded-full border border-line bg-surface-dim/40 px-2.5 py-1 text-xs font-semibold text-ink-muted hover:border-gain/30 hover:text-ink"
+          >
+            {STRATEGY_PRESET_LABEL[id]}
+          </button>
+        ))}
+        <span className="self-center text-[10px] text-ink-muted">프리셋 선택 후 「적용」</span>
+      </div>
 
       <label className="mt-4 flex items-start gap-2 text-sm text-ink">
         <input

@@ -35,6 +35,9 @@ export interface DailySnapshot {
   portfolioTotalReturnRate: number;
   stockPrices: Record<string, number>;
   stockUnrealizedPnl: Record<string, number>;
+  /** 스냅샷 시점 KOSPI (벤치마크 차트용) */
+  kospiClose?: number;
+  kospiChangeRate?: number;
 }
 
 export interface StockPeak {
@@ -68,12 +71,21 @@ export interface KospiBenchmark {
   source?: "kis" | "yahoo";
 }
 
+export interface WatchlistItem {
+  id: string;
+  name: string;
+  code: string;
+  addedAt: string;
+}
+
 export interface AppData {
   stocks: Stock[];
   trades: Trade[];
   currentPrices: Record<string, number>;
   /** 매수 내역 중 '초기 투자금'으로 지정한 trade id 목록 */
   initialCapitalTradeIds: string[];
+  /** 관심 종목 (매매 기록 없이 추적) */
+  watchlist?: WatchlistItem[];
   /** 일일 브리핑 시그널 설정 */
   reportSettings?: Partial<ReportSettings>;
   /** 일별 포트폴리오 스냅샷 (최근 90일) */

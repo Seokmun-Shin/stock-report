@@ -8,7 +8,7 @@ export function AppFlowBanner({ tab }: { tab: AppTab }) {
   if (!current) return null;
 
   return (
-    <section className="mb-4 rounded-2xl border border-slate-200/90 bg-white px-3 py-3 shadow-sm sm:px-5">
+    <section className="mt-4 rounded-2xl border border-slate-200/90 bg-white px-3 py-3 shadow-sm sm:px-5">
       <p className="text-[10px] font-bold uppercase tracking-wide text-ink-muted">사용 흐름</p>
       <ol className="mt-2 flex flex-wrap gap-1.5">
         {APP_FLOW_STEPS.map((s) => {
@@ -19,7 +19,7 @@ export function AppFlowBanner({ tab }: { tab: AppTab }) {
               key={s.step}
               className={`rounded-lg px-2 py-1 text-[11px] font-medium leading-snug sm:text-xs ${
                 active
-                  ? "bg-gain-soft text-gain ring-1 ring-gain/25"
+                  ? "border border-gain/35 bg-gain-soft text-gain"
                   : inApp
                     ? "bg-surface-dim/60 text-ink-muted"
                     : "border border-dashed border-line bg-white text-ink-muted"

@@ -100,6 +100,7 @@ export function useKisPrices(
         kospiError?: string;
         kospiWarning?: string;
         indexWarnings?: string[];
+        source?: "yahoo" | "kis";
       };
 
       if (!res.ok) {
@@ -138,6 +139,7 @@ export function useKisPrices(
         if (!w.startsWith("KOSPI") && !msgs.includes(w)) msgs.push(w);
       }
       if (msgs.length > 0) setError(msgs.join(" · "));
+      else if (data.source === "yahoo") setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "시세 조회 실패");
     } finally {
@@ -146,7 +148,7 @@ export function useKisPrices(
   }, [stocks]);
 
   useEffect(() => {
-    if (!autoRefresh || configured !== true) return;
+    if (!autoRefresh || configured === null) return;
     const tick = () => {
       if (isKrxMarketOpen()) void refresh();
     };
@@ -155,10 +157,10 @@ export function useKisPrices(
     return () => window.clearInterval(id);
   }, [autoRefresh, configured, refresh]);
 
-  /** 앱 열 때 1회 시세 조회 (장외에도 저장된 시세·지수 반영) */
+  /** 앱 열 때 1회 시세 조회 (KIS 또는 Yahoo) */
   const initialFetchRef = useRef(false);
   useEffect(() => {
-    if (configured !== true || initialFetchRef.current) return;
+    if (configured === null || initialFetchRef.current) return;
     if (stocks.filter((s) => s.code?.trim()).length === 0) return;
     initialFetchRef.current = true;
     void refresh();

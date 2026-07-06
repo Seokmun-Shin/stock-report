@@ -1,109 +1,18 @@
 "use client";
 
-import { Fragment, useMemo } from "react";
-import type { BuyTimingSignal, SellTimingSignal, StockQuote, StockSummary } from "@/lib/types";
+import { useMemo } from "react";
+import type { BuyTimingSignal, DailySnapshot, SellTimingSignal, StockQuote, StockSummary, Trade } from "@/lib/types";
 import type { StockTradingVerdict } from "@/lib/briefing/tradingVerdict";
 import type { MarketBriefingContext } from "@/lib/briefing/types";
 import type { ReportSettings } from "@/lib/reportSettings";
 import { fmt, fmtPct, fmtSigned } from "@/lib/calc";
-import { VerdictCard } from "./VerdictCard";
+import { VerdictCardPair } from "./VerdictCard";
 import { TimingRadar } from "./TimingRadar";
 import { DataReadinessBanner } from "./DataReadinessPanel";
 import type { ReadinessItem } from "@/lib/dataReadiness";
-
-/** 종목 전환 — 페이지 타이틀 + 탭 (활성: 대형·밑줄 / 비활성: 플랫 텍스트 탭) */
-function StockPageTitleBar({
-  stocks,
-  activeId,
-  verdictById,
-  onSelect,
-  onAddStock,
-}: {
-  stocks: { id: string; name: string }[];
-  activeId: string;
-  verdictById: Map<string, StockTradingVerdict>;
-  onSelect: (id: string) => void;
-  onAddStock: () => void;
-}) {
-  return (
-    <div className="border-b border-line px-3 pb-0 pt-4 sm:px-5 sm:pt-5">
-      <div className="flex min-w-0 items-end justify-between gap-4">
-        <div
-          className="flex min-w-0 flex-wrap items-end gap-x-5 gap-y-3 sm:gap-x-6"
-          role="tablist"
-          aria-label="종목 탭"
-        >
-          {stocks.map((s, i) => {
-            const active = s.id === activeId;
-            const v = verdictById.get(s.id);
-            const action =
-              v?.buy.stance === "yes" ? "buy" : v?.sell.stance === "yes" ? "sell" : null;
-
-            return (
-              <Fragment key={s.id}>
-                {i > 0 && (
-                  <span
-                    className="mb-3 shrink-0 text-[10px] font-extralight leading-none text-ink/25 sm:mb-3.5 sm:text-xs"
-                    aria-hidden
-                  >
-                    |
-                  </span>
-                )}
-
-                {active ? (
-                  <div className="relative shrink-0 pb-3 sm:pb-3.5">
-                    <h2
-                      id="verdict-page-title"
-                      role="tab"
-                      aria-selected
-                      tabIndex={0}
-                      className="max-w-[min(100vw-2rem,20rem)] truncate text-xl font-bold tracking-tight text-ink sm:max-w-none sm:text-2xl"
-                    >
-                      {s.name}
-                    </h2>
-                    <span className="absolute inset-x-0 bottom-0 h-0.5 bg-gain" aria-hidden />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={false}
-                    aria-controls="verdict-panel"
-                    id={`stock-tab-${s.id}`}
-                    onClick={() => onSelect(s.id)}
-                    className="group relative inline-flex max-w-full shrink-0 items-center gap-1.5 pb-3 text-base font-medium text-ink-muted transition hover:text-ink sm:pb-3.5 sm:text-lg"
-                  >
-                    <span className="truncate">{s.name}</span>
-                    {action === "buy" && (
-                      <span className="shrink-0 rounded bg-gain px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                        매수
-                      </span>
-                    )}
-                    {action === "sell" && (
-                      <span className="shrink-0 rounded bg-loss px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                        매도
-                      </span>
-                    )}
-                    <span className="absolute inset-x-0 bottom-0 h-0.5 bg-line opacity-0 transition group-hover:opacity-100" aria-hidden />
-                  </button>
-                )}
-              </Fragment>
-            );
-          })}
-        </div>
-
-        <button
-          type="button"
-          onClick={onAddStock}
-          className="mb-3 shrink-0 text-sm font-semibold text-ink-muted transition hover:text-gain sm:mb-3.5 sm:text-base"
-          title="종목 추가"
-        >
-          +<span className="hidden sm:inline"> 추가</span>
-        </button>
-      </div>
-    </div>
-  );
-}
+import { BtnSecondary, HeaderActionButton, AreaSectionSubtitle, AreaSectionTitle } from "./ui/PanelCard";
+import { StockPanelTitleRow, StockTitleTabs, type StockTabBadge } from "./ui/StockTitleTabBar";
+import { StockTrendSection } from "./StockTrendSection";
 
 export function TradingVerdictView({
   stocks,
@@ -141,6 +50,8 @@ export function TradingVerdictView({
   targetPrice,
   onTargetPriceChange,
   readinessItems = [],
+  dailySnapshots,
+  stockTrades = [],
 }: {
   stocks: { id: string; name: string }[];
   activeId: string;
@@ -178,11 +89,19 @@ export function TradingVerdictView({
   targetPrice?: number;
   onTargetPriceChange?: (price: number) => void;
   readinessItems?: ReadinessItem[];
+  dailySnapshots?: DailySnapshot[];
+  stockTrades?: Trade[];
 }) {
   const pnlTone = portfolioPnl >= 0 ? "text-gain" : "text-loss";
   const displayName =
     summary?.stockName ?? stocks.find((s) => s.id === activeId)?.name ?? "";
-  const verdictById = useMemo(() => new Map(allVerdicts.map((v) => [v.stockId, v])), [allVerdicts]);
+  const badgeById = useMemo(() => {
+    const map = new Map<string, StockTabBadge>();
+    for (const v of allVerdicts) {
+      map.set(v.stockId, v.buy.stance === "yes" ? "buy" : v.sell.stance === "yes" ? "sell" : null);
+    }
+    return map;
+  }, [allVerdicts]);
   const showDetail = summary && buySignal && sellSignal && displayName;
 
   return (
@@ -192,13 +111,26 @@ export function TradingVerdictView({
       aria-labelledby={displayName ? "verdict-page-title" : undefined}
       className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm"
     >
-      <StockPageTitleBar
-        stocks={stocks}
-        activeId={activeId}
-        verdictById={verdictById}
-        onSelect={onSelectStock}
-        onAddStock={onAddStock}
-      />
+      <StockPanelTitleRow
+        trailing={
+          <HeaderActionButton
+            onClick={onAddStock}
+            className="mb-3 sm:mb-3.5"
+            title="종목 추가"
+          >
+            +<span className="hidden sm:inline"> 추가</span>
+          </HeaderActionButton>
+        }
+      >
+        <StockTitleTabs
+          stocks={stocks}
+          activeId={activeId}
+          badgeById={badgeById}
+          onSelect={onSelectStock}
+          titleId="verdict-page-title"
+          panelId="verdict-panel"
+        />
+      </StockPanelTitleRow>
 
       <div className="space-y-4 p-3 sm:p-5">
         <DataReadinessBanner items={readinessItems} />
@@ -257,22 +189,39 @@ export function TradingVerdictView({
           에 입력하면 다음 ① 판단·④ 성과에 반영됩니다
         </p>
 
+        {displayName && (
+          <StockTrendSection
+            stockId={activeId}
+            stockName={displayName}
+            code={activeStockCode}
+            currentPrice={summary?.currentPrice ?? quote?.price ?? 0}
+            dailySnapshots={dailySnapshots}
+            avgCost={summary?.holdingAvgPriceWithCost}
+            holdingQty={summary?.holdingQty}
+            trades={stockTrades}
+          />
+        )}
+
         {verdict && displayName ? (
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
-                <h2 className="text-sm font-bold text-ink">매매 판단</h2>
+                <AreaSectionTitle as="h2">매매 판단</AreaSectionTitle>
                 {verdictLastUpdated && (
-                  <p className="text-[10px] tabular-nums text-ink-muted">
-                    갱신 {verdictLastUpdated.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                  </p>
+                  <AreaSectionSubtitle>
+                    갱신{" "}
+                    {verdictLastUpdated.toLocaleTimeString("ko-KR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
+                  </AreaSectionSubtitle>
                 )}
               </div>
-              <button
-                type="button"
+              <BtnSecondary
                 onClick={onVerdictRefresh}
                 disabled={verdictRefreshing}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink shadow-sm hover:bg-surface-dim disabled:opacity-50"
+                className="inline-flex items-center gap-1.5"
                 title="KIS 시세 + 시장·뉴스·공시 데이터를 한 번에 갱신"
               >
                 <svg
@@ -292,25 +241,17 @@ export function TradingVerdictView({
                   />
                 </svg>
                 {verdictRefreshing ? "갱신 중…" : "전체 새로고침"}
-              </button>
+              </BtnSecondary>
             </div>
             <p className="text-[10px] text-ink-muted">
               전체 = KIS 시세 + 데이터(뉴스·글로벌·거시) · 상단 버튼으로 각각만 갱신 가능
             </p>
-            <div className="grid items-stretch gap-3 sm:grid-cols-2">
-              <VerdictCard
-                kind="buy"
-                verdict={verdict.buy}
-                stockName={displayName}
-                feeSettings={reportSettings}
-              />
-              <VerdictCard
-                kind="sell"
-                verdict={verdict.sell}
-                stockName={displayName}
-                feeSettings={reportSettings}
-              />
-            </div>
+            <VerdictCardPair
+              buy={verdict.buy}
+              sell={verdict.sell}
+              stockName={displayName}
+              feeSettings={reportSettings}
+            />
           </div>
         ) : (
           <p className="py-6 text-center text-sm text-ink-muted">시세·뉴스를 새로고침하세요</p>

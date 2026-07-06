@@ -43,7 +43,7 @@ export function StockSummaryCards({
             key={s.id}
             type="button"
             onClick={() => onOpen(s.id)}
-            className="rounded-xl border border-line bg-white p-3 text-left shadow-sm transition hover:border-blue-300 hover:bg-surface-dim/30"
+            className="rounded-xl border border-line bg-white p-3 text-left shadow-sm transition hover:border-gain/40 hover:bg-surface-dim/30"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

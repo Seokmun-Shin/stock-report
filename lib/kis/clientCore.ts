@@ -11,6 +11,8 @@ interface TokenCache {
 declare global {
   // eslint-disable-next-line no-var
   var __kisTokenCache: TokenCache | undefined;
+  // eslint-disable-next-line no-var
+  var __kisTokenInflight: Promise<string> | undefined;
 }
 
 export function isKisConfigured(): boolean {
@@ -41,6 +43,44 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+async function requestAccessToken(): Promise<string> {
+  const appkey = process.env.KIS_APP_KEY!.trim();
+  const appsecret = process.env.KIS_APP_SECRET!.trim();
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(`${getBaseUrl()}/oauth2/tokenP`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "client_credentials",
+        appkey,
+        appsecret,
+      }),
+    });
+
+    const text = await res.text().catch(() => "");
+
+    if (res.ok) {
+      const data = JSON.parse(text) as { access_token?: string; expires_in?: number; error_description?: string };
+      if (!data.access_token) {
+        throw new Error(data.error_description ?? "KIS access_token 없음");
+      }
+      return data.access_token;
+    }
+
+    const rateLimited = res.status === 403 && text.includes("EGW00133");
+    if (rateLimited && attempt < 2) {
+      await sleep(2_500 * (attempt + 1));
+      continue;
+    }
+
+    throw new Error(`KIS 토큰 발급 실패 (${res.status})${text ? `: ${text.slice(0, 120)}` : ""}`);
+  }
+
+  throw new Error("KIS 토큰 발급 실패 — 잠시 후 다시 시도하세요");
+}
+
+/** 동시 요청 시 토큰 1회만 발급 (KIS: 1분당 1회 제한) */
 export async function getAccessToken(): Promise<string> {
   const now = Date.now();
   const cached = global.__kisTokenCache;
@@ -48,35 +88,22 @@ export async function getAccessToken(): Promise<string> {
     return cached.token;
   }
 
-  const appkey = process.env.KIS_APP_KEY!.trim();
-  const appsecret = process.env.KIS_APP_SECRET!.trim();
-
-  const res = await fetch(`${getBaseUrl()}/oauth2/tokenP`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "client_credentials",
-      appkey,
-      appsecret,
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`KIS 토큰 발급 실패 (${res.status})${text ? `: ${text.slice(0, 120)}` : ""}`);
+  if (!global.__kisTokenInflight) {
+    global.__kisTokenInflight = (async () => {
+      try {
+        const token = await requestAccessToken();
+        global.__kisTokenCache = {
+          token,
+          expiresAt: Date.now() + 86_400 * 1000,
+        };
+        return token;
+      } finally {
+        global.__kisTokenInflight = undefined;
+      }
+    })();
   }
 
-  const data = (await res.json()) as { access_token?: string; expires_in?: number; error_description?: string };
-  if (!data.access_token) {
-    throw new Error(data.error_description ?? "KIS access_token 없음");
-  }
-
-  global.__kisTokenCache = {
-    token: data.access_token,
-    expiresAt: now + (data.expires_in ?? 86_400) * 1000,
-  };
-
-  return data.access_token;
+  return global.__kisTokenInflight;
 }
 
 export function kisHeaders(token: string, trId: string): Record<string, string> {

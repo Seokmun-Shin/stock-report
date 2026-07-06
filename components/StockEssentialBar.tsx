@@ -64,7 +64,7 @@ export function StockEssentialBar({
         <button
           type="button"
           onClick={onAddTrade}
-          className="rounded-lg bg-gain px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-lg bg-gain px-4 py-2 text-sm font-semibold text-white hover:bg-gain/90"
         >
           + 매매 입력
         </button>

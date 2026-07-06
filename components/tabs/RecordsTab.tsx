@@ -1,13 +1,18 @@
 "use client";
 
-import type { BuyTimingSignal, SellTimingSignal, Stock, StockSummary, Trade } from "@/lib/types";
+import type { AppData, BuyTimingSignal, SellTimingSignal, Stock, StockSummary, Trade } from "@/lib/types";
 import type { TradeSuggestion } from "@/lib/briefing/tradeSuggestions";
 import type { ReportSettings } from "@/lib/reportSettings";
-import { TabIntroBanner, PanelCard, PageSectionTitle } from "@/components/ui/PanelCard";
+import { TabIntroBanner, PanelCard, PageSectionTitle, AreaSectionTitle } from "@/components/ui/PanelCard";
+import { CsvImportPanel } from "@/components/CsvImportPanel";
+import type { ParsedTradeRow } from "@/lib/import/tradeCsv";
 import { StockDetailPanel } from "@/components/StockDetailPanel";
 import { TradeHistorySection } from "@/components/TradeSection";
+import { StockEventsPanel } from "@/components/StockEventsPanel";
 
 export function RecordsTab({
+  data,
+  onPersist,
   stocks,
   activeId,
   onSelectStock,
@@ -36,7 +41,10 @@ export function RecordsTab({
   buySignal,
   sellSignal,
   reportSettings,
+  onImportCsv,
 }: {
+  data: AppData;
+  onPersist: (next: AppData) => void;
   stocks: Stock[];
   activeId: string;
   onSelectStock: (id: string) => void;
@@ -65,17 +73,26 @@ export function RecordsTab({
   buySignal: BuyTimingSignal | null;
   sellSignal: SellTimingSignal | null;
   reportSettings?: Partial<ReportSettings>;
+  onImportCsv?: (rows: ParsedTradeRow[]) => void;
 }) {
   return (
     <div className="space-y-3">
       <TabIntroBanner
         title="③ 체결 기록"
-        description="증권사에서 주문한 뒤, 확인서 기준으로 입력합니다. 입력 즉시 ① 판단·④ 성과에 반영됩니다."
+        description="증권사 체결 입력 · 분할·배당은 DART 공시에서 자동 등록(데이터 새로고침 후)"
       />
+
+      {onImportCsv && (
+        <PanelCard>
+          <PageSectionTitle>체결 일괄 가져오기</PageSectionTitle>
+          <p className="mt-1 text-xs text-ink-muted">미래에셋 HTS 체결 CSV (한투·키움 선택 가능) · 설정 탭과 동일</p>
+          <CsvImportPanel stocks={stocks} onImport={onImportCsv} />
+        </PanelCard>
+      )}
 
       {addingStock && (
         <PanelCard>
-          <span className="text-sm font-bold text-ink">종목 추가</span>
+          <AreaSectionTitle as="span">종목 추가</AreaSectionTitle>
           <div className="mt-3 flex flex-wrap items-center gap-2">
           <input
             className="min-w-[120px] flex-1 rounded-lg border border-line bg-white px-3 py-2 text-sm"
@@ -125,6 +142,9 @@ export function RecordsTab({
             onFormOpenChange={onTradeFormOpenChange}
             reportSettings={reportSettings}
           />
+        )}
+        {activeStock && (
+          <StockEventsPanel data={data} activeStock={activeStock} onPersist={onPersist} />
         )}
       </StockDetailPanel>
     </div>

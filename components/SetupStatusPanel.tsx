@@ -63,7 +63,8 @@ export function SetupStatusPanel() {
     <PanelCard>
       <PageSectionTitle>API · 연동</PageSectionTitle>
       <p className="mt-1 text-xs text-ink-muted">
-        서버 <code className="rounded bg-surface-dim px-1">.env.local</code> 키 등록 상태입니다. 변경 후 dev 서버를 재시작하세요.
+        서버 환경변수 등록 상태입니다. 로컬은 <code className="rounded bg-surface-dim px-1">.env.local</code>, 웹(Vercel)은
+        Project → Settings → Environment Variables에 동일하게 등록 후 재배포하세요.
       </p>
       {status.error && <p className="mt-2 text-xs text-amber-800">{status.error}</p>}
       <ul className="mt-3 space-y-2">

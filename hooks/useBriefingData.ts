@@ -88,7 +88,9 @@ export function useBriefingData(stocks: Stock[]) {
     if (stocks.length === 0) return;
     autoRef.current = true;
     if (context) return;
-    void refresh();
+    // KIS 시세와 동시 토큰 요청 방지 (Vercel 서버리스 · 1분 1회 제한)
+    const t = window.setTimeout(() => void refresh(), 3_000);
+    return () => window.clearTimeout(t);
   }, [stocksKey, refresh, stocks.length, context]);
 
   useEffect(() => {

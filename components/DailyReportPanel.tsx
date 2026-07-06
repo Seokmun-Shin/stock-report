@@ -125,7 +125,7 @@ export function DailyReportPanel({
         </div>
 
         {report.headlineAlerts.length > 0 ? (
-          <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
+          <div className="rounded-xl border border-gain/20 bg-gain-soft/50 p-3">
             <p className="text-sm font-semibold text-ink">오늘의 시그널</p>
             <ul className="mt-2 space-y-2">
               {report.headlineAlerts.map((a, i) => {

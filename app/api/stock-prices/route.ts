@@ -1,22 +1,51 @@
 import { NextResponse } from "next/server";
 import { fetchKisQuotes, fetchDomesticIndicesWithFallback, isKisConfigured, normalizeStockCode } from "@/lib/kis/client";
+import { cached, withRetry } from "@/lib/server/fetchUtil";
 
 export const dynamic = "force-dynamic";
 
 /** KIS 연동 설정 여부 (키 노출 없음) */
 export async function GET() {
-  return NextResponse.json({ configured: isKisConfigured() });
+  return NextResponse.json({ configured: isKisConfigured(), yahooFallback: true });
 }
 
-/** 종목코드 배열 → 시세 조회 + KOSPI */
-export async function POST(req: Request) {
-  if (!isKisConfigured()) {
-    return NextResponse.json(
-      { error: "KIS API가 설정되지 않았습니다. KIS_APP_KEY, KIS_APP_SECRET을 등록하세요." },
-      { status: 503 }
-    );
-  }
+async function fetchViaYahoo(normalized: string[], includeKospi: boolean) {
+  const { fetchYahooStockQuotes } = await import("@/lib/yahooStockQuote");
+  const { fetchDomesticIndicesYahooOnly } = await import("@/lib/kis/kospiBenchmark");
 
+  const cacheKey = `yahoo-quotes:${normalized.sort().join(",")}:${includeKospi}`;
+  return cached(cacheKey, 30_000, async () => {
+    const { quotes, prices, errors } = await fetchYahooStockQuotes(normalized);
+
+    let kospi = null;
+    let kosdaq = null;
+    const indexWarnings: string[] = ["Yahoo Finance 시세 (KIS 미설정)"];
+    const indexErrors: string[] = [];
+
+    if (includeKospi) {
+      const idx = await fetchDomesticIndicesYahooOnly();
+      kospi = idx.kospi;
+      kosdaq = idx.kosdaq;
+      indexWarnings.push(...idx.warnings);
+      indexErrors.push(...idx.errors);
+    }
+
+    return {
+      quotes,
+      prices,
+      errors,
+      kospi,
+      kosdaq,
+      kospiError: indexErrors.find((e) => e.startsWith("KOSPI")),
+      indexWarnings,
+      source: "yahoo" as const,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+}
+
+/** 종목코드 배열 → 시세 조회 + KOSPI (KIS 우선, 미설정 시 Yahoo) */
+export async function POST(req: Request) {
   let body: unknown;
   try {
     body = await req.json();
@@ -36,35 +65,47 @@ export async function POST(req: Request) {
   }
 
   const normalized = [...new Set(codes.map((c) => normalizeStockCode(String(c))))];
-  const { quotes, prices, errors } = await fetchKisQuotes(normalized);
 
-  let kospi = null;
-  let kosdaq = null;
-  let kospiError: string | undefined;
-  let kospiWarning: string | undefined;
-  const indexWarnings: string[] = [];
-  if (includeKospi) {
-    const result = await fetchDomesticIndicesWithFallback();
-    kospi = result.kospi;
-    kosdaq = result.kosdaq;
-    indexWarnings.push(...result.warnings);
-    const kospiErr = result.errors.find((e) => e.startsWith("KOSPI:"));
-    if (kospiErr) kospiError = kospiErr.replace(/^KOSPI:\s*/, "");
-    if (!kospi && kospiErr) kospiError = kospiErr;
-    if (result.warnings.some((w) => w.startsWith("KOSPI"))) {
-      kospiWarning = result.warnings.find((w) => w.startsWith("KOSPI"));
-    }
+  if (!isKisConfigured()) {
+    const payload = await fetchViaYahoo(normalized, includeKospi);
+    return NextResponse.json(payload);
   }
 
-  return NextResponse.json({
-    quotes,
-    prices,
-    errors,
-    kospi,
-    kosdaq,
-    kospiError,
-    kospiWarning,
-    indexWarnings,
-    updatedAt: new Date().toISOString(),
+  const cacheKey = `kis-quotes:${normalized.sort().join(",")}:${includeKospi}`;
+
+  const payload = await cached(cacheKey, 15_000, async () => {
+    const { quotes, prices, errors } = await withRetry(() => fetchKisQuotes(normalized));
+
+    let kospi = null;
+    let kosdaq = null;
+    let kospiError: string | undefined;
+    let kospiWarning: string | undefined;
+    const indexWarnings: string[] = [];
+    if (includeKospi) {
+      const result = await withRetry(() => fetchDomesticIndicesWithFallback());
+      kospi = result.kospi;
+      kosdaq = result.kosdaq;
+      indexWarnings.push(...result.warnings);
+      const kospiErr = result.errors.find((e) => e.startsWith("KOSPI:"));
+      if (kospiErr) kospiError = kospiErr.replace(/^KOSPI:\s*/, "");
+      if (!kospi && kospiErr) kospiError = kospiErr;
+      if (result.warnings.some((w) => w.startsWith("KOSPI"))) {
+        kospiWarning = result.warnings.find((w) => w.startsWith("KOSPI"));
+      }
+    }
+
+    return {
+      quotes,
+      prices,
+      errors,
+      kospi,
+      kosdaq,
+      kospiError,
+      kospiWarning,
+      indexWarnings,
+      updatedAt: new Date().toISOString(),
+    };
   });
+
+  return NextResponse.json(payload);
 }

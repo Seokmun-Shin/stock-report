@@ -32,9 +32,9 @@ export function assessDataReadiness(input: {
   if (kisConfigured === false) {
     items.push({
       id: "kis-env",
-      severity: "warn",
-      message: "KIS API 미설정 — 시세·수급·호가 데이터 없음",
-      action: "서버 .env.local에 KIS_APP_KEY + KIS_APP_SECRET 등록 후 dev 재시작",
+      severity: "info",
+      message: "KIS 미설정 — Yahoo 시세 폴백 (현재가·지수만, 수급·호가 없음)",
+      action: "종목코드 등록 후 「KIS 시세」 또는 「전체 새로고침」",
     });
   } else if (kisConfigured === true && kisCodedCount === 0 && data.stocks.length > 0) {
     items.push({
@@ -46,12 +46,14 @@ export function assessDataReadiness(input: {
   }
 
   const zeroPrice = data.stocks.filter((s) => !(data.currentPrices[s.id] > 0));
-  if (zeroPrice.length > 0 && kisConfigured !== false) {
+  if (zeroPrice.length > 0) {
     items.push({
       id: "current-price",
       severity: "warn",
       message: `현재가 0원 ${zeroPrice.length}종목 — 손익·판단 신뢰도 낮음`,
-      action: "「KIS 시세」 또는 판단 탭에서 현재가 직접 입력",
+      action: kisConfigured === false
+        ? "종목코드 등록 후 시세 새로고침 · 또는 판단 탭에서 직접 입력"
+        : "「KIS 시세」 또는 판단 탭에서 현재가 직접 입력",
     });
   }
 

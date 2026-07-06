@@ -2,8 +2,12 @@
 
 import { type ReactNode } from "react";
 import type { Stock } from "@/lib/types";
-import { panelHeaderBar, panelShell } from "@/components/ui/PanelCard";
-import { StockPills } from "@/components/ui/StockPills";
+import {
+  HeaderActionButton,
+  PanelHeaderActions,
+  panelShell,
+} from "@/components/ui/PanelCard";
+import { StockPanelTitleRow, StockTitleTabs } from "@/components/ui/StockTitleTabBar";
 
 export function StockDetailPanel({
   stocks,
@@ -25,22 +29,24 @@ export function StockDetailPanel({
 
   return (
     <section className={panelShell}>
-      <div className={`flex flex-wrap items-center justify-between gap-2 ${panelHeaderBar}`}>
-        <h2 className="truncate text-sm font-bold text-ink">{active.name}</h2>
-        <div className="flex gap-1 text-xs">
-          <button type="button" onClick={() => onEdit(active)} className="text-ink-muted hover:text-ink">
-            수정
-          </button>
-          <span className="text-line">|</span>
-          <button type="button" onClick={() => onDelete(active.id)} className="text-loss hover:underline">
-            삭제
-          </button>
-        </div>
-      </div>
-      <div className="space-y-3 p-3 sm:p-5">
-        <StockPills stocks={stocks} activeId={activeId} onSelect={onSelect} />
-        {children}
-      </div>
+      <StockPanelTitleRow
+        trailing={
+          <PanelHeaderActions className="mb-3 sm:mb-3.5">
+            <HeaderActionButton onClick={() => onEdit(active)}>수정</HeaderActionButton>
+            <HeaderActionButton variant="danger" onClick={() => onDelete(active.id)}>
+              삭제
+            </HeaderActionButton>
+          </PanelHeaderActions>
+        }
+      >
+        <StockTitleTabs
+          stocks={stocks}
+          activeId={activeId}
+          onSelect={onSelect}
+          titleId={`records-stock-title-${activeId}`}
+        />
+      </StockPanelTitleRow>
+      <div className="space-y-3 p-3 sm:p-5">{children}</div>
     </section>
   );
 }

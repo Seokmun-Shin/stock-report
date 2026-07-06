@@ -1,4 +1,5 @@
 import type { Trade, TradeType } from "@/lib/types";
+import type { BrokerCsvFormat } from "./brokerCsv";
 
 export interface ParsedTradeRow {
   date: string;
@@ -14,7 +15,7 @@ export interface ParsedTradeRow {
 export interface CsvParseResult {
   rows: ParsedTradeRow[];
   errors: string[];
-  format: "kiwoom" | "kis" | "generic";
+  format: BrokerCsvFormat | "generic";
 }
 
 function stripBom(text: string): string {
@@ -84,15 +85,172 @@ function findColumn(headers: string[], patterns: RegExp[]): number {
   return headers.findIndex((h) => patterns.some((p) => p.test(h)));
 }
 
-function detectFormat(headers: string[]): CsvParseResult["format"] {
+function detectFormat(headers: string[]): BrokerCsvFormat | "generic" {
   const joined = headers.join("|");
+  if (/미래|mirae|카이로스|kairos/i.test(joined)) return "mirae";
+  if (/매수\s*수량|매수수량/.test(joined) && /매도\s*수량|매도수량/.test(joined)) return "mirae";
   if (/키움|원주문|주문구분/.test(joined)) return "kiwoom";
-  if (/한국투자|HTS|체결일자/.test(joined)) return "kis";
+  if (/한국투자|체결일자/.test(joined) && /HTS/.test(joined)) return "kis";
+  if (/체결일자/.test(joined) && /한국투자/.test(joined)) return "kis";
   return "generic";
 }
 
-/** 한투·키움 체결 CSV (1종 포맷 — 헤더 자동 인식) */
-export function parseTradeCsv(text: string): CsvParseResult {
+function isMiraeJournal(headers: string[]): boolean {
+  const buyQty = findColumn(headers, [/매수\s*수량/, /매수수량/]);
+  const sellQty = findColumn(headers, [/매도\s*수량/, /매도수량/]);
+  const name = findColumn(headers, [/종목명/, /^종목$/]);
+  return buyQty >= 0 && sellQty >= 0 && name >= 0;
+}
+
+function columnMapForFormat(format: BrokerCsvFormat, headers: string[]) {
+  const isMirae = format === "mirae";
+  return {
+    colDate: findColumn(headers, [/체결일/, /주문일/, /^일자$/, /매매일/, /date/i]),
+    colTime: findColumn(headers, [/체결시/, /^시간$/, /time/i]),
+    colName: findColumn(headers, [/종목명/, /^종목$/]),
+    colType: findColumn(headers, [/매매\s*구분/, /매수매도/, /주문구분/, /^구분$/]),
+    colQty: findColumn(
+      headers,
+      isMirae
+        ? [/체결\s*수량/, /체결수량/, /^수량$/, /주문수량/]
+        : [/체결수량/, /^수량$/, /주문수량/]
+    ),
+    colPrice: findColumn(
+      headers,
+      isMirae
+        ? [/체결\s*단가/, /체결단가/, /체결\s*가/, /^단가$/]
+        : [/체결단가/, /체결가/, /^단가$/]
+    ),
+    colFee: findColumn(headers, [/수수료/, /매매\s*비용/, /fee/i]),
+    colTax: findColumn(headers, [/제세금/, /세금/, /tax/i]),
+  };
+}
+
+function parseMiraeJournal(
+  lines: string[],
+  headerIdx: number,
+  headers: string[],
+  errors: string[]
+): ParsedTradeRow[] {
+  const colDate = findColumn(headers, [/^일자$/, /체결일/, /매매일/]);
+  const colName = findColumn(headers, [/종목명/, /^종목$/]);
+  const colBuyQty = findColumn(headers, [/매수\s*수량/, /매수수량/]);
+  const colBuyPrice = findColumn(headers, [/매수\s*평균/, /매수평균/, /매수\s*단가/]);
+  const colSellQty = findColumn(headers, [/매도\s*수량/, /매도수량/]);
+  const colSellPrice = findColumn(headers, [/매도\s*평균/, /매도평균/, /매도\s*단가/]);
+  const colCost = findColumn(headers, [/매매\s*비용/, /수수료/]);
+
+  const rows: ParsedTradeRow[] = [];
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const cells = parseCsvLine(lines[i]).map((c) => c.replace(/"/g, "").trim());
+    if (cells.length < headers.length / 2) continue;
+
+    const stockName = cells[colName]?.trim();
+    if (!stockName || /합계|총계|소계/.test(stockName)) continue;
+
+    const dateRaw = colDate >= 0 ? cells[colDate] : "";
+    const date = normalizeDate(dateRaw);
+    if (!date) {
+      errors.push(`${i + 1}행: 날짜 형식 오류 (${dateRaw || "없음"})`);
+      continue;
+    }
+
+    const totalCost = colCost >= 0 ? Math.round(parseNumber(cells[colCost] ?? "")) : 0;
+    const buyQty = colBuyQty >= 0 ? Math.round(parseNumber(cells[colBuyQty] ?? "")) : 0;
+    const sellQty = colSellQty >= 0 ? Math.round(parseNumber(cells[colSellQty] ?? "")) : 0;
+    const buyPrice = colBuyPrice >= 0 ? Math.round(parseNumber(cells[colBuyPrice] ?? "")) : 0;
+    const sellPrice = colSellPrice >= 0 ? Math.round(parseNumber(cells[colSellPrice] ?? "")) : 0;
+
+    const amountSum = buyQty * buyPrice + sellQty * sellPrice;
+    const buyFee =
+      buyQty > 0 && buyPrice > 0
+        ? Math.round(totalCost * ((buyQty * buyPrice) / Math.max(amountSum, 1)))
+        : 0;
+    const sellFeeRest = Math.max(totalCost - buyFee, 0);
+
+    if (buyQty > 0 && buyPrice > 0) {
+      rows.push({
+        date,
+        stockName,
+        type: "buy",
+        quantity: buyQty,
+        price: buyPrice,
+        fee: buyFee,
+        tax: 0,
+      });
+    }
+    if (sellQty > 0 && sellPrice > 0) {
+      rows.push({
+        date,
+        stockName,
+        type: "sell",
+        quantity: sellQty,
+        price: sellPrice,
+        fee: sellFeeRest,
+        tax: 0,
+      });
+    }
+  }
+
+  return rows;
+}
+
+function parseExecutionRows(
+  lines: string[],
+  headerIdx: number,
+  headers: string[],
+  format: BrokerCsvFormat,
+  errors: string[]
+): ParsedTradeRow[] {
+  const cols = columnMapForFormat(format, headers);
+
+  if (cols.colName < 0 || cols.colType < 0 || cols.colQty < 0 || cols.colPrice < 0) {
+    errors.push(
+      "필수 열을 찾지 못했습니다. (종목명·매매구분·수량·단가)",
+      `인식된 헤더: ${headers.join(", ")}`
+    );
+    return [];
+  }
+
+  const rows: ParsedTradeRow[] = [];
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const cells = parseCsvLine(lines[i]).map((c) => c.replace(/"/g, "").trim());
+    if (cells.length < headers.length / 2) continue;
+
+    const stockName = cells[cols.colName]?.trim();
+    const type = parseTradeType(cells[cols.colType] ?? "");
+    const quantity = Math.round(parseNumber(cells[cols.colQty] ?? ""));
+    const price = Math.round(parseNumber(cells[cols.colPrice] ?? ""));
+
+    if (!stockName || /합계|총계|소계/.test(stockName)) continue;
+    if (!type) continue;
+    if (quantity <= 0 || price <= 0) {
+      errors.push(`${i + 1}행: 수량·단가 확인 (${stockName})`);
+      continue;
+    }
+
+    const dateRaw = cols.colDate >= 0 ? cells[cols.colDate] : "";
+    const date = normalizeDate(dateRaw);
+    if (!date) {
+      errors.push(`${i + 1}행: 날짜 형식 오류 (${dateRaw || "없음"})`);
+      continue;
+    }
+
+    const fee = cols.colFee >= 0 ? Math.round(parseNumber(cells[cols.colFee] ?? "")) : 0;
+    const taxRaw = cols.colTax >= 0 ? Math.round(parseNumber(cells[cols.colTax] ?? "")) : 0;
+    const tax = type === "sell" ? taxRaw : 0;
+    const executedTime = cols.colTime >= 0 ? normalizeTime(cells[cols.colTime] ?? "") : undefined;
+
+    rows.push({ date, stockName, type, quantity, price, fee, tax, executedTime });
+  }
+
+  return rows;
+}
+
+/** 증권사 체결 CSV 파싱 — preferred: 사용자 선택 (기본 미래에셋) */
+export function parseTradeCsv(text: string, preferred: BrokerCsvFormat = "mirae"): CsvParseResult {
   const errors: string[] = [];
   const lines = stripBom(text)
     .split(/\r?\n/)
@@ -103,62 +261,22 @@ export function parseTradeCsv(text: string): CsvParseResult {
     return { rows: [], errors: ["데이터 행이 없습니다."], format: "generic" };
   }
 
-  let headerIdx = lines.findIndex((l) => /종목/.test(l) && /(체결|매매|주문|구분)/.test(l));
+  let headerIdx = lines.findIndex((l) => /종목/.test(l) && /(체결|매매|주문|구분|매수|매도|일자)/.test(l));
   if (headerIdx < 0) headerIdx = 0;
 
   const headers = parseCsvLine(lines[headerIdx]).map((h) => h.replace(/"/g, "").trim());
-  const format = detectFormat(headers);
+  const detected = detectFormat(headers);
+  const format: BrokerCsvFormat | "generic" =
+    detected !== "generic" ? detected : preferred;
 
-  const colDate = findColumn(headers, [/체결일/, /주문일/, /일자/, /date/i]);
-  const colTime = findColumn(headers, [/체결시/, /시간/, /time/i]);
-  const colName = findColumn(headers, [/종목명/, /^종목$/]);
-  const colType = findColumn(headers, [/매매/, /매수매도/, /주문구분/, /구분/]);
-  const colQty = findColumn(headers, [/체결수량/, /^수량$/, /주문수량/]);
-  const colPrice = findColumn(headers, [/체결단가/, /체결가/, /^단가$/]);
-  const colFee = findColumn(headers, [/수수료/, /fee/i]);
-  const colTax = findColumn(headers, [/제세금/, /세금/, /tax/i]);
+  let rows: ParsedTradeRow[] = [];
 
-  if (colName < 0 || colType < 0 || colQty < 0 || colPrice < 0) {
-    return {
-      rows: [],
-      errors: [
-        "필수 열을 찾지 못했습니다. (종목명·매매구분·수량·단가)",
-        `인식된 헤더: ${headers.join(", ")}`,
-      ],
-      format,
-    };
-  }
-
-  const rows: ParsedTradeRow[] = [];
-
-  for (let i = headerIdx + 1; i < lines.length; i++) {
-    const cells = parseCsvLine(lines[i]).map((c) => c.replace(/"/g, "").trim());
-    if (cells.length < headers.length / 2) continue;
-
-    const stockName = cells[colName]?.trim();
-    const type = parseTradeType(cells[colType] ?? "");
-    const quantity = Math.round(parseNumber(cells[colQty] ?? ""));
-    const price = Math.round(parseNumber(cells[colPrice] ?? ""));
-
-    if (!stockName || !type) continue;
-    if (quantity <= 0 || price <= 0) {
-      errors.push(`${i + 1}행: 수량·단가 확인 (${stockName})`);
-      continue;
-    }
-
-    const dateRaw = colDate >= 0 ? cells[colDate] : "";
-    const date = normalizeDate(dateRaw);
-    if (!date) {
-      errors.push(`${i + 1}행: 날짜 형식 오류 (${dateRaw || "없음"})`);
-      continue;
-    }
-
-    const fee = colFee >= 0 ? Math.round(parseNumber(cells[colFee] ?? "")) : 0;
-    const taxRaw = colTax >= 0 ? Math.round(parseNumber(cells[colTax] ?? "")) : 0;
-    const tax = type === "sell" ? taxRaw : 0;
-    const executedTime = colTime >= 0 ? normalizeTime(cells[colTime] ?? "") : undefined;
-
-    rows.push({ date, stockName, type, quantity, price, fee, tax, executedTime });
+  if (format === "mirae" && isMiraeJournal(headers)) {
+    rows = parseMiraeJournal(lines, headerIdx, headers, errors);
+  } else if (format !== "generic") {
+    rows = parseExecutionRows(lines, headerIdx, headers, format, errors);
+  } else {
+    errors.push("증권사 형식을 확인할 수 없습니다. 상단에서 증권사를 선택해 주세요.");
   }
 
   if (rows.length === 0 && errors.length === 0) {

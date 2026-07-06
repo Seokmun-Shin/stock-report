@@ -20,7 +20,7 @@ export const APP_FLOW_STEPS: AppFlowStep[] = [
     title: "판단",
     short: "원천 수집 → 시점·금액",
     detail:
-      "KIS 시세·시장·뉴스·공시와 내 매매기록을 모아 「지금 살까/팔까」와 목표가·허용 구간을 계산합니다. 「원천」은 같은 판단의 입력값을 검증하는 탭입니다.",
+      "KIS 시세·시장·뉴스·공시와 내 매매기록을 모아 「지금 살까/팔까」와 목표가·허용 구간을 계산합니다. 「원천」은 입력값 검증, 「추천」은 코스피·코스닥 관심 종목 발굴입니다.",
     external: false,
   },
   {
@@ -61,6 +61,7 @@ export const APP_FLOW_STEPS: AppFlowStep[] = [
 ];
 
 export function stepForTab(tab: AppTab): AppFlowStep | undefined {
+  if (tab === "discover") return APP_FLOW_STEPS.find((s) => s.step === 1);
   return APP_FLOW_STEPS.find((s) => s.tab === tab || s.alsoTab === tab);
 }
 

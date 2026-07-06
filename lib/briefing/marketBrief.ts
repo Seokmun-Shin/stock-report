@@ -6,6 +6,7 @@ import { buildStockTradingPlan, type StockTradingPlan } from "./tradingZones";
 
 /** 브리핑 데이터 원천 (확장 가능) */
 export const BRIEFING_SOURCES = [
+  { id: "kis-rank", label: "KIS 순위 API", desc: "거래대금·등락률·외국인 순매수 (코스피·코스닥)" },
   { id: "kis", label: "KIS Open API", desc: "시세·투자자·호가·프로그램·KOSPI" },
   { id: "dart", label: "DART Open API", desc: "공시·실적 (DART_API_KEY)" },
   { id: "fred", label: "FRED", desc: "미국 CPI·실업·Fed·GDP (FRED_API_KEY)" },

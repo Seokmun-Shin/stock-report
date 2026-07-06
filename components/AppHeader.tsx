@@ -5,6 +5,7 @@ import { BRAND_HEADER } from "@/lib/brandGuide";
 /** 탭별 헤더 타이틀 · BI tock tail 톤 */
 export const HEADER_TITLE: Record<AppTab, string> = {
   verdict: "판단",
+  discover: "추천",
   sources: "원천",
   records: "기록",
   report: "성과",
@@ -13,6 +14,7 @@ export const HEADER_TITLE: Record<AppTab, string> = {
 
 export const HEADER_DESC: Record<AppTab, string> = {
   verdict: "① 원천 수집 → 시점·금액 판단",
+  discover: "② 코스피·코스닥 관심 종목 발굴",
   sources: "① 판단 입력값 검증",
   records: "③ 체결 후 내역 입력",
   report: "④ 손익·수익률 → ① 보조",

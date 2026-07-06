@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import type { TimingSourceReport, TimingSourceSection, TimingUseTag } from "@/lib/briefing/timingSources";
-import { TabIntroBanner, PanelCard, BtnPrimary, panelShell } from "@/components/ui/PanelCard";
-import { StockPills } from "@/components/ui/StockPills";
+import { TabIntroBanner, PanelCard, BtnSecondary, panelShell, AreaSectionSubtitle, AreaSectionTitle } from "@/components/ui/PanelCard";
+import { SectionCollapseToggle } from "@/components/CollapsibleSection";
+import { StockPanelTitleRow, StockTitleTabs, UnderlineTabBar } from "@/components/ui/StockTitleTabBar";
 
 const STOCK_GROUP_LABEL: Record<string, string> = {
   kis: "KIS Open API",
@@ -61,15 +62,13 @@ function SourceSectionCard({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex w-full flex-wrap items-start justify-between gap-2 border-b px-3 py-3 text-left sm:px-4 ${headerClass}`}
+        className={`flex w-full items-start gap-3 border-b px-3 py-3 text-left sm:items-center sm:px-4 ${headerClass}`}
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3
-              className={`font-bold text-ink ${variant === "summary" ? "text-sm sm:text-base" : "text-sm"}`}
-            >
+            <AreaSectionTitle as="h3" size="area">
               {section.title}
-            </h3>
+            </AreaSectionTitle>
             <UseTags tags={section.usedFor} />
             {missingInSection > 0 && (
               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-800">
@@ -77,29 +76,29 @@ function SourceSectionCard({
               </span>
             )}
           </div>
-          {section.subtitle && <p className="mt-0.5 text-xs text-ink-muted">{section.subtitle}</p>}
+          {section.subtitle && <AreaSectionSubtitle>{section.subtitle}</AreaSectionSubtitle>}
         </div>
-        <span className="shrink-0 text-xs text-ink-muted">{open ? "▲" : "▼"}</span>
+        <SectionCollapseToggle open={open} className="self-start sm:self-center" />
       </button>
 
       {open && (
         <>
-          <div className={`divide-y divide-line/60 ${variant === "compact" ? "text-xs" : ""}`}>
+          <div className="divide-y divide-line/60">
             {section.rows.map((r, i) => (
               <div
                 key={`${r.label}-${i}`}
-                className={`flex flex-col gap-0.5 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-4 ${
+                className={`grid gap-1 px-3 py-2 sm:grid-cols-[minmax(0,11rem)_1fr] sm:items-baseline sm:gap-3 sm:px-4 ${
                   r.missing ? "bg-amber-50/40" : ""
                 }`}
               >
-                <div className="min-w-0 shrink-0 sm:w-[42%]">
+                <div className="min-w-0">
                   <p className="text-xs font-medium text-ink-muted">{r.label}</p>
                   {r.hint && <p className="mt-0.5 text-[10px] leading-snug text-ink-muted/80">{r.hint}</p>}
                 </div>
                 <p
-                  className={`min-w-0 break-all font-semibold tabular-nums sm:text-right ${
-                    variant === "compact" ? "text-xs" : "text-sm"
-                  } ${r.missing ? "text-amber-800" : "text-ink"}`}
+                  className={`min-w-0 text-sm font-semibold tabular-nums sm:text-right ${
+                    r.missing ? "text-amber-800" : "text-ink"
+                  }`}
                 >
                   {r.value}
                 </p>
@@ -107,7 +106,7 @@ function SourceSectionCard({
             ))}
           </div>
           {section.listItems && section.listItems.length > 0 && (
-            <ul className="max-h-64 divide-y divide-line/60 overflow-y-auto border-t border-line bg-surface-dim/20">
+            <ul className="divide-y divide-line/60 border-t border-line bg-surface-dim/20">
               {section.listItems.map((item, i) => (
                 <li key={`${item.title.slice(0, 24)}-${i}`} className="px-3 py-2 sm:px-4">
                   {item.link ? (
@@ -138,28 +137,13 @@ function SourceSectionCard({
   );
 }
 
-function SectionBlock({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="flex items-start gap-3">
-        <div className="mt-1 h-8 w-1 shrink-0 rounded-full bg-gain/40" />
-        <div>
-          <h2 className="text-sm font-bold text-ink">{title}</h2>
-          <p className="mt-0.5 text-xs text-ink-muted">{description}</p>
-        </div>
-      </div>
-      {children}
-    </div>
-  );
-}
+const SOURCE_VIEW_TABS = [
+  { id: "summary" as const, label: "취합 결과", description: "아래 원천 데이터를 종합해 산출한 판단·신호·요약" },
+  { id: "stock" as const, label: "종목 원천", description: "선택 종목에만 해당 — KIS 시세·수급, 내 매매 기록, 종목 뉴스" },
+  { id: "common" as const, label: "공통 원천", description: "모든 종목 판단에 공통 적용 — KOSPI·글로벌·거시·뉴스" },
+];
+
+type SourceViewTab = (typeof SOURCE_VIEW_TABS)[number]["id"];
 
 function GroupedSections({
   sections,
@@ -205,7 +189,9 @@ function GroupedSections({
     <div className="space-y-4">
       {groups.map((g) => (
         <div key={g.id} className="space-y-2">
-          <p className="px-1 text-[11px] font-bold uppercase tracking-wide text-ink-muted">{g.label}</p>
+          <AreaSectionTitle as="p" size="group" className="px-1">
+            {g.label}
+          </AreaSectionTitle>
           <div className="space-y-3">
             {g.items.map((sec) => (
               <SourceSectionCard key={sec.id} section={sec} variant={variant} defaultOpen={defaultOpen} />
@@ -232,6 +218,8 @@ export function TimingSourcesTab({
   activeId: string;
   onSelectStock: (id: string) => void;
 }) {
+  const [viewTab, setViewTab] = useState<SourceViewTab>("summary");
+
   if (!report) {
     return (
       <PanelCard className="text-center text-sm text-ink-muted">
@@ -244,6 +232,8 @@ export function TimingSourcesTab({
     ? new Date(report.fetchedAt).toLocaleString("ko-KR")
     : null;
 
+  const activeView = SOURCE_VIEW_TABS.find((t) => t.id === viewTab)!;
+
   return (
     <div className="space-y-3">
       <TabIntroBanner
@@ -251,59 +241,82 @@ export function TimingSourcesTab({
         description="「판단」과 같은 입력값을 확인합니다. 판단 자체는 「판단」 탭에서 봅니다."
       />
 
-      <StockPills stocks={stocks} activeId={activeId} onSelect={onSelectStock} />
+      <div className={`min-w-0 ${panelShell}`}>
+        <StockPanelTitleRow
+          trailing={
+            <BtnSecondary onClick={onRefresh} disabled={refreshing} className="mb-3 sm:mb-3.5">
+              {refreshing ? "갱신 중…" : "전체 새로고침"}
+            </BtnSecondary>
+          }
+        >
+          <StockTitleTabs stocks={stocks} activeId={activeId} onSelect={onSelectStock} />
+        </StockPanelTitleRow>
 
-      <div className={`flex flex-wrap items-center justify-between gap-3 ${panelShell} p-3 sm:p-5`}>
-        <div>
-          <p className="text-sm font-bold text-ink">{report.stockName}</p>
+        <div className="border-b border-line px-3 py-3 sm:px-5">
           <p className="text-xs text-ink-muted">
             {report.stockCode ? `코드 ${report.stockCode}` : "종목코드 미등록"}
             {fetchedLabel && <> · 브리핑 {fetchedLabel}</>}
           </p>
           {report.missingCount > 0 && (
             <p className="mt-1 text-[11px] text-amber-800">
-              미수집 필드 {report.missingCount}개 — KIS 새로고침 · 데이터 새로고침을 확인하세요
+              {report.actionableMissingCount > 0 ? (
+                <>
+                  미수집 필드 {report.actionableMissingCount}개 (
+                  {report.missingFields
+                    .filter((f) => !f.optional)
+                    .map((f) => f.label)
+                    .join(", ")}
+                  ) — KIS · 데이터 새로고침 확인
+                </>
+              ) : (
+                <>
+                  선택·미입력 {report.missingCount}개 (
+                  {report.missingFields
+                    .map((f) => f.label)
+                    .join(", ")}
+                  ) — <span className="text-ink-muted">판단 탭에는 영향 없음</span>
+                </>
+              )}
             </p>
           )}
         </div>
-        <BtnPrimary onClick={onRefresh} disabled={refreshing}>
-          {refreshing ? "갱신 중…" : "전체 새로고침"}
-        </BtnPrimary>
+
+        <UnderlineTabBar
+          tabs={SOURCE_VIEW_TABS}
+          active={viewTab}
+          onChange={setViewTab}
+          ariaLabel="원천 데이터 구분"
+        />
+
+        <div className="p-3 sm:p-5" role="tabpanel">
+          <p className="mb-4 text-xs leading-relaxed text-ink-muted">{activeView.description}</p>
+
+          {viewTab === "summary" && (
+            <GroupedSections
+              sections={report.summarySections}
+              groupLabels={{ overview: "종합" }}
+              variant="summary"
+              defaultOpen
+            />
+          )}
+
+          {viewTab === "stock" && (
+            <GroupedSections
+              sections={report.stockSections}
+              groupLabels={STOCK_GROUP_LABEL}
+              defaultOpen
+            />
+          )}
+
+          {viewTab === "common" && (
+            <GroupedSections
+              sections={report.commonSections}
+              groupLabels={COMMON_GROUP_LABEL}
+              defaultOpen
+            />
+          )}
+        </div>
       </div>
-
-      <SectionBlock
-        title="1. 종목별 취합 결과"
-        description="아래 원천 데이터를 종합해 산출한 판단·신호·요약"
-      >
-        <GroupedSections
-          sections={report.summarySections}
-          groupLabels={{ overview: "종합" }}
-          variant="summary"
-          defaultOpen
-        />
-      </SectionBlock>
-
-      <SectionBlock
-        title="2. 종목별 원천 데이터"
-        description="선택 종목에만 해당 — KIS 시세·수급, 내 매매 기록, 종목 뉴스"
-      >
-        <GroupedSections
-          sections={report.stockSections}
-          groupLabels={STOCK_GROUP_LABEL}
-          defaultOpen
-        />
-      </SectionBlock>
-
-      <SectionBlock
-        title="3. 공통 원천 데이터"
-        description="모든 종목 판단에 공통 적용 — KOSPI·글로벌·거시·뉴스"
-      >
-        <GroupedSections
-          sections={report.commonSections}
-          groupLabels={COMMON_GROUP_LABEL}
-          defaultOpen={false}
-        />
-      </SectionBlock>
     </div>
   );
 }

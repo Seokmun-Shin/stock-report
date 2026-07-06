@@ -2,6 +2,21 @@
 
 import { useState, type ReactNode } from "react";
 import { SectionTitle } from "./StatCard";
+import { AreaSectionSubtitle } from "./ui/PanelCard";
+
+/** 영역 접기/펼치기 — 헤더 맨 우측 고정 */
+export function SectionCollapseToggle({ open, className = "" }: { open: boolean; className?: string }) {
+  return (
+    <span
+      className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-dim text-ink-muted transition ${open ? "rotate-180" : ""} ${className}`.trim()}
+      aria-hidden
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
 
 export function CollapsibleSection({
   title,
@@ -32,26 +47,16 @@ export function CollapsibleSection({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className={`flex w-full min-w-0 flex-col gap-3 px-3 py-3.5 text-left transition sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-3 sm:px-5 sm:py-4 ${headerHover}`}
+        className={`flex w-full min-w-0 items-start gap-3 border-b border-line bg-surface-dim/40 px-3 py-3 text-left transition sm:items-center sm:px-4 ${headerHover}`}
       >
-        <div className="flex min-w-0 items-start gap-2 sm:flex-1 sm:gap-3">
-          <div className="min-w-0 flex-1">
-            {typeof title === "string" ? <SectionTitle unit={unit}>{title}</SectionTitle> : title}
-            {subtitle && <p className="mt-1 text-sm leading-relaxed text-ink-muted">{subtitle}</p>}
-            {!open && <p className="mt-1 text-xs text-ink-muted/80">탭하여 상세 보기</p>}
-          </div>
-          <span
-            className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-dim text-ink-muted transition sm:order-last ${open ? "rotate-180" : ""}`}
-            aria-hidden
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
+        <div className="min-w-0 flex-1">
+          {typeof title === "string" ? <SectionTitle unit={unit}>{title}</SectionTitle> : title}
+          {subtitle && <AreaSectionSubtitle>{subtitle}</AreaSectionSubtitle>}
+          {!open && <p className="mt-1 text-xs text-ink-muted/80">탭하여 상세 보기</p>}
+          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 sm:hidden">{summary}</div>
         </div>
-        <div className="grid w-full min-w-0 grid-cols-2 gap-x-3 gap-y-2 sm:flex sm:w-auto sm:shrink-0 sm:flex-wrap sm:justify-end sm:gap-4">
-          {summary}
-        </div>
+        <div className="hidden shrink-0 sm:flex sm:items-center sm:gap-4">{summary}</div>
+        <SectionCollapseToggle open={open} className="self-start sm:self-center" />
       </button>
       {open && (
         <div className="border-t border-line bg-surface-dim/30 px-3 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4">{children}</div>
@@ -73,7 +78,7 @@ export function SummaryChip({
   return (
     <div className="min-w-0 text-left sm:text-right">
       <p className="truncate text-xs font-medium text-ink-muted">{label}</p>
-      <p className={`mt-0.5 truncate text-sm font-bold tabular-nums sm:text-lg ${valColor}`} title={value}>
+      <p className={`mt-0.5 truncate text-sm font-bold tabular-nums sm:text-base ${valColor}`} title={value}>
         {value}
       </p>
     </div>

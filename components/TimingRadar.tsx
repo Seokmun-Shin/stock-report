@@ -6,7 +6,7 @@ import { STOCK_SETTLEMENT_HINTS, TIMING_HINTS } from "@/lib/metricHints";
 import { resolveReportSettings, type ReportSettings } from "@/lib/reportSettings";
 import { FormattedNumberInput } from "./FormattedNumberInput";
 import { HintTooltip, SectionTitle, StatCard } from "./StatCard";
-import { UI } from "./ui/PanelCard";
+import { AreaSectionSubtitle, AreaSectionTitle, UI } from "./ui/PanelCard";
 import { formatKisUpdatedTime, isKrxMarketOpen } from "@/hooks/useKisPrices";
 
 function buildKisStatusText(
@@ -87,7 +87,7 @@ function BuyTimingHeader({ summary, signal }: { summary: StockSummary; signal: B
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className={UI.sectionTitle}>매수 타이밍</h3>
+          <AreaSectionTitle as="h3">매수 타이밍</AreaSectionTitle>
           <p className="text-xs text-ink-muted">기준 · 최근 매도가</p>
         </div>
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${timingBadge(signal.status, "buy")}`}>
@@ -147,7 +147,7 @@ function SellTimingHeader({ summary, signal }: { summary: StockSummary; signal: 
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className={UI.sectionTitle}>매도 타이밍</h3>
+          <AreaSectionTitle as="h3">매도 타이밍</AreaSectionTitle>
           <p className="text-xs text-ink-muted">기준 · 평단(보유 매수가)</p>
         </div>
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${timingBadge(signal.status, "sell")}`}>
@@ -474,20 +474,23 @@ export function StockSettlement({ stockName, summary }: { stockName: string; sum
   return (
     <section className="min-w-0 space-y-3">
       <div>
-        <p className="text-sm font-bold text-ink">{stockName} 종목 성과</p>
-        <p className="mt-0.5 text-[11px] text-ink-muted">실현(매도 누적) · 평가(현재 보유) 구분</p>
+        <AreaSectionTitle as="p">{stockName} 종목 성과</AreaSectionTitle>
+        <AreaSectionSubtitle>실현(매도 누적) · 평가(현재 보유) 구분</AreaSectionSubtitle>
       </div>
 
       {summary.holdingQty > 0 ? (
         <>
-          <p className="text-xs font-bold text-amber-800">평가 (보유 · 미실현)</p>
+          <AreaSectionTitle as="p" size="sub">
+            평가 (보유 · 미실현)
+          </AreaSectionTitle>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <StatCard label="보유" hint={STOCK_SETTLEMENT_HINTS.holdingQty} value={`${fmtQty(summary.holdingQty)}주`} />
             <StatCard label="평단" hint={TIMING_HINTS.holdingAvgPrice} value={fmt(summary.holdingAvgPrice)} />
             <StatCard
               label="평가 손익"
               hint={TIMING_HINTS.unrealizedPnlWithCost}
-              value={`${fmtSigned(summary.unrealizedPnlWithCost)} (${fmtPct(summary.unrealizedPnlPct)})`}
+              value={fmtSigned(summary.unrealizedPnlWithCost)}
+              sub={fmtPct(summary.unrealizedPnlPct)}
               tone={unrealizedTone}
             />
           </div>
@@ -498,7 +501,9 @@ export function StockSettlement({ stockName, summary }: { stockName: string; sum
         </p>
       )}
 
-      <p className="text-xs font-bold text-gain">실현 (매도 확정)</p>
+      <AreaSectionTitle as="p" size="sub" className="text-gain">
+        실현 (매도 확정)
+      </AreaSectionTitle>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <StatCard label="매수" hint={STOCK_SETTLEMENT_HINTS.buyAmount} value={fmt(summary.buyAmount)} />
         <StatCard label="매도" hint={STOCK_SETTLEMENT_HINTS.sellAmount} value={fmt(summary.sellAmount)} />

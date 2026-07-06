@@ -5,6 +5,7 @@ import { TabIntroBanner } from "@/components/ui/PanelCard";
 import { InitialCapitalPanel } from "@/components/InitialCapitalPanel";
 import { PeriodReportPanel } from "@/components/PeriodReportPanel";
 import { PerformanceOverview } from "@/components/PerformanceOverview";
+import { PortfolioBenchmarkChart } from "@/components/PortfolioBenchmarkChart";
 import { PortfolioSummaryPanel } from "@/components/PortfolioSummaryPanel";
 import { StockDetailPanel } from "@/components/StockDetailPanel";
 import { StockSettlement } from "@/components/TimingRadar";
@@ -41,6 +42,8 @@ export function ReportTab({
       />
 
       <PerformanceOverview portfolio={portfolio} />
+
+      <PortfolioBenchmarkChart dailySnapshots={data.dailySnapshots} />
 
       <PortfolioSummaryPanel portfolio={portfolio} />
 

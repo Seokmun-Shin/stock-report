@@ -49,12 +49,20 @@ git push -u origin main
 1. [https://vercel.com/new](https://vercel.com/new) 접속
 2. **Continue with GitHub** → 권한 허용
 3. **Import** → `stock-report` 선택
-4. **Environment Variables** 펼치기 → `.env.local`과 **동일하게** 2개 추가:
+4. **Environment Variables** 펼치기 → `.env.local`과 **동일하게** 아래 모두 추가 (Production 체크):
 
 | Name | Value |
 |------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://kuuvibchyzlkblzdfcia.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `.env.local`의 anon 키 |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon 키 |
+| `KIS_APP_KEY` | 한국투자 Open API 앱키 |
+| `KIS_APP_SECRET` | 한국투자 Open API 시크릿 (전체 복사) |
+| `KIS_USE_VTS` | `false` (실전) 또는 `true` (모의) |
+| `DART_API_KEY` | (선택) 공시 |
+| `FRED_API_KEY` | (선택) 미국 거시 |
+| `BOK_API_KEY` | (선택) 한국 거시 |
+
+> **중요:** `.env.local`은 GitHub/Vercel에 올라가지 않습니다. Vercel 대시보드에 **직접** 넣어야 웹에서 DART·FRED·BOK가 「연결됨」으로 보입니다.
 
 5. **Deploy** 클릭 (2~3분)
 
@@ -107,7 +115,8 @@ git push
 |------|------|
 | Vercel 빌드 실패 | Vercel 로그에서 에러 확인, 로컬 `npm run build` 테스트 |
 | 배포 URL에서 로그인 실패 | Supabase Redirect URLs · Site URL 재확인 |
-| 데이터 안 맞음 | 같은 계정으로 로그인했는지 확인 |
+| KIS 403 EGW00133 | 토큰 1분 1회 제한 — 「전체 새로고침」 연속 클릭 금지, 1분 후 재시도. 코드 v0.1.16+ 에서 순차 갱신 적용 |
+| DART/FRED/BOK 미설정 (웹만) | Vercel Environment Variables에 키 추가 후 Redeploy |
 
 ---
 

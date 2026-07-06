@@ -21,6 +21,12 @@ const RSS_FEEDS: { url: string; source: string; region?: BriefingNewsItem["regio
     region: "US",
     topic: "market",
   },
+  {
+    url: "https://news.google.com/rss/search?q=%EC%BD%94%EC%8A%A4%ED%94%BC200+%EC%A7%80%EC%88%98&hl=ko&gl=KR&ceid=KR:ko",
+    source: "Google 뉴스·코스피200",
+    region: "KR",
+    topic: "market",
+  },
 ];
 
 const MACRO_RSS_FEEDS: { url: string; source: string; region: BriefingNewsItem["region"]; topic: BriefingNewsItem["topic"] }[] = [
@@ -94,6 +100,42 @@ const MACRO_RSS_FEEDS: { url: string; source: string; region: BriefingNewsItem["
     url: "https://news.google.com/rss/search?q=semiconductor+chip+SOX+TSMC&hl=en-US&gl=US&ceid=US:en",
     source: "반도체·글로벌",
     region: "GLOBAL",
+    topic: "economy",
+  },
+  {
+    url: "https://news.google.com/rss/search?q=KOSDAQ+%EC%A6%9D%EC%8B%9C&hl=ko&gl=KR&ceid=KR:ko",
+    source: "Google 뉴스·코스닥",
+    region: "KR",
+    topic: "market",
+  },
+  {
+    url: "https://news.google.com/rss/search?q=%ED%95%9C%EA%B5%AD+%EA%B2%BD%EC%A0%9C+%EC%A0%95%EC%B1%85+%EB%B6%80%EB%8F%99%EC%82%B0&hl=ko&gl=KR&ceid=KR:ko",
+    source: "한국·경제정책",
+    region: "KR",
+    topic: "policy",
+  },
+  {
+    url: "https://news.google.com/rss/search?q=%EC%A0%84%EA%B8%B0%EC%B0%A8+%EB%B0%B0%ED%84%B0%EB%A6%AC+%EC%A2%85%EB%AA%A9&hl=ko&gl=KR&ceid=KR:ko",
+    source: "2차전지·EV",
+    region: "KR",
+    topic: "economy",
+  },
+  {
+    url: "https://news.google.com/rss/search?q=ECB+eurozone+economy+inflation&hl=en-US&gl=US&ceid=US:en",
+    source: "EU·ECB·경제",
+    region: "EU",
+    topic: "economy",
+  },
+  {
+    url: "https://news.google.com/rss/search?q=Taiwan+economy+semiconductor+export&hl=en-US&gl=US&ceid=US:en",
+    source: "대만·경제·반도체",
+    region: "TW",
+    topic: "economy",
+  },
+  {
+    url: "https://news.google.com/rss/search?q=Korea+export+trade+current+account&hl=en-US&gl=US&ceid=US:en",
+    source: "한국·수출·무역",
+    region: "KR",
     topic: "economy",
   },
 ];
@@ -184,7 +226,7 @@ export async function fetchMacroNews(): Promise<BriefingNewsItem[]> {
   const feeds = results
     .filter((r): r is PromiseFulfilledResult<BriefingNewsItem[]> => r.status === "fulfilled")
     .map((r) => r.value);
-  return mergeNewsItems(feeds, 24);
+  return mergeNewsItems(feeds, 30);
 }
 
 export async function fetchStockNews(stockName: string): Promise<BriefingNewsItem[]> {
