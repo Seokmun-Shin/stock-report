@@ -20,13 +20,22 @@ import {
 export type StorageMode = "loading" | "local" | "cloud" | "auth-required";
 export type OnboardingChoice = "demo" | "empty";
 
+function stamp(data: AppData): AppData {
+  return { ...data, updatedAt: new Date().toISOString() };
+}
+
+function portfolioTimestamp(data: AppData | null | undefined): number {
+  if (!data?.updatedAt) return 0;
+  const t = Date.parse(data.updatedAt);
+  return Number.isFinite(t) ? t : 0;
+}
+
 function readLocalData(): AppData | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("stock-report-v1");
   if (!raw) return null;
   try {
-    const parsed = migrateAppData(JSON.parse(raw));
-    return parsed.stocks.length > 0 ? parsed : null;
+    return migrateAppData(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -50,34 +59,53 @@ export function usePortfolioStorage() {
   const [syncing, setSyncing] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userIdRef = useRef<string | null>(null);
+  const pendingCloudRef = useRef<AppData | null>(null);
+
+  const flushCloudSave = useCallback(async (uid: string, payload: AppData) => {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      await savePortfolio(uid, payload);
+      pendingCloudRef.current = null;
+    } catch (e) {
+      setSyncError(e instanceof Error ? e.message : "저장 실패");
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
 
   const loadCloudForUser = useCallback(async (userId: string) => {
     setSyncing(true);
     setSyncError(null);
     try {
-      let cloud = await loadPortfolio(userId);
+      const cloud = await loadPortfolio(userId);
       const local = readLocalData();
 
-      if (!cloud || cloud.stocks.length === 0) {
-        cloud = local ?? SEED;
-        await savePortfolio(userId, cloud);
-      } else if (local && local.trades.length > cloud.trades.length) {
-        const merge = confirm(
-          "이 기기에 더 많은 매매 내역이 있습니다.\n클라우드 데이터를 이 기기 데이터로 덮어쓸까요?"
-        );
-        if (merge) {
-          cloud = local;
-          await savePortfolio(userId, local);
+      let next: AppData;
+
+      if (cloud === null) {
+        // 클라우드 행 없음 — 로컬이 있으면 올리고, 없으면 빈 포트폴리오 (SEED로 되살리지 않음)
+        next = stamp(local ?? EMPTY);
+        await savePortfolio(userId, next);
+      } else {
+        const cloudTs = portfolioTimestamp(cloud);
+        const localTs = portfolioTimestamp(local);
+        // 최신 updatedAt 우선. 종목 0개 클라우드도 유효한 상태 (삭제 반영)
+        if (local && localTs > cloudTs) {
+          next = { ...local, updatedAt: local.updatedAt ?? new Date().toISOString() };
+          await savePortfolio(userId, next);
+        } else {
+          next = cloud.updatedAt ? cloud : stamp(cloud);
         }
       }
 
-      writeLocalCache(cloud);
-      setData(cloud);
+      writeLocalCache(next);
+      setData(next);
       setMode("cloud");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "클라우드 불러오기 실패";
       setSyncError(msg);
-      setData(readLocalData() ?? SEED);
+      setData(readLocalData() ?? EMPTY);
       setMode("cloud");
     } finally {
       setSyncing(false);
@@ -120,8 +148,23 @@ export function usePortfolioStorage() {
     };
   }, [loadCloudForUser]);
 
+  useEffect(() => {
+    function flushPending() {
+      const uid = userIdRef.current;
+      const pending = pendingCloudRef.current;
+      if (!uid || !pending || IS_STANDALONE || !isSupabaseConfigured()) return;
+      void savePortfolio(uid, pending);
+    }
+    window.addEventListener("beforeunload", flushPending);
+    window.addEventListener("pagehide", flushPending);
+    return () => {
+      window.removeEventListener("beforeunload", flushPending);
+      window.removeEventListener("pagehide", flushPending);
+    };
+  }, []);
+
   const completeOnboarding = useCallback((choice: OnboardingChoice) => {
-    const next = choice === "demo" ? SEED : EMPTY;
+    const next = stamp(choice === "demo" ? SEED : EMPTY);
     localStorage.setItem(ONBOARDING_KEY, "1");
     writeLocalCache(next);
     setData(next);
@@ -130,28 +173,28 @@ export function usePortfolioStorage() {
   }, []);
 
   const persist = useCallback(
-    (next: AppData) => {
-      setData(next);
-      writeLocalCache(next);
+    (next: AppData, options?: { immediate?: boolean }) => {
+      const stamped = stamp(next);
+      setData(stamped);
+      writeLocalCache(stamped);
       setSyncError(null);
 
       if (IS_STANDALONE || !userIdRef.current || !isSupabaseConfigured()) return;
 
+      pendingCloudRef.current = stamped;
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(async () => {
-        const uid = userIdRef.current;
-        if (!uid) return;
-        setSyncing(true);
-        try {
-          await savePortfolio(uid, next);
-        } catch (e) {
-          setSyncError(e instanceof Error ? e.message : "저장 실패");
-        } finally {
-          setSyncing(false);
-        }
+
+      const uid = userIdRef.current;
+      if (options?.immediate) {
+        void flushCloudSave(uid, stamped);
+        return;
+      }
+
+      saveTimer.current = setTimeout(() => {
+        void flushCloudSave(uid, stamped);
       }, 400);
     },
-    []
+    [flushCloudSave]
   );
 
   return {

@@ -102,6 +102,7 @@ export function StockPanel({
           buySignals={buySignals}
           sellSignals={sellSignals}
           onOpen={openDetail}
+          onDelete={onDelete}
         />
         <button
           type="button"

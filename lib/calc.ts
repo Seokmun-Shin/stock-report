@@ -604,5 +604,6 @@ export function migrateAppData(
     kosdaqBenchmark: raw.kosdaqBenchmark,
     stockEvents: raw.stockEvents ?? [],
     watchlist: raw.watchlist ?? [],
+    updatedAt: raw.updatedAt,
   };
 }

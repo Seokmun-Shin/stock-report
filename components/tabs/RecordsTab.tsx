@@ -47,7 +47,7 @@ export function RecordsTab({
   onBeginAddStock,
 }: {
   data: AppData;
-  onPersist: (next: AppData) => void;
+  onPersist: (next: AppData, options?: { immediate?: boolean }) => void;
   stocks: Stock[];
   activeId: string;
   onSelectStock: (id: string) => void;

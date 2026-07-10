@@ -55,7 +55,7 @@ export function Dashboard({
   standalone = false,
 }: {
   data: AppData;
-  persist: (next: AppData) => void;
+  persist: (next: AppData, options?: { immediate?: boolean }) => void;
   user: User | null;
   signOut: () => void;
   syncing: boolean;
@@ -481,21 +481,27 @@ export function Dashboard({
   function deleteStock(stockId: string) {
     const stock = data.stocks.find((s) => s.id === stockId);
     if (!stock) return;
-    if (!confirm(`「${stock.name}」 종목과 매매 내역을 모두 삭제할까요?`)) return;
+    if (!confirm(`「${stock.name}」 종목과 매매·시세 기록을 모두 삭제할까요?\n(클라우드에도 바로 반영됩니다)`)) return;
     const removedTradeIds = new Set(data.trades.filter((t) => t.stockId === stockId).map((t) => t.id));
     const nextStocks = data.stocks.filter((s) => s.id !== stockId);
     const { [stockId]: _p, ...restPrices } = data.currentPrices;
     const { [stockId]: _q, ...restQuotes } = data.stockQuotes ?? {};
     const { [stockId]: _peak, ...restPeaks } = data.peakPrices ?? {};
-    persist({
-      ...data,
-      stocks: nextStocks,
-      trades: data.trades.filter((t) => t.stockId !== stockId),
-      currentPrices: restPrices,
-      stockQuotes: restQuotes,
-      peakPrices: restPeaks,
-      initialCapitalTradeIds: data.initialCapitalTradeIds.filter((id) => !removedTradeIds.has(id)),
-    });
+    const { [stockId]: _tp, ...restTargets } = reportSettings.targetPrices ?? {};
+    persist(
+      {
+        ...data,
+        stocks: nextStocks,
+        trades: data.trades.filter((t) => t.stockId !== stockId),
+        currentPrices: restPrices,
+        stockQuotes: restQuotes,
+        peakPrices: restPeaks,
+        initialCapitalTradeIds: data.initialCapitalTradeIds.filter((id) => !removedTradeIds.has(id)),
+        stockEvents: (data.stockEvents ?? []).filter((e) => e.stockId !== stockId),
+        reportSettings: { ...reportSettings, targetPrices: restTargets },
+      },
+      { immediate: true }
+    );
     if (activeId === stockId) setActiveId(nextStocks[0]?.id ?? "");
     setEditingTrade(null);
   }

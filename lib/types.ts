@@ -100,6 +100,8 @@ export interface AppData {
   kosdaqBenchmark?: KospiBenchmark;
   /** 분할·배당 이벤트 */
   stockEvents?: StockEvent[];
+  /** 포트폴리오 개정 시각 — 로컬↔클라우드 병합용 (ISO) */
+  updatedAt?: string;
 }
 
 export interface StockSummary {
