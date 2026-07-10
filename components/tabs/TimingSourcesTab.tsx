@@ -1,8 +1,26 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { TimingSourceReport, TimingSourceSection, TimingUseTag } from "@/lib/briefing/timingSources";
-import { TabIntroBanner, PanelCard, BtnSecondary, panelShell, AreaSectionSubtitle, AreaSectionTitle } from "@/components/ui/PanelCard";
+import type {
+  TimingSourceReport,
+  TimingSourceRow,
+  TimingSourceSection,
+  TimingUseTag,
+} from "@/lib/briefing/timingSources";
+import {
+  TabIntroBanner,
+  PanelCard,
+  RefreshButtonGroup,
+  TabSectionHeader,
+  panelShell,
+  pickCard,
+  boxList,
+  AreaCardHeader,
+  AreaSectionTitle,
+  warnChip,
+} from "@/components/ui/PanelCard";
+import { tabLabel } from "@/lib/appTabs";
+import { sanitizeExternalUrl } from "@/lib/safeUrl";
 import { SectionCollapseToggle } from "@/components/CollapsibleSection";
 import { StockPanelTitleRow, StockTitleTabs, UnderlineTabBar } from "@/components/ui/StockTitleTabBar";
 
@@ -26,114 +44,126 @@ function UseTags({ tags }: { tags: TimingUseTag[] }) {
   return (
     <span className="flex shrink-0 gap-1">
       {showBuy && (
-        <span className="rounded bg-gain-soft px-1.5 py-0.5 text-[9px] font-bold text-gain">매수</span>
+        <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold text-gain">매수</span>
       )}
       {showSell && (
-        <span className="rounded bg-loss-soft px-1.5 py-0.5 text-[9px] font-bold text-loss">매도</span>
+        <span className="rounded bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold text-loss">매도</span>
       )}
     </span>
   );
 }
 
+/** 지표 타일 — 순차 2열 그리드, 라벨·값은 한 줄 */
+function SourceRow({ row }: { row: TimingSourceRow }) {
+  return (
+    <div
+      className={`min-w-0 py-2 ${row.missing ? "rounded-lg bg-amber-500/10 px-2 -mx-0.5" : ""}`}
+    >
+      <div className="flex min-w-0 items-baseline justify-between gap-3">
+        <p className="shrink-0 text-xs font-medium text-zinc-400">{row.label}</p>
+        <p
+          className={`min-w-0 text-right text-sm font-semibold leading-snug tabular-nums ${
+            row.missing ? "ui-warn-inline" : "text-white"
+          }`}
+        >
+          {row.value}
+        </p>
+      </div>
+      {row.hint && <p className="mt-0.5 text-[10px] leading-snug text-zinc-500">{row.hint}</p>}
+    </div>
+  );
+}
+
+function SourceRowList({ rows }: { rows: TimingSourceRow[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-x-8 gap-y-0 sm:gap-x-10 md:gap-x-12">
+      {rows.map((r, i) => (
+        <SourceRow key={`${r.label}-${i}`} row={r} />
+      ))}
+    </div>
+  );
+}
+
+function SourceListItems({ section }: { section: TimingSourceSection }) {
+  if (!section.listItems) return null;
+
+  if (section.listItems.length === 0 && section.id.includes("news")) {
+    return <p className="mt-3 text-xs text-zinc-400">항목 없음 — 「뉴스·거시」 갱신하세요</p>;
+  }
+
+  if (section.listItems.length === 0) return null;
+
+  return (
+    <ul className="mt-3 grid grid-cols-2 gap-x-8 gap-y-2 sm:gap-x-10 md:gap-x-12">
+      {section.listItems.map((item, i) => {
+        const safeHref = sanitizeExternalUrl(item.link);
+        return (
+          <li key={`${item.title.slice(0, 24)}-${i}`} className="min-w-0">
+            {safeHref ? (
+              <a
+                href={safeHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs leading-snug text-zinc-100 hover:text-gain hover:underline"
+              >
+                {item.title}
+              </a>
+            ) : (
+              <p className="text-xs leading-snug text-zinc-100">{item.title}</p>
+            )}
+            {item.meta && <p className="mt-0.5 text-[10px] text-zinc-400">{item.meta}</p>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function SourceSectionCard({
   section,
-  variant = "default",
   defaultOpen = true,
 }: {
   section: TimingSourceSection;
-  variant?: "default" | "summary" | "compact";
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const missingInSection = section.rows.filter((r) => r.missing).length;
 
-  const borderClass =
-    variant === "summary"
-      ? "border-gain/25 ring-1 ring-gain/15"
-      : "border-slate-200/90";
-
-  const headerClass =
-    variant === "summary"
-      ? "border-line bg-gain-soft/40"
-      : "border-line bg-surface-dim/40";
-
   return (
-    <section className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${borderClass}`}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`flex w-full items-start gap-3 border-b px-3 py-3 text-left sm:items-center sm:px-4 ${headerClass}`}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <AreaSectionTitle as="h3" size="area">
-              {section.title}
-            </AreaSectionTitle>
-            <UseTags tags={section.usedFor} />
-            {missingInSection > 0 && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-800">
-                미수집 {missingInSection}
-              </span>
-            )}
-          </div>
-          {section.subtitle && <AreaSectionSubtitle>{section.subtitle}</AreaSectionSubtitle>}
-        </div>
-        <SectionCollapseToggle open={open} className="self-start sm:self-center" />
-      </button>
+    <article className={pickCard}>
+      <header>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="w-full text-left"
+        >
+          <AreaCardHeader
+            as="h3"
+            title={section.title}
+            subtitle={section.subtitle}
+            badges={
+              <>
+                <UseTags tags={section.usedFor} />
+                {missingInSection > 0 && (
+                  <span className={`${warnChip} rounded-full px-2 py-0.5 text-[9px]`}>
+                    미수집 {missingInSection}
+                  </span>
+                )}
+              </>
+            }
+            trailing={<SectionCollapseToggle open={open} className="self-start sm:self-center" />}
+          />
+        </button>
+      </header>
 
       {open && (
         <>
-          <div className="divide-y divide-line/60">
-            {section.rows.map((r, i) => (
-              <div
-                key={`${r.label}-${i}`}
-                className={`grid gap-1 px-3 py-2 sm:grid-cols-[minmax(0,11rem)_1fr] sm:items-baseline sm:gap-3 sm:px-4 ${
-                  r.missing ? "bg-amber-50/40" : ""
-                }`}
-              >
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-ink-muted">{r.label}</p>
-                  {r.hint && <p className="mt-0.5 text-[10px] leading-snug text-ink-muted/80">{r.hint}</p>}
-                </div>
-                <p
-                  className={`min-w-0 text-sm font-semibold tabular-nums sm:text-right ${
-                    r.missing ? "text-amber-800" : "text-ink"
-                  }`}
-                >
-                  {r.value}
-                </p>
-              </div>
-            ))}
-          </div>
-          {section.listItems && section.listItems.length > 0 && (
-            <ul className="divide-y divide-line/60 border-t border-line bg-surface-dim/20">
-              {section.listItems.map((item, i) => (
-                <li key={`${item.title.slice(0, 24)}-${i}`} className="px-3 py-2 sm:px-4">
-                  {item.link ? (
-                    <a
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs leading-relaxed text-ink hover:text-gain hover:underline"
-                    >
-                      {item.title}
-                    </a>
-                  ) : (
-                    <p className="text-xs leading-relaxed text-ink">{item.title}</p>
-                  )}
-                  {item.meta && <p className="mt-0.5 text-[10px] text-ink-muted">{item.meta}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
-          {section.listItems && section.listItems.length === 0 && section.id.includes("news") && (
-            <p className="border-t border-line px-3 py-3 text-xs text-ink-muted sm:px-4">
-              항목 없음 — 데이터 새로고침하세요
-            </p>
-          )}
+          <SourceRowList rows={section.rows} />
+          <SourceListItems section={section} />
         </>
       )}
-    </section>
+    </article>
   );
 }
 
@@ -148,12 +178,10 @@ type SourceViewTab = (typeof SOURCE_VIEW_TABS)[number]["id"];
 function GroupedSections({
   sections,
   groupLabels,
-  variant = "default",
   defaultOpen = true,
 }: {
   sections: TimingSourceSection[];
   groupLabels: Record<string, string>;
-  variant?: "default" | "summary" | "compact";
   defaultOpen?: boolean;
 }) {
   const groups = useMemo(() => {
@@ -172,14 +200,9 @@ function GroupedSections({
 
   if (groups.length <= 1 && groups[0]?.items.length) {
     return (
-      <div className="space-y-3">
+      <div className={boxList}>
         {groups[0].items.map((sec) => (
-          <SourceSectionCard
-            key={sec.id}
-            section={sec}
-            variant={sec.id === "summary-overview" ? "summary" : variant}
-            defaultOpen={defaultOpen}
-          />
+          <SourceSectionCard key={sec.id} section={sec} defaultOpen={defaultOpen} />
         ))}
       </div>
     );
@@ -188,13 +211,13 @@ function GroupedSections({
   return (
     <div className="space-y-4">
       {groups.map((g) => (
-        <div key={g.id} className="space-y-2">
+        <div key={g.id} className="space-y-3">
           <AreaSectionTitle as="p" size="group" className="px-1">
             {g.label}
           </AreaSectionTitle>
-          <div className="space-y-3">
+          <div className={boxList}>
             {g.items.map((sec) => (
-              <SourceSectionCard key={sec.id} section={sec} variant={variant} defaultOpen={defaultOpen} />
+              <SourceSectionCard key={sec.id} section={sec} defaultOpen={defaultOpen} />
             ))}
           </div>
         </div>
@@ -205,16 +228,20 @@ function GroupedSections({
 
 export function TimingSourcesTab({
   report,
-  onRefresh,
-  refreshing,
+  onKisRefresh,
+  onBriefingRefresh,
+  kisLoading,
+  briefingLoading,
   stocks,
   activeId,
   onSelectStock,
 }: {
   report: TimingSourceReport | null;
-  onRefresh: () => void;
-  refreshing: boolean;
-  stocks: { id: string; name: string }[];
+  onKisRefresh: () => void;
+  onBriefingRefresh: () => void;
+  kisLoading: boolean;
+  briefingLoading: boolean;
+  stocks: { id: string; name: string; code?: string | null }[];
   activeId: string;
   onSelectStock: (id: string) => void;
 }) {
@@ -222,9 +249,18 @@ export function TimingSourcesTab({
 
   if (!report) {
     return (
-      <PanelCard className="text-center text-sm text-ink-muted">
-        종목을 선택하세요
-      </PanelCard>
+      <>
+        <TabIntroBanner
+          title={tabLabel("sources")}
+          description={`「${tabLabel("verdict")}」「${tabLabel("discover")}」에 쓰인 시세·뉴스·수급 데이터를 검증합니다.`}
+        />
+        <PanelCard className="text-center text-sm text-zinc-300">
+          <p>종목을 선택하세요.</p>
+          <p className="mt-2 text-xs text-zinc-400">
+            「{tabLabel("records")}」 탭에서 종목·체결을 먼저 등록하면 원천 데이터를 확인할 수 있습니다.
+          </p>
+        </PanelCard>
+      </>
     );
   }
 
@@ -235,30 +271,34 @@ export function TimingSourcesTab({
   const activeView = SOURCE_VIEW_TABS.find((t) => t.id === viewTab)!;
 
   return (
-    <div className="space-y-3">
+    <>
       <TabIntroBanner
-        title="① 원천 검증"
-        description="「판단」과 같은 입력값을 확인합니다. 판단 자체는 「판단」 탭에서 봅니다."
+        title={tabLabel("sources")}
+        description={`「${tabLabel("verdict")}」「${tabLabel("discover")}」에 쓰인 시세·뉴스·수급 데이터를 검증합니다.`}
+      />
+
+      <TabSectionHeader
+        eyebrow={tabLabel("sources")}
+        title="원천 데이터"
+        subtitle={fetchedLabel ? `브리핑 ${fetchedLabel}` : undefined}
+        actions={
+          <RefreshButtonGroup
+            onKisRefresh={onKisRefresh}
+            onBriefingRefresh={onBriefingRefresh}
+            kisLoading={kisLoading}
+            briefingLoading={briefingLoading}
+          />
+        }
       />
 
       <div className={`min-w-0 ${panelShell}`}>
-        <StockPanelTitleRow
-          trailing={
-            <BtnSecondary onClick={onRefresh} disabled={refreshing} className="mb-3 sm:mb-3.5">
-              {refreshing ? "갱신 중…" : "전체 새로고침"}
-            </BtnSecondary>
-          }
-        >
+        <StockPanelTitleRow>
           <StockTitleTabs stocks={stocks} activeId={activeId} onSelect={onSelectStock} />
         </StockPanelTitleRow>
 
-        <div className="border-b border-line px-3 py-3 sm:px-5">
-          <p className="text-xs text-ink-muted">
-            {report.stockCode ? `코드 ${report.stockCode}` : "종목코드 미등록"}
-            {fetchedLabel && <> · 브리핑 {fetchedLabel}</>}
-          </p>
-          {report.missingCount > 0 && (
-            <p className="mt-1 text-[11px] text-amber-800">
+        {report.missingCount > 0 && (
+        <div className="border-b border-white/10 px-3 py-3 sm:px-5">
+            <p className="text-[11px] text-amber-200">
               {report.actionableMissingCount > 0 ? (
                 <>
                   미수집 필드 {report.actionableMissingCount}개 (
@@ -266,7 +306,7 @@ export function TimingSourcesTab({
                     .filter((f) => !f.optional)
                     .map((f) => f.label)
                     .join(", ")}
-                  ) — KIS · 데이터 새로고침 확인
+                  ) — 「KIS 시세」「뉴스·거시」 확인
                 </>
               ) : (
                 <>
@@ -274,12 +314,12 @@ export function TimingSourcesTab({
                   {report.missingFields
                     .map((f) => f.label)
                     .join(", ")}
-                  ) — <span className="text-ink-muted">판단 탭에는 영향 없음</span>
+                  ) — <span className="text-zinc-300">{tabLabel("verdict")} 탭에는 영향 없음</span>
                 </>
               )}
             </p>
-          )}
         </div>
+        )}
 
         <UnderlineTabBar
           tabs={SOURCE_VIEW_TABS}
@@ -289,13 +329,12 @@ export function TimingSourcesTab({
         />
 
         <div className="p-3 sm:p-5" role="tabpanel">
-          <p className="mb-4 text-xs leading-relaxed text-ink-muted">{activeView.description}</p>
+          <p className="mb-4 text-xs leading-relaxed text-zinc-300">{activeView.description}</p>
 
           {viewTab === "summary" && (
             <GroupedSections
               sections={report.summarySections}
               groupLabels={{ overview: "종합" }}
-              variant="summary"
               defaultOpen
             />
           )}
@@ -317,6 +356,6 @@ export function TimingSourcesTab({
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }

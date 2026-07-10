@@ -1,5 +1,7 @@
 /** KIS Open API — 공통 HTTP (서버 전용) */
 
+import { runtimeSecret } from "@/lib/server/runtimeSecrets";
+
 const REAL_BASE = "https://openapi.koreainvestment.com:9443";
 const VTS_BASE = "https://openapivts.koreainvestment.com:29443";
 
@@ -16,7 +18,7 @@ declare global {
 }
 
 export function isKisConfigured(): boolean {
-  return !!(process.env.KIS_APP_KEY?.trim() && process.env.KIS_APP_SECRET?.trim());
+  return !!(runtimeSecret("KIS_APP_KEY") && runtimeSecret("KIS_APP_SECRET"));
 }
 
 export function normalizeStockCode(code: string): string {
@@ -24,7 +26,7 @@ export function normalizeStockCode(code: string): string {
 }
 
 export function getBaseUrl(): string {
-  return process.env.KIS_USE_VTS === "true" ? VTS_BASE : REAL_BASE;
+  return runtimeSecret("KIS_USE_VTS") === "true" ? VTS_BASE : REAL_BASE;
 }
 
 export function parseNum(v: unknown): number {
@@ -44,8 +46,8 @@ export function sleep(ms: number): Promise<void> {
 }
 
 async function requestAccessToken(): Promise<string> {
-  const appkey = process.env.KIS_APP_KEY!.trim();
-  const appsecret = process.env.KIS_APP_SECRET!.trim();
+  const appkey = runtimeSecret("KIS_APP_KEY")!;
+  const appsecret = runtimeSecret("KIS_APP_SECRET")!;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(`${getBaseUrl()}/oauth2/tokenP`, {
@@ -110,8 +112,8 @@ export function kisHeaders(token: string, trId: string): Record<string, string> 
   return {
     "Content-Type": "application/json; charset=utf-8",
     authorization: `Bearer ${token}`,
-    appkey: process.env.KIS_APP_KEY!.trim(),
-    appsecret: process.env.KIS_APP_SECRET!.trim(),
+    appkey: runtimeSecret("KIS_APP_KEY")!,
+    appsecret: runtimeSecret("KIS_APP_SECRET")!,
     tr_id: trId,
     custtype: "P",
   };

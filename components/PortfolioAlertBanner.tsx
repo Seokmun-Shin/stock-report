@@ -1,6 +1,7 @@
 "use client";
 
 import type { AlertItem } from "@/lib/alerts";
+import { panelShell } from "@/components/ui/PanelCard";
 
 const KIND_LABEL: Record<AlertItem["kind"], string> = {
   buy: "매수 구간",
@@ -9,9 +10,9 @@ const KIND_LABEL: Record<AlertItem["kind"], string> = {
 };
 
 const KIND_STYLE: Record<AlertItem["kind"], string> = {
-  buy: "border-gain/30 bg-gain-soft/40 text-gain",
-  sell: "border-loss/30 bg-loss-soft/40 text-loss",
-  target: "border-amber-200 bg-amber-50 text-amber-900",
+  buy: "border-red-400/30 bg-red-500/15 text-gain",
+  sell: "border-blue-400/30 bg-blue-500/15 text-loss",
+  target: "ui-warn-chip border px-2 py-0.5 text-[10px]",
 };
 
 export function PortfolioAlertBanner({
@@ -26,8 +27,8 @@ export function PortfolioAlertBanner({
   const shown = alerts.slice(0, 5);
 
   return (
-    <div className="rounded-xl border border-line bg-white px-3 py-2.5">
-      <p className="text-[11px] font-semibold text-ink-muted">오늘의 매매 구간 알림 · {alerts.length}건</p>
+    <div className={`${panelShell} px-3 py-2.5`}>
+      <p className="text-[11px] font-semibold text-zinc-300">오늘의 매매 구간 알림 · {alerts.length}건</p>
       <ul className="mt-2 space-y-1.5">
         {shown.map((a, i) => (
           <li key={`${a.stockId}-${a.kind}-${i}`}>
@@ -36,7 +37,7 @@ export function PortfolioAlertBanner({
               onClick={() => onSelectStock?.(a.stockId)}
               className={`flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left text-xs transition-colors hover:opacity-90 ${KIND_STYLE[a.kind]}`}
             >
-              <span className="shrink-0 rounded bg-white/60 px-1.5 py-0.5 text-[10px] font-bold">
+              <span className="shrink-0 rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-bold">
                 {KIND_LABEL[a.kind]}
               </span>
               <span className="font-medium leading-snug">{a.message}</span>
@@ -45,7 +46,7 @@ export function PortfolioAlertBanner({
         ))}
       </ul>
       {alerts.length > 5 && (
-        <p className="mt-1.5 text-center text-[10px] text-ink-muted">… 외 {alerts.length - 5}건</p>
+        <p className="mt-1.5 text-center text-[10px] text-zinc-300">… 외 {alerts.length - 5}건</p>
       )}
     </div>
   );

@@ -1,5 +1,7 @@
 import type { AppData, Stock } from "./types";
 import type { MarketBriefingContext } from "./briefing/types";
+import { REFRESH_ACTIONS } from "./refreshActions";
+import { tabLabel } from "./appTabs";
 
 export type ReadinessItem = {
   id: string;
@@ -34,14 +36,14 @@ export function assessDataReadiness(input: {
       id: "kis-env",
       severity: "info",
       message: "KIS 미설정 — Yahoo 시세 폴백 (현재가·지수만, 수급·호가 없음)",
-      action: "종목코드 등록 후 「KIS 시세」 또는 「전체 새로고침」",
+      action: `종목코드 등록 후 「${REFRESH_ACTIONS.kis.label}」 또는 「${REFRESH_ACTIONS.briefing.label}」`,
     });
   } else if (kisConfigured === true && kisCodedCount === 0 && data.stocks.length > 0) {
     items.push({
       id: "kis-code",
       severity: "warn",
       message: "KIS는 설정됐지만 종목코드가 없어 시세 조회 불가",
-      action: "종목코드 등록 후 「KIS 시세」 또는 「전체 새로고침」",
+      action: `종목코드 등록 후 「${REFRESH_ACTIONS.kis.label}」 또는 「${REFRESH_ACTIONS.briefing.label}」`,
     });
   }
 
@@ -52,8 +54,8 @@ export function assessDataReadiness(input: {
       severity: "warn",
       message: `현재가 0원 ${zeroPrice.length}종목 — 손익·판단 신뢰도 낮음`,
       action: kisConfigured === false
-        ? "종목코드 등록 후 시세 새로고침 · 또는 판단 탭에서 직접 입력"
-        : "「KIS 시세」 또는 판단 탭에서 현재가 직접 입력",
+        ? `「${tabLabel("verdict")}」에서 현재가 직접 입력 · 또는 「${REFRESH_ACTIONS.kis.label}」`
+        : `「${REFRESH_ACTIONS.kis.label}」 또는 「${REFRESH_ACTIONS.briefing.label}」`,
     });
   }
 
@@ -62,7 +64,7 @@ export function assessDataReadiness(input: {
       id: "no-trades",
       severity: "info",
       message: "매매 기록 없음 — 평단·실현손익·타이밍선 미표시",
-      action: "③ 기록 탭에서 체결 입력",
+      action: `「${tabLabel("records")}」에서 체결 입력`,
     });
   }
 
@@ -71,7 +73,7 @@ export function assessDataReadiness(input: {
       id: "briefing",
       severity: "warn",
       message: "시장·뉴스·거시 데이터 미수집",
-      action: "「데이터」 또는 「전체 새로고침」",
+      action: `「${REFRESH_ACTIONS.briefing.label}」 (원천·뉴스)`,
     });
   } else if (briefingContext) {
     const failed = briefingContext.sources?.filter((s) => !s.ok) ?? [];
@@ -81,7 +83,7 @@ export function assessDataReadiness(input: {
         id: `src-${s.id}`,
         severity: "info",
         message: `${s.label}: ${s.note ?? "미수집"}`,
-        action: s.note?.includes("미설정") ? "⑤ 설정 → API · 연동 확인" : undefined,
+        action: s.note?.includes("미설정") ? `「${tabLabel("settings")}」→ API · 연동` : undefined,
       });
     }
   }
@@ -94,7 +96,7 @@ export function assessDataReadiness(input: {
       id: "stale-quotes",
       severity: "info",
       message: `${noQuotes.length}종목 — 전일가·등락률 등 KIS 상세 시세 없음 (현재가만 있음)`,
-      action: "「KIS 시세」로 상세 시세 갱신",
+      action: `「${REFRESH_ACTIONS.kis.label}」로 상세 시세 갱신`,
     });
   }
 

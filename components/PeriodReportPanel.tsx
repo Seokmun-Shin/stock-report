@@ -31,7 +31,7 @@ export function PeriodReportPanel({ data }: { data: AppData }) {
             type="button"
             onClick={() => setKind(k)}
             className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
-              kind === k ? "bg-gain text-white" : "border border-line text-ink-muted hover:bg-surface-dim"
+              kind === k ? "bg-gain text-white" : "border border-white/10 text-zinc-300 hover:bg-white/15"
             }`}
           >
             {k === "month" ? "월별" : "연별"}
@@ -40,13 +40,13 @@ export function PeriodReportPanel({ data }: { data: AppData }) {
       </div>
 
       {buckets.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-ink-muted">
+        <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-zinc-300">
           매매 내역이 없습니다.
         </p>
       ) : (
         <div className={UI.dataTableWrap}>
           <table className={UI.dataTable}>
-            <thead className="bg-surface-dim text-xs text-ink-muted">
+            <thead className="bg-white/10 text-xs text-zinc-300">
               <tr>
                 <th className={`${UI.dataTh} text-left`}>기간</th>
                 <th className={`${UI.dataTh} text-right`}>매수</th>
@@ -56,10 +56,10 @@ export function PeriodReportPanel({ data }: { data: AppData }) {
             </thead>
             <tbody>
               {buckets.map((b) => (
-                <tr key={b.key} className="border-t border-line">
-                  <td className={`${UI.dataTd} text-left font-semibold text-ink`}>{b.label}</td>
-                  <td className={`${UI.dataTd} text-right text-ink-muted`}>{b.buyCount}건</td>
-                  <td className={`${UI.dataTd} text-right text-ink-muted`}>{b.sellCount}건</td>
+                <tr key={b.key} className="border-t border-white/10">
+                  <td className={`${UI.dataTd} text-left font-semibold text-white`}>{b.label}</td>
+                  <td className={`${UI.dataTd} text-right text-zinc-300`}>{b.buyCount}건</td>
+                  <td className={`${UI.dataTd} text-right text-zinc-300`}>{b.sellCount}건</td>
                   <td
                     className={`${UI.dataTd} text-right font-bold ${b.realizedPnl >= 0 ? "text-gain" : "text-loss"}`}
                   >
@@ -71,7 +71,7 @@ export function PeriodReportPanel({ data }: { data: AppData }) {
           </table>
         </div>
       )}
-      <p className="mt-2 text-xs text-ink-muted">FIFO 기준 매도 건별 실현손익 합계 · 배당은 별도 이벤트로 기록</p>
+      <p className="mt-2 text-xs text-zinc-300">FIFO 기준 매도 건별 실현손익 합계 · 배당은 별도 이벤트로 기록</p>
     </CollapsibleSection>
   );
 }

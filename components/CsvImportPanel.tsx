@@ -13,8 +13,21 @@ import {
   type BrokerCsvFormat,
 } from "@/lib/import/brokerCsv";
 import { dedupeTradeRows, existingTradeFingerprints } from "@/lib/import/tradeDedup";
+import {
+  BtnCreateBlock,
+  BtnSave,
+  BtnCancel,
+  BtnTextAction,
+  guidePanel,
+  previewPanel,
+  SegmentTab,
+  UI,
+} from "@/components/ui/PanelCard";
 
 const BROKERS: BrokerCsvFormat[] = ["mirae", "kis", "kiwoom"];
+
+const MAX_CSV_BYTES = 2 * 1024 * 1024;
+const MAX_CSV_ROWS = 5000;
 
 export function CsvImportPanel({
   stocks,
@@ -44,10 +57,23 @@ export function CsvImportPanel({
   }
 
   function handleFile(file: File) {
+    if (file.size > MAX_CSV_BYTES) {
+      setErrors([`CSV 파일은 ${MAX_CSV_BYTES / (1024 * 1024)}MB 이하여야 합니다.`]);
+      setPreview(null);
+      setOpen(true);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result ?? "");
       const result = parseTradeCsv(text, broker);
+      if (result.rows.length > MAX_CSV_ROWS) {
+        setErrors([`한 번에 최대 ${MAX_CSV_ROWS}건까지 가져올 수 있습니다.`]);
+        setPreview(null);
+        setOpen(true);
+        return;
+      }
       const existing = existingTradeFingerprints(trades, stocks);
       const { unique, skipped } = dedupeTradeRows(result.rows, existing);
       setPreview(unique.length > 0 ? unique : null);
@@ -77,38 +103,34 @@ export function CsvImportPanel({
     <div className="mt-2">
       <div className="mb-3 flex flex-wrap gap-1.5">
         {BROKERS.map((b) => (
-          <button
+          <SegmentTab
             key={b}
-            type="button"
+            active={broker === b}
             onClick={() => selectBroker(b)}
-            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
-              broker === b
-                ? "bg-gain text-white"
-                : "border border-line bg-white text-ink-muted hover:border-gain hover:text-gain"
-            }`}
+            className="rounded-lg px-2.5 py-1 text-xs font-semibold"
           >
             {BROKER_CSV_LABEL[b]}
-          </button>
+          </SegmentTab>
         ))}
       </div>
 
-      <button
+      <BtnTextAction
         type="button"
         onClick={() => setGuideOpen((v) => !v)}
-        className="mb-2 text-xs font-semibold text-gain hover:underline"
+        className="mb-2 text-xs font-semibold"
       >
         {guideOpen ? "가져오기 안내 접기" : `${BROKER_CSV_LABEL[broker]} CSV 가져오기 안내`}
-      </button>
+      </BtnTextAction>
 
       {guideOpen && (
-        <div className="mb-3 rounded-lg border border-line/80 bg-surface-dim/40 px-3 py-2.5 text-[11px] leading-relaxed text-ink-muted">
-          <p className="font-semibold text-ink">{guide.title}</p>
+        <div className={`mb-3 ${guidePanel} text-[11px] leading-relaxed text-zinc-300`}>
+          <p className="font-semibold text-white">{guide.title}</p>
           <ol className="mt-1.5 list-decimal space-y-1 pl-4">
             {guide.steps.map((step, i) => (
               <li key={i}>{step}</li>
             ))}
           </ol>
-          {guide.note && <p className="mt-2 text-[10px] text-amber-900">{guide.note}</p>}
+          {guide.note && <p className="mt-2 text-[10px] text-amber-200">{guide.note}</p>}
           <p className="mt-2 text-[10px]">수동 입력과 병행 · 중복 건은 기록 탭에서 삭제</p>
         </div>
       )}
@@ -123,35 +145,31 @@ export function CsvImportPanel({
           if (f) handleFile(f);
         }}
       />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="w-full rounded-xl border border-line bg-white py-2.5 text-sm font-semibold text-ink-muted hover:border-gain hover:text-gain"
-      >
+      <BtnCreateBlock type="button" onClick={() => inputRef.current?.click()}>
         {BROKER_CSV_LABEL[broker]} 체결 CSV 가져오기
-      </button>
+      </BtnCreateBlock>
 
       {open && (
-        <div className="mt-3 rounded-xl border border-gain/30 bg-gain-soft/20 p-4">
+        <div className={`mt-3 ${previewPanel}`}>
           {preview && preview.length > 0 ? (
             <>
-              <p className="text-sm font-semibold text-ink">
+              <p className="text-sm font-semibold text-white">
                 가져오기 미리보기 · {preview.length}건
                 {duplicateCount > 0 && (
-                  <span className="ml-2 text-xs font-normal text-amber-800">({duplicateCount}건 중복 제외)</span>
+                  <span className="ml-2 text-xs font-normal text-amber-200">({duplicateCount}건 중복 제외)</span>
                 )}
                 {format && (
-                  <span className="ml-2 text-xs font-normal text-ink-muted">
+                  <span className="ml-2 text-xs font-normal text-zinc-300">
                     ({BROKER_CSV_LABEL[format as BrokerCsvFormat] ?? format})
                   </span>
                 )}
               </p>
               {newNames.length > 0 && (
-                <p className="mt-1 text-xs text-amber-800">신규 종목 자동 추가: {newNames.join(", ")}</p>
+                <p className="mt-1 text-xs text-amber-200">신규 종목 자동 추가: {newNames.join(", ")}</p>
               )}
-              <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-line bg-white text-xs">
+              <div className={`${UI.dataTableWrap} mt-2 max-h-40 overflow-y-auto text-xs`}>
                 <table className="w-full">
-                  <thead className="bg-surface-dim text-ink-muted">
+                  <thead className="bg-white/10 text-zinc-300">
                     <tr>
                       <th className="px-2 py-1 text-left">일자</th>
                       <th className="px-2 py-1 text-left">종목</th>
@@ -162,7 +180,7 @@ export function CsvImportPanel({
                   </thead>
                   <tbody>
                     {preview.slice(0, 20).map((r, i) => (
-                      <tr key={i} className="border-t border-line">
+                      <tr key={i} className="border-t border-white/10">
                         <td className="px-2 py-1 tabular-nums">{r.date}</td>
                         <td className="px-2 py-1">{r.stockName}</td>
                         <td className="px-2 py-1 text-center">{r.type === "buy" ? "매수" : "매도"}</td>
@@ -173,44 +191,36 @@ export function CsvImportPanel({
                   </tbody>
                 </table>
                 {preview.length > 20 && (
-                  <p className="px-2 py-1 text-center text-ink-muted">… 외 {preview.length - 20}건</p>
+                  <p className="px-2 py-1 text-center text-zinc-300">… 외 {preview.length - 20}건</p>
                 )}
               </div>
               <div className="mt-3 flex justify-end gap-2">
-                <button
+                <BtnCancel
                   type="button"
                   onClick={() => {
                     setOpen(false);
                     setPreview(null);
                   }}
-                  className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink-muted"
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmImport}
-                  className="rounded-lg bg-gain px-4 py-1.5 text-sm font-medium text-white"
-                >
-                  {preview.length}건 추가
-                </button>
+                />
+                <BtnSave type="button" onClick={confirmImport}>
+                  {preview.length}건 등록
+                </BtnSave>
               </div>
             </>
           ) : (
             <>
               <p className="text-sm font-semibold text-loss">가져올 체결 내역을 찾지 못했습니다</p>
               <div className="mt-3 flex justify-end">
-                <button
+                <BtnCancel
                   type="button"
                   onClick={() => {
                     setOpen(false);
                     setPreview(null);
                     setErrors([]);
                   }}
-                  className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink-muted"
                 >
                   닫기
-                </button>
+                </BtnCancel>
               </div>
             </>
           )}

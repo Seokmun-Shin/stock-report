@@ -1,5 +1,6 @@
 /** 한국은행 ECOS — 공식 경제지표 */
 
+import { envSecret } from "@/lib/envSecret";
 import type { OfficialIndicatorSnapshot } from "../types";
 
 const ECOS_BASE = "https://ecos.bok.or.kr/api/StatisticSearch";
@@ -85,7 +86,7 @@ const BOK_SERIES: BokSeriesDef[] = [
 ];
 
 export function isBokConfigured(): boolean {
-  return !!process.env.BOK_API_KEY?.trim();
+  return !!envSecret("BOK_API_KEY");
 }
 
 interface BokRow {
@@ -126,7 +127,7 @@ function dateRange(cycle: BokCycle): { start: string; end: string } {
 }
 
 async function fetchBokRows(def: BokSeriesDef): Promise<BokRow[]> {
-  const apiKey = process.env.BOK_API_KEY!.trim();
+  const apiKey = envSecret("BOK_API_KEY")!;
   const { start, end } = dateRange(def.cycle);
   const url = `${ECOS_BASE}/${apiKey}/json/kr/1/100/${def.statCode}/${def.cycle}/${start}/${end}/${def.itemCode}`;
 

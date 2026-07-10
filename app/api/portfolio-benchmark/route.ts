@@ -3,13 +3,25 @@ import type { DailySnapshot } from "@/lib/types";
 import { buildPortfolioBenchmarkSeries, resolveSnapshotHistoryRange } from "@/lib/portfolioBenchmark";
 import { fetchYahooKospiHistory } from "@/lib/stockPriceHistory";
 import { cached, withRetry } from "@/lib/server/fetchUtil";
+import { guardApiRequest, readJsonBody } from "@/lib/server/apiSecurity";
 
 export const dynamic = "force-dynamic";
 
+const MAX_SNAPSHOTS = 500;
+
 export async function POST(req: Request) {
+  const blocked = guardApiRequest(req);
+  if (blocked) return blocked;
+
   try {
-    const body = (await req.json()) as { dailySnapshots?: DailySnapshot[] };
+    const body = await readJsonBody<{ dailySnapshots?: DailySnapshot[] }>(req);
+    if (body instanceof NextResponse) return body;
+
     const snapshots = body.dailySnapshots ?? [];
+
+    if (snapshots.length > MAX_SNAPSHOTS) {
+      return NextResponse.json({ error: `dailySnapshots는 최대 ${MAX_SNAPSHOTS}건까지입니다.` }, { status: 400 });
+    }
 
     if (snapshots.length < 2) {
       return NextResponse.json({

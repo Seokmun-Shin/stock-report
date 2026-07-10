@@ -3,7 +3,8 @@
 import { type ReactNode } from "react";
 import type { Stock } from "@/lib/types";
 import {
-  HeaderActionButton,
+  BtnEdit,
+  BtnDelete,
   PanelHeaderActions,
   panelShell,
 } from "@/components/ui/PanelCard";
@@ -32,10 +33,8 @@ export function StockDetailPanel({
       <StockPanelTitleRow
         trailing={
           <PanelHeaderActions className="mb-3 sm:mb-3.5">
-            <HeaderActionButton onClick={() => onEdit(active)}>수정</HeaderActionButton>
-            <HeaderActionButton variant="danger" onClick={() => onDelete(active.id)}>
-              삭제
-            </HeaderActionButton>
+            <BtnEdit onClick={() => onEdit(active)} />
+            <BtnDelete onClick={() => onDelete(active.id)} />
           </PanelHeaderActions>
         }
       >

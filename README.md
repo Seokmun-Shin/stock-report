@@ -1,32 +1,46 @@
-# 주식 매매 리포트
+# mtock — 주식 거래 관리
 
-엑셀 없이 **수익 + 매매 타이밍**을 한 화면에서 확인합니다.
+**에디션** (실행 방식)과 **브랜치** (작업 줄기)를 구분합니다.
 
-## 실행 (로컬)
+→ **[docs/EDITIONS.md](./docs/EDITIONS.md)** (온라인 vs 패키지)  
+→ **[docs/BRANCH_WORKFLOW.md](./docs/BRANCH_WORKFLOW.md)** (연구 vs 판매)
+
+| | 에디션 | 브랜치 | 실행 |
+|--|--------|--------|------|
+| **연구** | 온라인 (웹·Vercel) | `research` | `DEV.bat` |
+| **판매** | 패키지 (exe/apk) | `release/sale` | `START-SALE.bat` · `packaging/` |
+
+최초: `scripts\setup-branches.bat` → `git checkout research`
+
+---
+
+## 연구용 (빠른 시작)
 
 ```bash
-cd Desktop\stock-report
 npm install
+copy .env.research.example .env.local   # Supabase 등 설정
 npm run dev
 ```
 
-브라우저 **http://localhost:3000**
+Windows: **`DEV.bat`**
 
-Windows: `START.bat` 더블클릭
+클라우드 배포 → **[DEPLOY.md](./DEPLOY.md)**
 
-## 클라우드 (사무실·집 동기화)
+---
 
-Supabase + Vercel 배포 방법 → **[DEPLOY.md](./DEPLOY.md)**
+## 판매용
 
-1. `.env.local.example` → `.env.local` (Supabase URL·키)
-2. `supabase/schema.sql` 실행
-3. 로그인 → 데이터 자동 동기화
+```bash
+copy .env.sale.example .env.local
+START-SALE.bat
+```
 
-`.env` 없으면 예전처럼 **브라우저 localStorage**만 사용합니다.
+검수: **[docs/SALE_QA_CHECKLIST.md](./docs/SALE_QA_CHECKLIST.md)**  
+구매자 안내: **[docs/STANDALONE_USER.md](./docs/STANDALONE_USER.md)**
 
-## 기능
+---
 
-- 전체 요약 · 초기 투자금 기준 수익
-- 종목별 타이밍 · 정산 · 매매 내역
-- FIFO 수익률 · ★ 초기 투자금 지정
-- (선택) 이메일 로그인 + 클라우드 저장
+## 기능 (공통 코드베이스)
+
+- 매매 기록 · FIFO 손익 · 타이밍 참고
+- (연구) Supabase 동기화 · (판매) JSON 기기 간 옮김

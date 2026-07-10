@@ -7,6 +7,7 @@ import { buildDailyReport } from "@/lib/dailyReport";
 import type { MarketBriefingContext, TradeRecommendation } from "@/lib/briefing/types";
 import { compareToKospi, computePortfolioDayChange } from "@/lib/benchmark";
 import { ActionBadge, actionSoftClass, actionTextClass, urgencyLabel } from "./TimingBadges";
+import { RefreshButtonGroup, panelShell, warnBanner } from "./ui/PanelCard";
 
 function TimingRow({
   rec,
@@ -23,15 +24,15 @@ function TimingRow({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full min-w-0 items-center gap-3 rounded-xl border px-3 py-3 text-left transition hover:shadow-sm sm:px-4 ${actionSoftClass(rec.action)}`}
+      className={`flex w-full min-w-0 items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-white/5 sm:px-4 ${actionSoftClass(rec.action)}`}
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-bold text-ink">{rec.stockName}</span>
+          <span className="font-bold text-white">{rec.stockName}</span>
           <ActionBadge action={rec.action} />
         </div>
         {summary && (
-          <p className="mt-0.5 text-sm tabular-nums text-ink-muted">
+          <p className="mt-0.5 text-sm tabular-nums text-zinc-300">
             {fmt(summary.currentPrice)}
             {changePct != null && (
               <span className={`ml-2 font-semibold ${changePct >= 0 ? "text-gain" : "text-loss"}`}>
@@ -43,7 +44,7 @@ function TimingRow({
       </div>
       <div className="shrink-0 text-right text-xs sm:text-sm">
         <p className={`font-bold tabular-nums ${actionTextClass(rec.action)}`}>{fmt(rec.suggestedPrice)}</p>
-        <p className="text-ink-muted">{urgencyLabel(rec.urgency)}</p>
+        <p className="text-zinc-300">{urgencyLabel(rec.urgency)}</p>
       </div>
     </button>
   );
@@ -112,48 +113,30 @@ export function TradingTimingHub({
   const pnlTone = portfolio.totalPnl >= 0 ? "text-gain" : "text-loss";
 
   return (
-    <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-3 sm:px-4">
+    <section className={`min-w-0 overflow-hidden ${panelShell}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-3 sm:px-4">
         <div className="min-w-0">
           <p className={`text-lg font-bold tabular-nums ${pnlTone}`}>누적 {fmtSigned(portfolio.totalPnl)}</p>
           {kospi && (
-            <p className="text-xs text-ink-muted">
+            <p className="text-xs text-zinc-300">
               KOSPI {fmtPct(kospi.changeRate)}
               {cmp.portfolio != null && ` · 보유 ${fmtPct(cmp.portfolio)}`}
             </p>
           )}
         </div>
-        <div className="flex shrink-0 gap-1.5">
-          <button
-            type="button"
-            onClick={onKisRefresh}
-            disabled={kisLoading || kisConfigured === false}
-            className="rounded-lg bg-gain px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-          >
-            {kisLoading ? "…" : "시세"}
-          </button>
-          <button
-            type="button"
-            onClick={onBriefingRefresh}
-            disabled={briefingLoading}
-            className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-dim disabled:opacity-50"
-          >
-            {briefingLoading ? "…" : "뉴스"}
-          </button>
-          <button
-            type="button"
-            onClick={onAddStock}
-            className="rounded-lg border border-dashed border-line px-3 py-1.5 text-xs font-semibold text-ink-muted hover:border-gain hover:text-gain"
-          >
-            +종목
-          </button>
-        </div>
+        <RefreshButtonGroup
+          onKisRefresh={onKisRefresh}
+          onBriefingRefresh={onBriefingRefresh}
+          kisLoading={kisLoading}
+          briefingLoading={briefingLoading}
+          kisDisabled={kisConfigured === false}
+        />
       </div>
 
       {(kisError || briefingError) && (
-        <p className="border-b border-line bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
+        <div className={`${warnBanner} !rounded-none border-x-0 border-t-0 border-b border-b-[var(--ui-header-border)]`}>
           {[kisError, briefingError].filter(Boolean).join(" · ")}
-        </p>
+        </div>
       )}
 
       <div className="space-y-2 p-3 sm:p-4">
@@ -168,11 +151,11 @@ export function TradingTimingHub({
             />
           ))
         ) : (
-          <p className="py-8 text-center text-sm text-ink-muted">종목을 추가한 뒤 시세를 새로고침하세요.</p>
+          <p className="py-8 text-center text-sm text-zinc-300">종목을 추가한 뒤 시세를 새로고침하세요.</p>
         )}
       </div>
 
-      <p className="border-t border-line px-3 py-2 text-center text-xs text-ink-muted">
+      <p className="border-t border-white/10 px-3 py-2 text-center text-xs text-zinc-300">
         종목을 누르면 매매 메뉴로 이동합니다
       </p>
     </section>

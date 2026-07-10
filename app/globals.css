@@ -4,10 +4,170 @@
 
 /** 한국 증시 관례: 상승·이익=빨강, 하락·손실=파랑 */
 :root {
-  --market-up: #dc2626;
-  --market-up-soft: #fef2f2;
-  --market-down: #2563eb;
-  --market-down-soft: #eff6ff;
+  --market-up: #ff4444;
+  --market-up-text: #ff6262;
+  --market-up-soft: rgb(255 68 68 / 0.14);
+  --market-down: #4d9fff;
+  --market-down-text: #60a5fa;
+  --market-down-soft: rgb(77 159 255 / 0.14);
+
+  /** M tock 다크 UI — 전 화면 공통 (PanelCard.tsx 와 동기화) */
+  --ui-page-bg: #000000;
+  /** L2 카드 면 — 전 화면·전 카드 동일 */
+  --ui-card-a: rgb(58 58 64);
+  --ui-card-border: rgb(255 255 255 / 0.18);
+  --ui-glass-panel: var(--ui-card-a);
+  --ui-glass-inset: rgb(48 48 52);
+  --ui-glass-input: rgb(48 48 52);
+  --ui-glass-border: var(--ui-card-border);
+  --ui-glass-border-strong: rgb(255 255 255 / 0.2);
+  --ui-glass-ring: rgb(255 255 255 / 0.08);
+  --ui-text-primary: #fafafa;
+  --ui-text-secondary: #e4e4e7;
+  --ui-text-muted: #d4d4d8;
+  --ui-status-ok: #34d399;
+  --ui-status-warn: #fbbf24;
+  --ui-status-muted: #a1a1aa;
+  /** L1 — 탭 본문 캔버스 (모바일에서 페이지 프레임) */
+  --ui-tab-canvas: rgb(9 9 11 / 0.55);
+  --ui-tab-canvas-border: rgb(255 255 255 / 0.09);
+  /** box-list — ui-card-a 와 동일 (별칭) */
+  --ui-box-a: var(--ui-card-a);
+  --ui-box-border: var(--ui-card-border);
+  --ui-header-border: rgb(255 255 255 / 0.1);
+  --ui-card-shadow: none;
+  --ui-warn-bg: rgb(245 158 11 / 0.12);
+  --ui-warn-border: rgb(245 158 11 / 0.35);
+  --ui-warn-fg: #fde68a;
+  --ui-warn-fg-strong: #fef3c7;
+  --ui-warn-body: rgb(253 230 138 / 0.88);
+  --ui-warn-inline: #fcd34d;
+}
+
+/** 일반모드 — 화이트 기반 */
+html[data-theme="light"] {
+  color-scheme: light;
+  --ui-page-bg: #ececee;
+  --ui-card-a: #ffffff;
+  --ui-card-border: rgb(0 0 0 / 0.1);
+  --ui-glass-inset: rgb(0 0 0 / 0.04);
+  --ui-glass-input: #ffffff;
+  --ui-glass-border-strong: rgb(0 0 0 / 0.14);
+  --ui-text-primary: #18181b;
+  --ui-text-secondary: #3f3f46;
+  --ui-text-muted: #52525b;
+  --ui-tab-canvas: rgb(255 255 255 / 0.72);
+  --ui-tab-canvas-border: rgb(0 0 0 / 0.08);
+  --market-up-soft: rgb(255 68 68 / 0.1);
+  --market-down-soft: rgb(77 159 255 / 0.1);
+  --ui-header-border: rgb(0 0 0 / 0.08);
+  --ui-card-shadow: 0 1px 3px rgb(0 0 0 / 0.07);
+  --ui-warn-bg: #fffbeb;
+  --ui-warn-border: rgb(217 119 6 / 0.28);
+  --ui-warn-fg: #92400e;
+  --ui-warn-fg-strong: #78350f;
+  --ui-warn-body: #44403c;
+  --ui-warn-inline: #b45309;
+}
+
+html[data-theme="light"] .ui-glass-panel,
+html[data-theme="light"] .ui-pick-card,
+html[data-theme="light"] .ui-stock-card,
+html[data-theme="light"] .ui-box-list > *,
+html[data-theme="light"] .ui-box-grid > *,
+html[data-theme="light"] .ui-tab-intro-banner {
+  color: var(--ui-text-primary);
+  box-shadow: var(--ui-card-shadow);
+}
+
+html[data-theme="light"] nav[aria-label="메인 메뉴"] {
+  border-color: rgb(0 0 0 / 0.08);
+  background-color: rgb(255 255 255 / 0.96);
+}
+
+html[data-theme="light"] nav[aria-label="메인 메뉴"] button[aria-current="page"] {
+  color: var(--market-up-text);
+}
+
+html[data-theme="light"] nav[aria-label="메인 메뉴"] button:not([aria-current="page"]) {
+  color: #52525b;
+}
+
+html[data-theme="light"] nav[aria-label="메인 메뉴"] button:not([aria-current="page"]):hover {
+  color: #18181b;
+}
+
+/** 일반모드 — Tailwind 고정색 보정 (본문·헤더) */
+html[data-theme="light"] .ui-app-chrome .text-zinc-50,
+html[data-theme="light"] .ui-app-chrome .text-zinc-100,
+html[data-theme="light"] .ui-app-chrome .text-zinc-200,
+html[data-theme="light"] .ui-app-chrome .text-white:not([class*="bg-gain"]):not(.ui-segment-tab-active) {
+  color: var(--ui-text-primary);
+}
+
+html[data-theme="light"] .ui-app-chrome .text-zinc-300 {
+  color: var(--ui-text-secondary);
+}
+
+html[data-theme="light"] .ui-app-chrome .text-zinc-400,
+html[data-theme="light"] .ui-app-chrome .text-zinc-500,
+html[data-theme="light"] .ui-app-chrome .text-zinc-600 {
+  color: var(--ui-text-muted);
+}
+
+html[data-theme="light"] .ui-app-chrome .border-white\/10,
+html[data-theme="light"] .ui-app-chrome .divide-white\/10 {
+  border-color: rgb(0 0 0 / 0.08);
+}
+
+html[data-theme="light"] .ui-app-chrome .border-white\/10.divide-white\/10 {
+  --tw-divide-opacity: 1;
+  border-color: rgb(0 0 0 / 0.08);
+}
+
+html[data-theme="light"] .ui-meta-pill {
+  border-color: rgb(0 0 0 / 0.1);
+  background-color: rgb(0 0 0 / 0.04);
+  color: var(--ui-text-secondary);
+}
+
+html[data-theme="light"] .ui-segment-tab,
+html[data-theme="light"] .ui-segment-tab-lg {
+  color: var(--ui-text-secondary);
+}
+
+html[data-theme="light"] .ui-glass-input {
+  color: var(--ui-text-primary);
+}
+
+html[data-theme="light"] .ui-glass-input::placeholder {
+  color: var(--ui-text-muted);
+}
+
+/** 일반모드 — amber 텍스트 (노란 배경 위 가독성) */
+html[data-theme="light"] .text-amber-100,
+html[data-theme="light"] .text-amber-200,
+html[data-theme="light"] .text-amber-300 {
+  color: var(--ui-warn-inline);
+}
+
+html[data-theme="light"] .bg-amber-500\/10,
+html[data-theme="light"] .bg-amber-500\/15 {
+  background-color: var(--ui-warn-bg) !important;
+}
+
+html[data-theme="light"] .border-amber-400\/30,
+html[data-theme="light"] .border-amber-500\/30 {
+  border-color: var(--ui-warn-border) !important;
+}
+
+/** 다크 — 흰 로고 / 일반모드 — 원색 로고 */
+.ui-brand-logo {
+  filter: brightness(0) invert(1);
+}
+
+html[data-theme="light"] .ui-brand-logo {
+  filter: none;
 }
 
 html {
@@ -18,8 +178,8 @@ html {
 body {
   font-family: "Pretendard Variable", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-size: 16px;
-  color: #0f172a;
-  background-color: #f1f5f9;
+  color: var(--ui-text-primary);
+  background-color: var(--ui-page-bg);
   -webkit-font-smoothing: antialiased;
   overflow-x: clip;
   max-width: 100vw;
@@ -35,4 +195,508 @@ img,
 video,
 table {
   max-width: 100%;
+}
+
+/**
+ * 공통 UI — 화면별 Tailwind 조합 금지, 여기 + PanelCard.tsx 만 수정
+ */
+@layer components {
+  .ui-app-shell {
+    @apply min-w-0 overflow-x-hidden;
+    min-height: 100vh;
+    background-color: var(--ui-page-bg);
+    color: var(--ui-text-primary);
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+
+  .ui-app-header {
+    border-bottom: 1px solid var(--ui-header-border);
+    background-color: var(--ui-page-bg);
+  }
+
+  .ui-fg-primary {
+    color: var(--ui-text-primary);
+  }
+
+  .ui-fg-secondary {
+    color: var(--ui-text-secondary);
+  }
+
+  .ui-fg-muted {
+    color: var(--ui-text-muted);
+  }
+
+  .ui-label-caps {
+    @apply text-[11px] font-semibold uppercase tracking-[0.1em];
+    color: var(--ui-text-muted);
+  }
+
+  .ui-meta-pill {
+    @apply rounded-full border px-2.5 py-0.5 text-[11px] font-semibold;
+    border-color: rgb(255 255 255 / 0.12);
+    background-color: rgb(255 255 255 / 0.06);
+    color: var(--ui-text-secondary);
+  }
+
+  .ui-flow-banner {
+    @apply mt-5 mb-2 min-w-0 rounded-xl border p-3;
+    border-color: var(--ui-header-border);
+    background-color: rgb(255 255 255 / 0.04);
+  }
+
+  .ui-flow-step-row {
+    @apply flex flex-nowrap gap-2 overflow-x-auto pb-0.5;
+  }
+
+  .ui-mode-toggle-row {
+    @apply flex flex-nowrap gap-2;
+  }
+
+  .ui-mode-toggle-row > button {
+    @apply min-w-0 flex-1 shrink-0;
+  }
+
+  html[data-theme="light"] .ui-flow-banner {
+    background-color: #ffffff;
+    border-color: rgb(0 0 0 / 0.08);
+    box-shadow: var(--ui-card-shadow);
+  }
+
+  .ui-flow-step-idle {
+    background-color: var(--ui-glass-inset);
+    color: var(--ui-text-secondary);
+  }
+
+  .ui-gate-chip-idle {
+    background-color: var(--ui-glass-inset);
+    color: var(--ui-text-secondary);
+  }
+
+  /** 살까? / 팔까? — 독립 박스 2개 (매수 상단 레드 · 매도 하단 블루) */
+  .ui-verdict-pair {
+    @apply mt-6 grid min-w-0 grid-cols-1 gap-3;
+  }
+
+  @container (min-width: 36rem) {
+    .ui-verdict-pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+  }
+
+  .ui-verdict-panel {
+    @apply flex h-full min-w-0 flex-col overflow-hidden rounded-xl p-4 sm:p-5;
+    background-color: var(--ui-glass-inset);
+    border: 1px solid var(--ui-card-border);
+  }
+
+  html[data-theme="light"] .ui-verdict-panel {
+    box-shadow: var(--ui-card-shadow);
+  }
+
+  .ui-verdict-panel-buy {
+    border-top: 3px solid var(--market-up);
+  }
+
+  .ui-verdict-panel-sell {
+    border-bottom: 3px solid var(--market-down);
+  }
+
+  .ui-verdict-status {
+    @apply max-w-[58%] shrink-0 rounded-full px-2.5 py-0.5 text-right text-[11px] font-semibold leading-snug line-clamp-2 break-keep sm:text-xs;
+  }
+
+  .ui-verdict-status-buy {
+    color: var(--market-up-text);
+    background-color: var(--market-up-soft);
+  }
+
+  .ui-verdict-status-sell {
+    color: var(--market-down-text);
+    background-color: var(--market-down-soft);
+  }
+
+  .ui-verdict-status-hold {
+    color: #b45309;
+    background-color: rgb(245 158 11 / 0.14);
+  }
+
+  html[data-theme="dark"] .ui-verdict-status-hold {
+    color: #fcd34d;
+    background-color: rgb(245 158 11 / 0.15);
+  }
+
+  .ui-verdict-compare {
+    @apply mt-4 min-w-0 flex-1 border-t pt-4;
+    border-color: var(--ui-header-border);
+  }
+
+  /**
+   * 모바일 — 블랙 위 글래스 대비 강화 (PC는 기존 글래스 유지)
+   * L0 page #000 → L1 tab canvas → L2 panel → L3 inset/pick
+   */
+  @media (max-width: 639px) {
+    :root {
+      --ui-card-a: rgb(72 72 80);
+      --ui-card-border: rgb(255 255 255 / 0.22);
+      --ui-glass-inset: rgb(58 58 64);
+      --ui-glass-input: rgb(58 58 64);
+      --ui-glass-border-strong: rgb(255 255 255 / 0.22);
+    }
+
+    html[data-theme="light"] {
+      --ui-card-a: #ffffff;
+      --ui-card-border: rgb(0 0 0 / 0.11);
+      --ui-glass-inset: rgb(0 0 0 / 0.05);
+      --ui-glass-input: #ffffff;
+      --ui-glass-border-strong: rgb(0 0 0 / 0.15);
+    }
+  }
+
+  /** 탭 본문 — 세로 간격만 (면 줄무늬 없음) */
+  .ui-tab-page-stack {
+    @apply min-w-0 space-y-3 sm:space-y-4;
+  }
+
+  /**
+   * 동종 박스 나열 — 면·테두리 동일 (홀/짝 없음)
+   */
+  .ui-box-list {
+    @apply flex min-w-0 flex-col gap-5 sm:gap-6;
+  }
+
+  .ui-box-grid {
+    @apply grid min-w-0 gap-5 sm:gap-6;
+  }
+
+  .ui-box-list > *,
+  .ui-box-grid > * {
+    @apply min-w-0 rounded-xl;
+    background-color: var(--ui-card-a);
+    border: 1px solid var(--ui-card-border);
+    box-shadow: none;
+  }
+
+  .ui-box-item {
+    @apply overflow-hidden p-3 sm:p-5;
+  }
+
+  .ui-box-list > .ui-glass-panel,
+  .ui-box-grid > .ui-glass-panel {
+    @apply ring-0 shadow-none;
+    box-shadow: none !important;
+  }
+
+  /** @deprecated ui-tab-page-stack 와 동일 */
+  .ui-tab-page-blocks {
+    @apply min-w-0 space-y-3 sm:space-y-4;
+  }
+
+  /** 탭 상단 안내 */
+  .ui-tab-intro-banner {
+    @apply rounded-xl px-3 py-3 text-xs leading-relaxed sm:text-sm;
+    background-color: var(--ui-card-a);
+    border: 1px solid var(--ui-card-border);
+  }
+
+  /** 섹션 헤더 — 제목·새로고침 행과 본문 구분 */
+  .ui-section-header {
+    @apply border-b pb-3 sm:border-b-0 sm:pb-0;
+    border-color: var(--ui-header-border);
+  }
+
+  .ui-glass-panel {
+    @apply min-w-0 overflow-hidden rounded-2xl;
+    background-color: var(--ui-card-a);
+    border: 1px solid var(--ui-card-border);
+    box-shadow: none;
+  }
+
+  .ui-glass-inset {
+    @apply rounded-lg;
+    background-color: var(--ui-glass-inset);
+    /* 테두리 없음 — 박스 중첩·지저분함 방지 */
+  }
+
+  .ui-glass-inset-row {
+    @apply flex items-start justify-between gap-2 rounded-lg px-3 py-2 text-sm;
+    background-color: var(--ui-glass-inset);
+  }
+
+  .ui-glass-header {
+    @apply border-b border-white/10 px-3 py-3 sm:px-5 sm:py-4;
+    border-color: rgb(255 255 255 / 0.1);
+    /* 배경 없음 — pickCard·panelShell 과 동일 톤 */
+  }
+
+  /** 추천(발굴) 종목 영역 기준 — 모든 섹션 헤더 */
+  .ui-area-header-title {
+    @apply text-xl font-bold tracking-tight sm:text-2xl;
+    color: var(--ui-text-primary);
+  }
+
+  .ui-area-header-eyebrow {
+    @apply text-sm font-bold tabular-nums;
+    color: var(--ui-text-muted);
+  }
+
+  .ui-area-header-meta {
+    @apply mt-0.5 text-sm tabular-nums;
+    color: var(--ui-text-muted);
+  }
+
+  .ui-area-header-subtitle {
+    @apply mt-1 text-sm leading-snug;
+    color: var(--ui-text-muted);
+  }
+
+  .ui-area-header-bar {
+    @apply border-b px-3 py-3 sm:px-5 sm:py-4;
+    border-color: var(--ui-header-border);
+  }
+
+  .ui-detail-zone-label {
+    @apply mb-1 text-[10px] font-semibold uppercase tracking-[0.12em];
+    color: var(--ui-text-muted);
+  }
+
+  /** 입력 — 화이트 불투명 배경 아님, 글래스 필 */
+  .ui-glass-input {
+    @apply w-full rounded-lg px-3 py-2 text-sm text-white outline-none;
+    background-color: var(--ui-glass-input);
+    border: 1px solid var(--ui-glass-border-strong);
+  }
+
+  .ui-glass-input::placeholder {
+    @apply text-zinc-500;
+  }
+
+  .ui-glass-input:focus {
+    border-color: rgb(255 255 255 / 0.22);
+    @apply ring-2;
+    --tw-ring-color: rgb(239 68 68 / 0.25);
+  }
+
+  .ui-btn-secondary {
+    @apply rounded-lg px-3 py-1.5 text-xs font-bold text-white shadow-sm disabled:opacity-50;
+    background-color: var(--ui-glass-inset);
+    border: 1px solid var(--ui-glass-border-strong);
+  }
+
+  .ui-btn-secondary:hover:not(:disabled) {
+    background-color: rgb(255 255 255 / 0.1);
+  }
+
+  /** 새로고침 — 모든 탭 공통 (아이콘 + 라벨) */
+  .ui-btn-refresh {
+    @apply inline-flex min-h-[2.25rem] items-center justify-center gap-1.5 touch-manipulation;
+  }
+
+  .ui-btn-refresh:disabled {
+    @apply opacity-50;
+  }
+
+  /** 화면·탭 이동 — 버튼 남발 방지, 텍스트 링크만 */
+  .ui-btn-nav {
+    @apply inline text-sm font-semibold text-zinc-300 underline-offset-2 hover:text-gain hover:underline disabled:opacity-50;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .ui-text-title {
+    @apply text-xl font-bold tracking-tight sm:text-2xl;
+    color: var(--ui-text-primary);
+  }
+
+  .ui-text-body {
+    @apply text-xs leading-relaxed;
+    color: var(--ui-text-secondary);
+  }
+
+  .ui-text-muted {
+    @apply text-xs;
+    color: var(--ui-text-muted);
+  }
+
+  .ui-text-micro {
+    @apply text-[10px];
+    color: var(--ui-text-muted);
+  }
+
+  .ui-status-pill {
+    @apply shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .ui-status-pill-ok {
+    @apply text-emerald-400 ring-1;
+    background-color: rgb(16 185 129 / 0.15);
+    --tw-ring-color: rgb(16 185 129 / 0.4);
+  }
+
+  .ui-status-pill-muted {
+    @apply text-zinc-400 ring-1;
+    background-color: rgb(255 255 255 / 0.05);
+    --tw-ring-color: rgb(255 255 255 / 0.1);
+  }
+
+  .ui-status-pill-warn {
+    @apply ring-1;
+    color: var(--ui-warn-fg);
+    background-color: var(--ui-warn-bg);
+    --tw-ring-color: var(--ui-warn-border);
+  }
+
+  .ui-gain-chip {
+    @apply border;
+    color: var(--market-up-text);
+    border-color: rgb(255 98 98 / 0.35);
+    background-color: var(--market-up-soft);
+  }
+
+  .ui-loss-chip {
+    @apply border;
+    color: var(--market-down-text);
+    border-color: rgb(96 165 250 / 0.35);
+    background-color: var(--market-down-soft);
+  }
+
+  .ui-warn-banner {
+    @apply rounded-xl border px-3 py-2.5 text-xs;
+    background-color: var(--ui-warn-bg);
+    border-color: var(--ui-warn-border);
+    color: var(--ui-warn-fg);
+  }
+
+  .ui-warn-banner .ui-fg-secondary,
+  .ui-warn-banner .ui-warn-body {
+    color: var(--ui-warn-body);
+  }
+
+  .ui-warn-surface {
+    @apply rounded-2xl border border-dashed px-4 py-4 sm:px-5 sm:py-5;
+    background-color: var(--ui-warn-bg);
+    border-color: var(--ui-warn-border);
+    color: var(--ui-warn-fg);
+  }
+
+  .ui-warn-surface .ui-warn-body {
+    color: var(--ui-warn-body);
+  }
+
+  .ui-warn-inline {
+    color: var(--ui-warn-inline);
+  }
+
+  .ui-warn-chip {
+    @apply rounded px-1.5 py-0.5 text-[10px] font-semibold;
+    background-color: var(--ui-warn-bg);
+    border: 1px solid var(--ui-warn-border);
+    color: var(--ui-warn-fg);
+  }
+
+  /** 리스트 구분 — 박스 대신 얇은 구분선 */
+  .ui-list-divide > * + * {
+    border-top: 1px solid rgb(255 255 255 / 0.06);
+  }
+
+  /** 매매데이터 기준 — 세그먼트 탭 (증권사·분할/배당 등) */
+  .ui-segment-tab {
+    @apply rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors text-zinc-300;
+    border: 1px solid var(--ui-glass-border-strong);
+    background-color: var(--ui-glass-inset);
+  }
+
+  .ui-segment-tab:hover {
+    border-color: rgb(255 68 68 / 0.5);
+    color: var(--market-up-text);
+  }
+
+  .ui-segment-tab-active {
+    @apply rounded-lg px-2.5 py-1 text-xs font-semibold bg-gain text-white;
+  }
+
+  .ui-segment-tab-lg {
+    @apply rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors text-zinc-300;
+    border: 1px solid var(--ui-glass-border-strong);
+    background-color: var(--ui-glass-inset);
+  }
+
+  .ui-segment-tab-lg:hover {
+    border-color: rgb(255 68 68 / 0.5);
+    color: var(--market-up-text);
+  }
+
+  .ui-segment-tab-lg-active {
+    @apply rounded-lg px-3 py-1.5 text-sm font-semibold bg-gain text-white;
+  }
+
+  /** 매매데이터 기준 — 주 액션 블록 (CSV 가져오기 등) */
+  .ui-action-block {
+    @apply w-full rounded-xl py-2.5 text-sm font-semibold text-zinc-300 transition-colors;
+    border: 1px solid var(--ui-glass-border-strong);
+    background-color: var(--ui-glass-inset);
+  }
+
+  .ui-action-block:hover {
+    border-color: rgb(255 68 68 / 0.5);
+    color: var(--market-up-text);
+  }
+
+  /** 매매데이터 기준 — 안내·미리보기 패널 */
+  .ui-guide-panel {
+    @apply rounded-lg px-3 py-2.5 text-[11px] leading-relaxed text-zinc-300;
+    background-color: var(--ui-glass-inset);
+  }
+
+  .ui-preview-panel {
+    @apply rounded-xl p-4;
+    border: 1px solid rgb(239 68 68 / 0.3);
+    background-color: rgb(239 68 68 / 0.1);
+  }
+
+  .ui-link-accent {
+    @apply text-xs font-semibold hover:underline;
+    color: var(--market-up-text);
+  }
+
+  /** 상승·이익 텍스트 — 전 화면 공통 */
+  .text-gain {
+    color: var(--market-up-text);
+  }
+
+  .text-loss {
+    color: var(--market-down-text);
+  }
+
+  .ui-chip {
+    @apply rounded-lg px-2 py-1 text-xs;
+    background-color: var(--ui-glass-inset);
+  }
+
+  /** 중첩 카드 금지 — 패널 내부 정보 블록 (테두리 없음) */
+  .ui-inner-block {
+    @apply rounded-lg px-3 py-2.5;
+    background-color: var(--ui-glass-inset);
+  }
+
+  /** 발굴·원천·리포트 — 섹션 카드 (단독 또는 ui-box-list 안) */
+  .ui-pick-card {
+    @apply rounded-xl p-3 sm:p-5;
+    background-color: var(--ui-card-a);
+    border: 1px solid var(--ui-card-border);
+  }
+
+  /** 살까?팔까? · 강추!! — 종목 단위 카드 */
+  .ui-stock-card {
+    @apply min-w-0 overflow-hidden rounded-xl p-3 sm:p-5;
+    container-type: inline-size;
+    border: 1px solid var(--ui-card-border);
+    background-color: var(--ui-card-a);
+  }
+
+  .ui-pick-detail-zone {
+    @apply mt-4 border-t pt-4;
+    border-color: var(--ui-header-border);
+  }
 }

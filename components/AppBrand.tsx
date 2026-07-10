@@ -9,7 +9,7 @@ export function AppBrand() {
 export function AppBrandV10() {
   return (
     <span className="inline-flex shrink-0 items-center" title="M tock" aria-label="M tock">
-      <BrandLogo variant="primary" />
+      <BrandLogo variant="primary" className="ui-brand-logo" />
     </span>
   );
 }

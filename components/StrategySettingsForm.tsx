@@ -3,7 +3,9 @@
 import { useState } from "react";
 import type { ReportSettings } from "@/lib/reportSettings";
 import { DEFAULT_REPORT_SETTINGS, resolveReportSettings, formatFeePct, STRATEGY_PRESETS, STRATEGY_PRESET_LABEL, type StrategyPresetId } from "@/lib/reportSettings";
+import { tabLabel } from "@/lib/appTabs";
 import { SectionTitle } from "./StatCard";
+import { BtnSave, BtnReset, BtnTextAction, innerBlock, PanelCard, UI } from "./ui/PanelCard";
 
 type FormState = {
   useTimingPctLines: boolean;
@@ -59,12 +61,17 @@ export function StrategySettingsForm({
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-5">
-      <SectionTitle>매매 전략 (1단계·4단계 판단 규칙)</SectionTitle>
-      <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-        아래 %는 <strong className="font-medium text-ink">판단 탭의 매수/매도 시점·목표가</strong>에 직접 쓰입니다. 시세·뉴스·수급은
-        별도로 더해지며, 이 규칙은 「최근 매도가·평단」 기준 뼈대입니다.
-      </p>
+    <PanelCard>
+      <SectionTitle
+        subtitle={
+          <>
+            아래 %는 <strong className="font-medium text-white">「{tabLabel("verdict")}」 탭의 매수/매도 시점·목표가</strong>에 직접 쓰입니다. 시세·뉴스·수급은
+            별도로 더해지며, 이 규칙은 「최근 매도가·평단」 기준 뼈대입니다.
+          </>
+        }
+      >
+        매매 전략 (1단계·4단계 판단 규칙)
+      </SectionTitle>
 
       <div className="mt-3 flex flex-wrap gap-2">
         {(Object.keys(STRATEGY_PRESETS) as StrategyPresetId[]).map((id) => (
@@ -72,24 +79,24 @@ export function StrategySettingsForm({
             key={id}
             type="button"
             onClick={() => setForm((f) => ({ ...f, ...STRATEGY_PRESETS[id] }))}
-            className="rounded-full border border-line bg-surface-dim/40 px-2.5 py-1 text-xs font-semibold text-ink-muted hover:border-gain/30 hover:text-ink"
+            className="ui-segment-tab rounded-full px-2.5 py-1 hover:border-gain/30 hover:text-white"
           >
             {STRATEGY_PRESET_LABEL[id]}
           </button>
         ))}
-        <span className="self-center text-[10px] text-ink-muted">프리셋 선택 후 「적용」</span>
+        <span className="self-center text-[10px] text-zinc-300">프리셋 선택 후 「적용」</span>
       </div>
 
-      <label className="mt-4 flex items-start gap-2 text-sm text-ink">
+      <label className="mt-4 flex items-start gap-2 text-sm text-white">
         <input
           type="checkbox"
           checked={form.useTimingPctLines}
           onChange={(e) => set("useTimingPctLines", e.target.checked)}
-          className="mt-0.5 rounded border-line"
+          className="mt-0.5 rounded border-white/10"
         />
         <span>
           단계별 목표가 사용 (권장)
-          <span className="mt-0.5 block text-xs text-ink-muted">
+          <span className="mt-0.5 block text-xs text-zinc-300">
             끄면 「목표까지 보유」「○%↓ 매수」 구간 판단이 약해집니다.
           </span>
         </span>
@@ -112,9 +119,9 @@ export function StrategySettingsForm({
         </div>
       </div>
 
-      <div className="mt-4 rounded-lg border border-line bg-surface-dim/30 p-3">
-        <p className="text-xs font-semibold text-ink">매매 비용 (미래에셋 최저 우대 기준)</p>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-ink-muted">
+      <div className={`mt-4 ${innerBlock}`}>
+        <p className="text-xs font-semibold text-white">매매 비용 (미래에셋 최저 우대 기준)</p>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-300">
           예상 실현 손익·기록 「수수료/세금 적용」에 반영됩니다. 매수는 세금 없음, 매도는 증권거래세 0.20%가
           추가됩니다.
         </p>
@@ -138,23 +145,23 @@ export function StrategySettingsForm({
             onChange={(v) => set("sellTransactionTaxPct", v)}
           />
         </div>
-        <p className="mt-2 text-[10px] text-ink-muted">
+        <p className="mt-2 text-[10px] text-zinc-300">
           요약: 살 때 약 {formatFeePct(form.buyTotalFeePct)} · 팔 때 약{" "}
           {formatFeePct(form.sellTotalFeePct + form.sellTransactionTaxPct)} (수수료+세금)
         </p>
       </div>
 
-      <button
+      <BtnTextAction
         type="button"
         onClick={() => setShowAlerts((v) => !v)}
-        className="mt-4 text-xs font-medium text-gain hover:underline"
+        className="mt-4 text-xs font-medium"
       >
         {showAlerts ? "알림 설정 접기" : "알림 설정 (선택)"}
-      </button>
+      </BtnTextAction>
 
       {showAlerts && (
-        <div className="mt-2 space-y-2 rounded-lg border border-line bg-surface-dim/30 p-3">
-          <p className="text-[11px] text-ink-muted">브라우저 알림 — 판단과 동일한 목표가 구간에 맞춰 동작합니다.</p>
+        <div className={`mt-2 space-y-2 ${innerBlock}`}>
+          <p className="text-[11px] text-zinc-300">브라우저 알림 — 판단과 동일한 목표가 구간에 맞춰 동작합니다.</p>
           <div className="grid grid-cols-2 gap-2">
             <PctField
               label="고점 대비 알림 (−%)"
@@ -167,12 +174,12 @@ export function StrategySettingsForm({
               onChange={(v) => set("sellGainFromAvgPct", v)}
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-ink-muted">
+          <label className="flex items-center gap-2 text-sm text-zinc-300">
             <input
               type="checkbox"
               checked={form.alertsEnabled}
               onChange={(e) => set("alertsEnabled", e.target.checked)}
-              className="rounded border-line"
+              className="rounded border-white/10"
             />
             브라우저 알림 (하루 1회)
           </label>
@@ -180,14 +187,14 @@ export function StrategySettingsForm({
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" onClick={save} className="rounded-lg bg-gain px-3 py-1.5 text-sm font-medium text-white">
+        <BtnSave type="button" onClick={save} className="px-3 py-1.5 text-sm font-medium">
           적용
-        </button>
-        <button type="button" onClick={reset} className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink-muted">
+        </BtnSave>
+        <BtnReset type="button" onClick={reset} className="text-sm">
           기본값 (10/20%)
-        </button>
+        </BtnReset>
       </div>
-    </section>
+    </PanelCard>
   );
 }
 
@@ -203,14 +210,14 @@ function FeeField({
   onChange: (v: number) => void;
 }) {
   return (
-    <label className="text-xs text-ink-muted">
+    <label className="text-xs text-zinc-300">
       {label}
       <input
         type="number"
         min={0}
         max={2}
         step={0.00001}
-        className="mt-1 w-full rounded-lg border border-line px-2 py-1.5 text-right tabular-nums"
+        className={UI.input}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
       />
@@ -229,13 +236,13 @@ function PctField({
   onChange: (v: number) => void;
 }) {
   return (
-    <label className="text-xs text-ink-muted">
+    <label className="text-xs text-zinc-300">
       {label}
       <input
         type="number"
         min={1}
         max={99}
-        className="mt-1 w-full max-w-full rounded-lg border border-line px-2 py-1.5 text-right tabular-nums"
+        className={`${UI.input} max-w-full`}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
       />

@@ -8,14 +8,18 @@ import { buildDailyReport, formatDailyReportText } from "@/lib/dailyReport";
 import { buildMarketBrief, formatMarketBriefText } from "@/lib/briefing/marketBrief";
 import type { MarketBriefingContext } from "@/lib/briefing/types";
 import type { ReportSettings } from "@/lib/reportSettings";
-import { PanelCard, PageSectionTitle, BtnPrimary, BtnSecondary } from "@/components/ui/PanelCard";
+import type { ParsedTradeRow } from "@/lib/import/tradeCsv";
+import { PanelCard, AreaCardHeader, RefreshButton, BtnCancel, BtnCreate, BtnTextAction, BtnReset, TabIntroBanner, TabSectionHeader } from "@/components/ui/PanelCard";
 import { APP_VERSION } from "@/lib/appVersion";
 import { StrategySettingsForm } from "@/components/StrategySettingsForm";
-import { SetupStatusPanel } from "@/components/SetupStatusPanel";
 import { DataReadinessPanel } from "@/components/DataReadinessPanel";
+import { AppPreferencesPanel } from "@/components/AppPreferencesPanel";
+import { DataBackupPanel } from "@/components/DataBackupPanel";
+import { ApiKeysPanel } from "@/components/ApiKeysPanel";
 import type { ReadinessItem } from "@/lib/dataReadiness";
 import { CsvImportPanel } from "@/components/CsvImportPanel";
-import type { ParsedTradeRow } from "@/lib/import/tradeCsv";
+import { tabLabel } from "@/lib/appTabs";
+import { sanitizeExternalUrl } from "@/lib/safeUrl";
 
 export function SettingsTab({
   data,
@@ -32,7 +36,9 @@ export function SettingsTab({
   user,
   signOut,
   onResetDemo,
+  onRestoreBackup,
   cloudEnabled,
+  standalone = false,
   syncing,
   readinessItems = [],
 }: {
@@ -50,7 +56,9 @@ export function SettingsTab({
   user: User | null;
   signOut: () => void;
   onResetDemo: () => void;
+  onRestoreBackup: (next: AppData) => void;
   cloudEnabled: boolean;
+  standalone?: boolean;
   syncing: boolean;
   readinessItems?: ReadinessItem[];
 }) {
@@ -73,39 +81,50 @@ export function SettingsTab({
   }
 
   return (
-    <div className="space-y-3">
-      <StrategySettingsForm settings={data.reportSettings} onSave={onSettingsChange} />
-
-      <SetupStatusPanel />
+    <>
+      <TabIntroBanner
+        title={tabLabel("settings")}
+        description="필수 확인 · 매매 전략 · API(선택) · 백업. 탭 이동은 하단 메뉴를 사용하세요."
+      />
 
       <DataReadinessPanel items={readinessItems} />
 
+      <AppPreferencesPanel />
+
+      <StrategySettingsForm settings={data.reportSettings} onSave={onSettingsChange} />
+
+      <ApiKeysPanel standalone={standalone} cloudEnabled={cloudEnabled} user={user} />
+
       <PanelCard>
-        <PageSectionTitle>매매 데이터</PageSectionTitle>
-        <p className="mt-1 text-xs text-ink-muted">③ 기록 — 증권사 체결 CSV 가져오기 · 일일 리포트 복사</p>
+        <AreaCardHeader
+          title="매매 데이터"
+          subtitle={`「${tabLabel("records")}」 — 증권사 체결 CSV · 일일 리포트 복사`}
+        />
         <div className="mt-3 space-y-3">
           <CsvImportPanel stocks={data.stocks} trades={data.trades} onImport={onImportCsv} />
-          <button type="button" onClick={copyReport} className="text-xs font-bold text-gain hover:underline">
+          <BtnTextAction type="button" onClick={copyReport} className="text-xs font-bold">
             {copied ? "리포트 텍스트 복사됨" : "일일 리포트 텍스트 복사"}
-          </button>
+          </BtnTextAction>
         </div>
       </PanelCard>
 
+      {standalone ? <DataBackupPanel data={data} onRestore={onRestoreBackup} /> : null}
+
       <PanelCard>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <PageSectionTitle>시장·뉴스 (① 보조)</PageSectionTitle>
-          <BtnSecondary onClick={onBriefingRefresh} disabled={briefingLoading}>
-            {briefingLoading ? "불러오는 중…" : "뉴스 새로고침"}
-          </BtnSecondary>
-        </div>
-        {briefingError && <p className="mt-2 text-xs text-amber-800">{briefingError}</p>}
+        <TabSectionHeader
+          title="시장·뉴스 (보조)"
+          actions={
+            <RefreshButton kind="briefing" loading={briefingLoading} onClick={onBriefingRefresh} disabled={briefingLoading} />
+          }
+        />
+        {briefingError && <p className="mt-2 text-xs text-amber-200">{briefingError}</p>}
 
         {marketContext?.globalIndices.length ? (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {marketContext.globalIndices.map((idx) => (
               <span
                 key={idx.symbol}
-                className={`rounded-lg bg-surface-dim/50 px-2 py-1 text-xs tabular-nums ${
+                className={`rounded-lg bg-white/10 px-2 py-1 text-xs tabular-nums ${
                   idx.changeRate >= 0 ? "text-gain" : "text-loss"
                 }`}
               >
@@ -115,59 +134,84 @@ export function SettingsTab({
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-sm text-ink-muted">뉴스 새로고침을 눌러 시장 정보를 불러오세요.</p>
+          <p className="mt-3 text-sm text-zinc-300">「뉴스·거시」로 시장·뉴스 정보를 불러오세요.</p>
         )}
 
         {marketContext?.marketNews.length ? (
           <ul className="mt-3 space-y-2">
-            {marketContext.marketNews.slice(0, 8).map((n, i) => (
+            {marketContext.marketNews.slice(0, 8).map((n, i) => {
+              const safeHref = sanitizeExternalUrl(n.link);
+              return (
               <li key={`news-${i}`}>
+                {safeHref ? (
                 <a
-                  href={n.link}
+                  href={safeHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-ink-muted hover:text-gain"
+                  className="text-sm text-zinc-300 hover:text-gain"
                 >
                   {n.title}
                 </a>
+                ) : (
+                  <span className="text-sm text-zinc-300">{n.title}</span>
+                )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         ) : null}
       </PanelCard>
 
-      <div className="rounded-lg border border-dashed border-line bg-surface-dim/40 px-3 py-2.5">
-        <Link href="/brand-preview" className="text-xs font-bold text-gain hover:underline">
-          M tock Brand Guidelines →
-        </Link>
-      </div>
+      {!standalone && (
+        <div className="ui-inner-block border border-dashed border-white/10 px-3 py-2.5">
+          <Link href="/brand-preview" className="text-xs font-bold text-gain hover:underline">
+            M tock Brand Guidelines →
+          </Link>
+        </div>
+      )}
 
-      <PanelCard>
-        <PageSectionTitle>계정 · 동기화</PageSectionTitle>
-        <div className="mt-2 space-y-2 text-sm text-ink-muted">
-          {cloudEnabled && user ? (
-            <>
-              <p className="truncate" title={user.email ?? ""}>
-                {user.email}
-              </p>
-              <p className="text-xs text-gain">클라우드 {syncing ? "저장 중…" : "동기화"}</p>
-            </>
-          ) : (
-            <p className="text-xs">로컬 저장 · .env 설정 시 클라우드 동기화</p>
-          )}
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {user && (
-            <BtnSecondary onClick={signOut}>로그아웃</BtnSecondary>
-          )}
-          <BtnSecondary onClick={onResetDemo} className="text-ink-muted">
-            샘플 초기화
-          </BtnSecondary>
-        </div>
-      </PanelCard>
-      <p className="text-center text-[10px] text-ink-muted/70">
-        mtock v{APP_VERSION} · 로컬 실행 중이면 START.bat 재실행 · Vercel은 git push 후 2~3분
+      {!standalone && (
+        <PanelCard>
+          <AreaCardHeader title="계정 · 동기화" />
+          <div className="mt-2 space-y-2 text-sm text-zinc-300">
+            {cloudEnabled && user ? (
+              <>
+                <p className="truncate" title={user.email ?? ""}>
+                  {user.email}
+                </p>
+                <p className="text-xs text-gain">클라우드 {syncing ? "저장 중…" : "동기화"}</p>
+              </>
+            ) : (
+              <p className="text-xs">로컬 저장 · .env 설정 시 클라우드 동기화</p>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {user && <BtnCancel onClick={signOut}>로그아웃</BtnCancel>}
+            <BtnReset onClick={onResetDemo} className="text-zinc-300">
+              샘플 초기화
+            </BtnReset>
+          </div>
+        </PanelCard>
+      )}
+
+      {standalone && (
+        <PanelCard>
+          <AreaCardHeader title="내 데이터" />
+          <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
+            기록은 이 기기에만 저장됩니다. 다른 PC·모바일에서 쓰려면 위 「다른 기기로 데이터
+            옮기기」를 이용하세요.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <BtnCreate onClick={onResetDemo}>샘플 데이터 불러오기</BtnCreate>
+          </div>
+        </PanelCard>
+      )}
+
+      <p className="text-center text-[10px] text-zinc-300">
+        {standalone
+          ? `mtock v${APP_VERSION} · 로컬 전용 · 외부 클라우드 없음 · START.bat`
+          : `mtock v${APP_VERSION} · 개발/웹 빌드`}
       </p>
-    </div>
+    </>
   );
 }

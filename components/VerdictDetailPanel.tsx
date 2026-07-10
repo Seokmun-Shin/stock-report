@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { SideVerdict, VerdictGateDetail } from "@/lib/briefing/tradingVerdict";
+import { pickDetailZone, DetailZoneLabel, innerBlock } from "@/components/ui/PanelCard";
+import { SectionCollapseToggle } from "@/components/CollapsibleSection";
 
 function GateChips({ gates }: { gates: VerdictGateDetail }) {
   const items: { label: string; on: boolean; warn?: boolean }[] = [
@@ -14,7 +16,7 @@ function GateChips({ gates }: { gates: VerdictGateDetail }) {
     { label: "지수 하락", on: gates.marketDown, warn: true },
   ];
   const active = items.filter((i) => i.on);
-  if (active.length === 0) return <p className="text-[11px] text-ink-muted">특별한 시장 게이트 없음</p>;
+  if (active.length === 0) return <p className="ui-fg-secondary text-[11px]">특별한 시장 게이트 없음</p>;
 
   return (
     <div className="flex flex-wrap gap-1">
@@ -22,7 +24,7 @@ function GateChips({ gates }: { gates: VerdictGateDetail }) {
         <span
           key={i.label}
           className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-            i.warn ? "bg-amber-100 text-amber-900" : "bg-surface-dim text-ink-muted"
+            i.warn ? "bg-amber-500/15 text-amber-600" : "ui-gate-chip-idle"
           }`}
         >
           {i.label}
@@ -37,24 +39,24 @@ function SideDetailBlock({ title, verdict, accent }: { title: string; verdict: S
   if (!d || verdict.stance === "skip") return null;
 
   return (
-    <div className="rounded-lg border border-line/80 bg-surface-dim/30 px-3 py-2.5">
+    <div className="ui-inner-block">
       <p className={`text-xs font-bold ${accent}`}>{title}</p>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] tabular-nums text-ink-muted">
+      <div className="ui-fg-secondary mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] tabular-nums">
         <span>
-          점수 <strong className="text-ink">{d.effectiveScore ?? d.rawScore}</strong>
+          점수 <strong className="ui-fg-primary">{d.effectiveScore ?? d.rawScore}</strong>
           {d.effectiveScore != null && d.effectiveScore !== d.rawScore && (
             <span className="ml-1 text-[10px]">(원 {d.rawScore})</span>
           )}
         </span>
         <span>
-          확신도 <strong className="text-ink">{verdict.confidence}%</strong>
+          확신도 <strong className="ui-fg-primary">{verdict.confidence}%</strong>
         </span>
         <span>
-          데이터 <strong className="text-ink">{Math.round(verdict.dataQuality * 100)}%</strong>
+          데이터 <strong className="ui-fg-primary">{Math.round(verdict.dataQuality * 100)}%</strong>
         </span>
         {verdict.timing !== "skip" && (
           <span>
-            시점 <strong className="text-ink">{verdict.when}</strong>
+            시점 <strong className="ui-fg-primary">{verdict.when}</strong>
           </span>
         )}
       </div>
@@ -64,7 +66,7 @@ function SideDetailBlock({ title, verdict, accent }: { title: string; verdict: S
         </div>
       )}
       {d.factors.length > 0 && (
-        <ul className="mt-2 space-y-1 text-[11px] leading-snug text-ink-muted">
+        <ul className="ui-fg-secondary mt-2 space-y-1 text-[11px] leading-snug">
           {d.factors.slice(0, 6).map((f, i) => (
             <li key={i} className="flex justify-between gap-2">
               <span className="min-w-0 flex-1">{f.text}</span>
@@ -87,24 +89,27 @@ export function VerdictDetailPanel({ buy, sell }: { buy: SideVerdict; sell: Side
   if (!hasDetail) return null;
 
   return (
-    <div className="rounded-xl border border-line bg-white">
+    <section className={pickDetailZone}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-3 py-2.5 text-left text-xs font-semibold text-gain hover:bg-surface-dim/30"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 text-left"
       >
-        판단 근거 상세 (점수·게이트·요인)
-        <span className="text-ink-muted">{open ? "▲" : "▼"}</span>
+        <DetailZoneLabel className="!mb-0 text-gain normal-case tracking-normal">
+          판단 근거 상세 (점수·게이트·요인)
+        </DetailZoneLabel>
+        <SectionCollapseToggle open={open} />
       </button>
       {open && (
-        <div className="space-y-2 border-t border-line px-3 py-3">
+        <div className="mt-3 space-y-2">
           <SideDetailBlock title="매수" verdict={buy} accent="text-gain" />
           <SideDetailBlock title="매도" verdict={sell} accent="text-loss" />
-          <p className="text-[10px] leading-relaxed text-ink-muted">
+          <p className="ui-fg-muted text-[10px] leading-relaxed">
             점수는 시세·매매기록·시장 데이터를 합산한 참고값입니다. 투자 조언·수익 보장이 아닙니다.
           </p>
         </div>
       )}
-    </div>
+    </section>
   );
 }

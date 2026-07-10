@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AppData, KospiBenchmark, Stock, StockQuote } from "@/lib/types";
-
-const AUTO_REFRESH_MS = 60_000;
+import { authedFetch } from "@/lib/client/authedFetch";
 
 function formatTime(d: Date): string {
   return d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-/** KRX 정규장 대략적 여부 (09:00~15:30, 월~금) — 자동 갱신 힌트용 */
+/** KRX 정규장 대략적 여부 (09:00~15:30, 월~금) — 상태 표시용 */
 export function isKrxMarketOpen(now = new Date()): boolean {
   const kst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   const day = kst.getDay();
@@ -32,7 +31,6 @@ export function useKisPrices(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
   const onApplyRef = useRef(onApply);
   onApplyRef.current = onApply;
 
@@ -41,7 +39,7 @@ export function useKisPrices(
 
     async function checkStatus(attempt = 0) {
       try {
-        const res = await fetch("/api/stock-prices", { cache: "no-store" });
+        const res = await authedFetch("/api/stock-prices", { cache: "no-store" });
         const d = (await res.json()) as { configured?: boolean };
         if (cancelled) return;
         const ok = !!d.configured;
@@ -64,16 +62,6 @@ export function useKisPrices(
     };
   }, []);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("stock-report-kis-auto");
-    if (saved === "false") setAutoRefresh(false);
-  }, []);
-
-  const setAutoRefreshPersist = useCallback((v: boolean) => {
-    setAutoRefresh(v);
-    localStorage.setItem("stock-report-kis-auto", v ? "true" : "false");
-  }, []);
-
   const refresh = useCallback(async () => {
     const coded = stocks.filter((s) => s.code?.trim());
     if (coded.length === 0) {
@@ -85,7 +73,7 @@ export function useKisPrices(
     setError(null);
 
     try {
-      const res = await fetch("/api/stock-prices", {
+      const res = await authedFetch("/api/stock-prices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ codes: coded.map((s) => s.code!.trim()), includeKospi: true }),
@@ -147,32 +135,11 @@ export function useKisPrices(
     }
   }, [stocks]);
 
-  useEffect(() => {
-    if (!autoRefresh || configured === null) return;
-    const tick = () => {
-      if (isKrxMarketOpen()) void refresh();
-    };
-    tick();
-    const id = window.setInterval(tick, AUTO_REFRESH_MS);
-    return () => window.clearInterval(id);
-  }, [autoRefresh, configured, refresh]);
-
-  /** 앱 열 때 1회 시세 조회 (KIS 또는 Yahoo) */
-  const initialFetchRef = useRef(false);
-  useEffect(() => {
-    if (configured === null || initialFetchRef.current) return;
-    if (stocks.filter((s) => s.code?.trim()).length === 0) return;
-    initialFetchRef.current = true;
-    void refresh();
-  }, [configured, stocks, refresh]);
-
   return {
     configured,
     loading,
     error,
     lastUpdated,
-    autoRefresh,
-    setAutoRefresh: setAutoRefreshPersist,
     refresh,
     codedCount: stocks.filter((s) => s.code?.trim()).length,
   };

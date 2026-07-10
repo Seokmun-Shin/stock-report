@@ -2,11 +2,13 @@
 
 import type { WatchlistItem } from "@/lib/types";
 import {
-  AreaSectionHeader,
-  AreaSectionSubtitle,
-  AreaSectionTitle,
-  HeaderActionButton,
+  AreaCardHeader,
+  BtnCreate,
+  BtnDelete,
+  listDivide,
+  panelBody,
   panelShell,
+  pickDetailZone,
 } from "@/components/ui/PanelCard";
 
 export function WatchlistPanel({
@@ -21,35 +23,28 @@ export function WatchlistPanel({
   if (items.length === 0) return null;
 
   return (
-    <section className={panelShell}>
-      <AreaSectionHeader>
-        <div>
-          <AreaSectionTitle>내 관심종목</AreaSectionTitle>
-          <AreaSectionSubtitle>매매 기록 없이 추적 · 보유 등록 시 포트폴리오로 이동</AreaSectionSubtitle>
-        </div>
-      </AreaSectionHeader>
+    <section className={`${panelShell} ${panelBody}`}>
+      <AreaCardHeader
+        title="내 관심종목"
+        subtitle="매매 기록 없이 추적 · 보유 등록 시 포트폴리오로 이동"
+      />
 
-      <ul className="divide-y divide-line border-t border-line">
+      <ul className={`${pickDetailZone} ${listDivide}`}>
         {items.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-2 px-3 py-2.5 sm:px-4">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-ink">{item.name}</p>
-              <p className="text-[10px] tabular-nums text-ink-muted">{item.code}</p>
+              <p className="truncate text-sm font-semibold text-white">{item.name}</p>
+              <p className="text-[10px] tabular-nums text-zinc-300">{item.code}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
-              <HeaderActionButton
+              <BtnCreate
                 onClick={() => onAddToPortfolio(item.code, item.name)}
                 title="포트폴리오에 등록"
+                className="px-2 py-1 text-xs"
               >
                 + 보유
-              </HeaderActionButton>
-              <button
-                type="button"
-                onClick={() => onRemove(item.id)}
-                className="rounded-lg px-2 py-1 text-[10px] font-medium text-ink-muted hover:bg-surface-dim hover:text-loss"
-              >
-                삭제
-              </button>
+              </BtnCreate>
+              <BtnDelete onClick={() => onRemove(item.id)} className="px-2 py-1 text-[10px]" />
             </div>
           </li>
         ))}
@@ -57,3 +52,4 @@ export function WatchlistPanel({
     </section>
   );
 }
+

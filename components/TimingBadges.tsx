@@ -19,15 +19,15 @@ export function actionBadgeClass(action: TradeRecommendation["action"]) {
 }
 
 export function actionSoftClass(action: TradeRecommendation["action"]) {
-  if (action === "buy") return "border-gain/40 bg-gain-soft/30";
-  if (action === "sell") return "border-loss/40 bg-loss-soft/30";
-  return "border-line bg-surface-dim/50";
+  if (action === "buy") return "ui-gain-chip rounded-xl bg-red-500/10 text-gain";
+  if (action === "sell") return "ui-loss-chip rounded-xl bg-blue-500/10 text-loss";
+  return "ui-inner-block rounded-xl text-zinc-300";
 }
 
 export function actionTextClass(action: TradeRecommendation["action"]) {
   if (action === "buy") return "text-gain";
   if (action === "sell") return "text-loss";
-  return "text-ink-muted";
+  return "text-zinc-300";
 }
 
 export function ActionBadge({ action, size = "sm" }: { action: TradeRecommendation["action"]; size?: "sm" | "lg" }) {

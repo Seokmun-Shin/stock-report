@@ -1,14 +1,20 @@
 "use client";
 
 import type { ReadinessItem } from "@/lib/dataReadiness";
-import { PanelCard, PageSectionTitle } from "@/components/ui/PanelCard";
+import {
+  PanelCard,
+  AreaCardHeader,
+  warnBanner,
+  innerBlock,
+  listDivide,
+} from "@/components/ui/PanelCard";
 
 export function DataReadinessPanel({ items }: { items: ReadinessItem[] }) {
   if (items.length === 0) {
     return (
       <PanelCard>
-        <PageSectionTitle>데이터 연동</PageSectionTitle>
-        <p className="mt-2 text-sm text-gain">필수 연동 항목이 모두 준비됐습니다.</p>
+        <AreaCardHeader title="필수 확인" subtitle="타이밍·손익에 필요한 항목이 준비됐습니다." />
+        <p className="mt-2 text-sm text-gain">추가 설정 없이 사용할 수 있습니다.</p>
       </PanelCard>
     );
   }
@@ -18,19 +24,15 @@ export function DataReadinessPanel({ items }: { items: ReadinessItem[] }) {
 
   return (
     <PanelCard>
-      <PageSectionTitle>데이터 연동 점검</PageSectionTitle>
-      <p className="mt-1 text-xs text-ink-muted">
-        「— (없음)」「미설정」이 보일 때 아래 항목을 순서대로 확인하세요.
-      </p>
-      <ul className="mt-3 space-y-2">
+      <AreaCardHeader
+        title="필수 확인"
+        subtitle="아래를 순서대로 하면 기록·타이밍·원천 데이터가 정확해집니다. API는 선택입니다."
+      />
+      <ul className={`mt-3 ${listDivide}`}>
         {[...warns, ...infos].map((item) => (
           <li
             key={item.id}
-            className={`rounded-lg border px-3 py-2 text-sm ${
-              item.severity === "warn"
-                ? "border-amber-200 bg-amber-50/80 text-amber-950"
-                : "border-line/80 bg-surface-dim/40 text-ink-muted"
-            }`}
+            className={`py-2.5 text-sm ${item.severity === "warn" ? `${warnBanner} !rounded-lg` : innerBlock}`}
           >
             <p className="font-medium">{item.message}</p>
             {item.action && <p className="mt-0.5 text-xs opacity-90">→ {item.action}</p>}
@@ -46,17 +48,15 @@ export function DataReadinessBanner({ items }: { items: ReadinessItem[] }) {
   if (warns.length === 0) return null;
 
   return (
-    <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2.5 text-xs text-amber-950">
-      <p className="font-bold">데이터 연동 {warns.length}건 확인 필요</p>
-      <ul className="mt-1 space-y-0.5">
+    <div className={`mb-3 ${warnBanner}`}>
+      <p className="font-bold">확인 {warns.length}건 — 타이밍·손익 정확도에 영향</p>
+      <ul className="ui-warn-body mt-1 space-y-0.5 text-xs">
         {warns.slice(0, 3).map((w) => (
-          <li key={w.id}>
-            · {w.message}
-            {w.action ? ` — ${w.action}` : ""}
-          </li>
+          <li key={w.id}>· {w.message}</li>
         ))}
-        {warns.length > 3 && <li>· 외 {warns.length - 3}건 — ⑤ 설정에서 전체 확인</li>}
+        {warns.length > 3 && <li>· 외 {warns.length - 3}건 — 「설정!」에서 전체 확인</li>}
       </ul>
     </div>
   );
 }
+

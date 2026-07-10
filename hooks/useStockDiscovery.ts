@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { MarketBriefingContext } from "@/lib/briefing/types";
 import type { StockDiscoveryReport } from "@/lib/briefing/stockDiscovery";
+import { authedFetch } from "@/lib/client/authedFetch";
 
 const CACHE_KEY = "mtock-discovery-cache";
 const CACHE_TTL_MS = 20 * 60 * 1000;
@@ -55,7 +56,7 @@ export function useStockDiscovery(
     setError(null);
 
     try {
-      const res = await fetch("/api/discovery", {
+      const res = await authedFetch("/api/discovery", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,15 +81,6 @@ export function useStockDiscovery(
       setLoading(false);
     }
   }, [portfolioCodes, portfolioKey, marketContext]);
-
-  const autoRef = useRef(false);
-  useEffect(() => {
-    if (autoRef.current) return;
-    autoRef.current = true;
-    if (report) return;
-    const t = window.setTimeout(() => void refresh(), 4_500);
-    return () => window.clearTimeout(t);
-  }, [portfolioKey, refresh, report]);
 
   useEffect(() => {
     const cached = readCache(portfolioKey);

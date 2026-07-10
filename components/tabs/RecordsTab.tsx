@@ -3,12 +3,13 @@
 import type { AppData, BuyTimingSignal, SellTimingSignal, Stock, StockSummary, Trade } from "@/lib/types";
 import type { TradeSuggestion } from "@/lib/briefing/tradeSuggestions";
 import type { ReportSettings } from "@/lib/reportSettings";
-import { TabIntroBanner, PanelCard, PageSectionTitle, AreaSectionTitle } from "@/components/ui/PanelCard";
+import { TabIntroBanner, PanelCard, AreaCardHeader, UI, BtnCreate, BtnCancel } from "@/components/ui/PanelCard";
 import { CsvImportPanel } from "@/components/CsvImportPanel";
 import type { ParsedTradeRow } from "@/lib/import/tradeCsv";
 import { StockDetailPanel } from "@/components/StockDetailPanel";
 import { TradeHistorySection } from "@/components/TradeSection";
 import { StockEventsPanel } from "@/components/StockEventsPanel";
+import { EmptyPortfolioGuide } from "@/components/EmptyPortfolioGuide";
 
 export function RecordsTab({
   data,
@@ -42,6 +43,8 @@ export function RecordsTab({
   sellSignal,
   reportSettings,
   onImportCsv,
+  standalone = false,
+  onBeginAddStock,
 }: {
   data: AppData;
   onPersist: (next: AppData) => void;
@@ -74,47 +77,41 @@ export function RecordsTab({
   sellSignal: SellTimingSignal | null;
   reportSettings?: Partial<ReportSettings>;
   onImportCsv?: (rows: ParsedTradeRow[]) => void;
+  standalone?: boolean;
+  onBeginAddStock?: () => void;
 }) {
   return (
-    <div className="space-y-3">
+    <>
       <TabIntroBanner
-        title="③ 체결 기록"
-        description="증권사 체결 입력 · 분할·배당은 DART 공시에서 자동 등록(데이터 새로고침 후)"
+        title="매매 기록·관리"
+        description="체결·종목을 맞춰 두면 타이밍·손익 판단의 기초가 됩니다. 하단 탭에서 「살까?팔까?」「왜?추천?」을 확인하세요."
       />
 
-      {onImportCsv && (
-        <PanelCard>
-          <PageSectionTitle>체결 일괄 가져오기</PageSectionTitle>
-          <p className="mt-1 text-xs text-ink-muted">미래에셋 HTS 체결 CSV (한투·키움 선택 가능) · 설정 탭과 동일</p>
-          <CsvImportPanel stocks={stocks} trades={data.trades} onImport={onImportCsv} />
-        </PanelCard>
+      {stocks.length === 0 && onBeginAddStock && (
+        <EmptyPortfolioGuide onAddStock={onBeginAddStock} standalone={standalone} />
       )}
 
       {addingStock && (
         <PanelCard>
-          <AreaSectionTitle as="span">종목 추가</AreaSectionTitle>
+          <AreaCardHeader as="h3" title="종목 추가" />
           <div className="mt-3 flex flex-wrap items-center gap-2">
-          <input
-            className="min-w-[120px] flex-1 rounded-lg border border-line bg-white px-3 py-2 text-sm"
-            placeholder="종목명 (필수)"
-            value={newStockName}
-            onChange={(e) => onNewStockNameChange(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onAddStock()}
-            autoFocus
-          />
-          <input
-            className="w-36 rounded-lg border border-line bg-white px-3 py-2 text-sm tabular-nums"
-            placeholder="코드 (KIS용)"
-            value={newStockCode}
-            onChange={(e) => onNewStockCodeChange(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onAddStock()}
-          />
-          <button type="button" onClick={onAddStock} className="rounded-lg bg-gain px-4 py-1.5 text-sm font-medium text-white">
-            추가
-          </button>
-          <button type="button" onClick={onCancelAddStock} className="rounded-lg border border-line px-4 py-1.5 text-sm text-ink-muted hover:bg-surface-dim">
-            취소
-          </button>
+            <input
+              className={`${UI.input} min-w-[120px] flex-1`}
+              placeholder="종목명 (필수)"
+              value={newStockName}
+              onChange={(e) => onNewStockNameChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onAddStock()}
+              autoFocus
+            />
+            <input
+              className={`${UI.input} w-36`}
+              placeholder="코드 (6자리, 시세용)"
+              value={newStockCode}
+              onChange={(e) => onNewStockCodeChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onAddStock()}
+            />
+            <BtnCreate onClick={onAddStock}>추가</BtnCreate>
+            <BtnCancel onClick={onCancelAddStock} />
           </div>
         </PanelCard>
       )}
@@ -147,6 +144,16 @@ export function RecordsTab({
           <StockEventsPanel data={data} activeStock={activeStock} onPersist={onPersist} />
         )}
       </StockDetailPanel>
-    </div>
+
+      {onImportCsv && (
+        <PanelCard>
+          <AreaCardHeader
+            title="체결 일괄 가져오기"
+            subtitle="미래에셋 HTS 체결 CSV (한투·키움 선택 가능) · 설정 탭과 동일"
+          />
+          <CsvImportPanel stocks={stocks} trades={data.trades} onImport={onImportCsv} />
+        </PanelCard>
+      )}
+    </>
   );
 }

@@ -2,9 +2,11 @@
 
 import { useMemo } from "react";
 import { fmtPct } from "@/lib/calc";
+import { tabLabel } from "@/lib/appTabs";
 import type { DailySnapshot } from "@/lib/types";
 import { usePortfolioBenchmark } from "@/hooks/usePortfolioBenchmark";
-import { panelHeaderBar, panelShell, AreaSectionSubtitle, AreaSectionTitle } from "@/components/ui/PanelCard";
+import { DARK_CHART } from "@/lib/chartTheme";
+import { pickCard, pickDetailZone, AreaCardHeader } from "@/components/ui/PanelCard";
 
 const CHART = { w: 640, h: 160, padL: 28, padR: 4, padT: 10, padB: 20 };
 const AXIS_FONT = 8;
@@ -78,24 +80,29 @@ export function PortfolioBenchmarkChart({ dailySnapshots }: { dailySnapshots?: D
   }, [data]);
 
   return (
-    <section className={panelShell}>
-      <div className={panelHeaderBar}>
-        <AreaSectionTitle as="h2">포트폴리오 vs KOSPI</AreaSectionTitle>
-        <AreaSectionSubtitle>
-          일별 스냅샷 기준 누적 수익률(지수 100) · 최대 90일
-          {data?.fetchedAt && (
-            <>
-              {" · "}
-              {new Date(data.fetchedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 갱신
-            </>
-          )}
-        </AreaSectionSubtitle>
+    <section className={pickCard}>
+      <AreaCardHeader
+        as="h2"
+        title="포트폴리오 vs KOSPI"
+        meta={
+          <>
+            일별 스냅샷 기준 누적 수익률(지수 100) · 최대 90일
+            {data?.fetchedAt && (
+              <>
+                {" · "}
+                {new Date(data.fetchedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 갱신
+              </>
+            )}
+          </>
+        }
+      />
 
+      <div className={`${pickDetailZone} overflow-hidden`}>
         {data && data.portfolioIndex.length >= 2 && (
-          <div className="mt-2 flex flex-wrap gap-3 text-xs tabular-nums">
+          <div className="mb-3 flex flex-wrap gap-3 text-xs tabular-nums">
             <span className="font-semibold text-gain">내 수익 {fmtPct(data.portfolioChangePct)}</span>
             {chart?.hasKospi && (
-              <span className="font-semibold text-ink-muted">KOSPI {fmtPct(data.kospiChangePct)}</span>
+              <span className="font-semibold text-zinc-300">KOSPI {fmtPct(data.kospiChangePct)}</span>
             )}
             {data.alpha != null && (
               <span className={`font-bold ${data.alpha >= 0 ? "text-gain" : "text-loss"}`}>
@@ -105,43 +112,40 @@ export function PortfolioBenchmarkChart({ dailySnapshots }: { dailySnapshots?: D
             )}
           </div>
         )}
-      </div>
-
-      <div className="border-t border-line">
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-ink-muted/50" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-zinc-500/50" />
           </div>
         )}
 
         {error && !loading && (
-          <p className="px-3 py-8 text-center text-xs text-amber-800">
+          <p className="px-3 py-8 text-center text-xs text-amber-200">
             {error}
             {snapCount >= 2 && (
-              <span className="mt-1 block text-ink-muted">
-                KOSPI 외부 조회 실패 시 스냅샷 데이터만으로 표시됩니다. ① 판단 탭에서 시세를 새로고침해 주세요.
+              <span className="mt-1 block text-zinc-300">
+                KOSPI 외부 조회 실패 시 스냅샷 데이터만으로 표시됩니다. 「{tabLabel("verdict")}」 탭에서 시세를 새로고침해 주세요.
               </span>
             )}
           </p>
         )}
 
         {!loading && snapCount < 2 && (
-          <p className="px-3 py-8 text-center text-xs text-ink-muted">
+          <p className="px-3 py-8 text-center text-xs text-zinc-300">
             앱을 2일 이상 사용하면 일별 스냅샷이 쌓여 비교 차트가 표시됩니다. (현재 {snapCount}일)
           </p>
         )}
 
         {!loading && snapCount >= 2 && chart && (
           <>
-            <svg viewBox={`0 0 ${CHART.w} ${CHART.h}`} className="block w-full touch-none select-none" role="img" aria-label="포트폴리오 KOSPI 비교 차트">
-              <rect x="0" y="0" width={CHART.w} height={CHART.h} fill="#f8fafc" />
+            <svg viewBox={`0 0 ${CHART.w} ${CHART.h}`} className="block w-full touch-none select-none bg-black" role="img" aria-label="포트폴리오 KOSPI 비교 차트">
+              <rect x="0" y="0" width={CHART.w} height={CHART.h} fill={DARK_CHART.plot} />
               <rect
                 x={CHART.padL}
                 y={CHART.padT}
                 width={CHART.w - CHART.padL - CHART.padR}
                 height={CHART.h - CHART.padT - CHART.padB}
-                fill="#ffffff"
-                stroke="#e8edf2"
+                fill={DARK_CHART.plotInner}
+                stroke={DARK_CHART.plotEdge}
                 strokeWidth="0.35"
               />
 
@@ -152,16 +156,16 @@ export function PortfolioBenchmarkChart({ dailySnapshots }: { dailySnapshots?: D
                     x2={CHART.w - CHART.padR}
                     y1={t.y}
                     y2={t.y}
-                    stroke="#eef2f6"
+                    stroke={DARK_CHART.grid}
                     strokeWidth="0.5"
                     strokeDasharray="1.5 4"
-                    opacity="0.7"
+                    opacity="0.85"
                   />
                   <text
                     x={CHART.padL - 3}
                     y={yAxisLabelY(t.y, i, chart.yTicks.length)}
                     textAnchor="end"
-                    fill="#64748b"
+                    fill={DARK_CHART.axis}
                     fontSize={AXIS_FONT}
                     fontWeight="500"
                   >
@@ -171,27 +175,26 @@ export function PortfolioBenchmarkChart({ dailySnapshots }: { dailySnapshots?: D
               ))}
 
               {chart.hasKospi && chart.kospiPath && (
-                <path d={chart.kospiPath} fill="none" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3 3" opacity="0.75" />
+                <path d={chart.kospiPath} fill="none" stroke={DARK_CHART.kospi} strokeWidth="1" strokeDasharray="3 3" opacity="0.85" />
               )}
 
               <path
                 d={chart.portfolioPath}
                 fill="none"
-                stroke="#dc2626"
+                stroke={DARK_CHART.portfolio}
                 strokeWidth="1.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity="0.9"
               />
 
               {chart.xTicks.map((t) => (
-                <text key={t.label + t.x} x={t.x} y={xAxisLabelY()} textAnchor="middle" fill="#64748b" fontSize={AXIS_FONT} fontWeight="500">
+                <text key={t.label + t.x} x={t.x} y={xAxisLabelY()} textAnchor="middle" fill={DARK_CHART.axis} fontSize={AXIS_FONT} fontWeight="500">
                   {t.label}
                 </text>
               ))}
             </svg>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-4 border-t border-line/40 px-3 py-2 text-[10px] text-slate-600">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 border-t border-white/10 px-3 py-2 text-[10px] text-zinc-400">
               <span className="inline-flex items-center gap-1.5">
                 <span className="inline-block h-0 w-4 border-t-2 border-gain" />
                 내 포트폴리오

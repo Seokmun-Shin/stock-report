@@ -11,6 +11,7 @@ out/
 .env
 .env.local
 .env*.local
+data/local-secrets.json
 
 # debug
 npm-debug.log*

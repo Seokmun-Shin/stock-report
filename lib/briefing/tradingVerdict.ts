@@ -27,6 +27,7 @@ import {
   refineSellPrices,
   type VerdictGateContext,
 } from "./verdictGates";
+import { buildBuyVerdictCopy, buildSellVerdictCopy, type VerdictPanelCopy } from "./verdictDisplay";
 
 export type { VerdictBuildContext };
 
@@ -71,6 +72,8 @@ export interface SideVerdict {
   reasons: string[];
   /** 0~1 — 입력 데이터 충족도 */
   dataQuality: number;
+  /** 대시보드 패널 — 헤드라인 + 고정 3행 부가 정보 */
+  panel?: VerdictPanelCopy;
   sellProfitPreview?: SellProfitPreview;
   detail?: VerdictSideDetail;
 }
@@ -735,32 +738,40 @@ export function buildStockTradingVerdict(
         gates: buildGateDetail(gateCtx),
       },
     };
+    const sellCopy = buildSellVerdictCopy(summary, price, sell);
+    sell.panel = sellCopy;
   }
+
+  const buySideBase = {
+    ...buyMap,
+    targetPrice: buyZone.suggested,
+    priceRange: { min: buyZone.min, max: buyZone.max },
+    confidence: calcConfidence(
+      effectiveBuyScore,
+      buyMap.stance,
+      buyFactors.length,
+      buyDataQ,
+      buyZoneRaw.anchorCount,
+      !!quote
+    ),
+    dataQuality: buyDataQ,
+    reasons: buyReasons.length ? buyReasons : ["시세·매매 기록을 불러오는 중"],
+    detail: {
+      rawScore: buyScore,
+      effectiveScore: effectiveBuyScore,
+      factors: buildFactorDetails(buyFactors),
+      gates: buildGateDetail(gateCtx),
+    },
+  };
+  const buyCopy = buildBuyVerdictCopy(summary, price, buySideBase);
 
   return {
     stockId: summary.stockId,
     stockName: summary.stockName,
     currentPrice: price,
     buy: {
-      ...buyMap,
-      targetPrice: buyZone.suggested,
-      priceRange: { min: buyZone.min, max: buyZone.max },
-      confidence: calcConfidence(
-        effectiveBuyScore,
-        buyMap.stance,
-        buyFactors.length,
-        buyDataQ,
-        buyZoneRaw.anchorCount,
-        !!quote
-      ),
-      dataQuality: buyDataQ,
-      reasons: buyReasons.length ? buyReasons : ["시세·매매 기록을 불러오는 중"],
-      detail: {
-        rawScore: buyScore,
-        effectiveScore: effectiveBuyScore,
-        factors: buildFactorDetails(buyFactors),
-        gates: buildGateDetail(gateCtx),
-      },
+      ...buySideBase,
+      panel: buyCopy,
     },
     sell,
   };

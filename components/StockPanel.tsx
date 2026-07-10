@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import type { BuyTimingSignal, SellTimingSignal, Stock, StockQuote, StockSummary } from "@/lib/types";
 import { BackToSummaryIcon, StockMiniCards } from "./StockMiniCards";
 import { StockSummaryList } from "./StockSummaryView";
-import { HeaderActionButton, PanelHeaderActions } from "./ui/PanelCard";
+import { BtnEdit, BtnDelete, PanelHeaderActions, panelShell } from "./ui/PanelCard";
 
 export function StockPanel({
   stocks,
@@ -48,15 +48,15 @@ export function StockPanel({
 
   if (view === "detail" && active) {
     return (
-      <section className="min-w-0 overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-line px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+      <section className={`min-w-0 overflow-hidden ${panelShell}`}>
+        <div className="flex flex-col gap-3 border-b border-white/10 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <BackToSummaryIcon onClick={() => setView("summary")} />
             <div className="min-w-0 flex-1">
-              <h2 className="truncate text-base font-semibold text-ink sm:text-xl">
+              <h2 className="truncate text-base font-semibold text-white sm:text-xl">
                 {active.name}
                 {active.code && (
-                  <span className="ml-1.5 text-sm font-semibold tabular-nums text-ink-muted sm:ml-2 sm:text-lg">
+                  <span className="ml-1.5 text-sm font-semibold tabular-nums text-zinc-300 sm:ml-2 sm:text-lg">
                     {active.code}
                   </span>
                 )}
@@ -64,16 +64,14 @@ export function StockPanel({
             </div>
           </div>
           <PanelHeaderActions className="self-end sm:self-auto">
-            <HeaderActionButton onClick={() => onEdit(active)}>이름 수정</HeaderActionButton>
-            <HeaderActionButton variant="danger" onClick={() => handleDelete(active.id)}>
-              삭제
-            </HeaderActionButton>
+            <BtnEdit onClick={() => onEdit(active)}>이름 수정</BtnEdit>
+            <BtnDelete onClick={() => handleDelete(active.id)} />
           </PanelHeaderActions>
         </div>
 
         <div className="px-3 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4">
           <div className="min-w-0 overflow-hidden rounded-xl border border-gain/50 bg-white">
-            <div className="overflow-x-auto bg-surface-dim px-2 pb-0 pt-3 sm:px-3">
+            <div className="overflow-x-auto bg-white/10 px-2 pb-0 pt-3 sm:px-3">
               <StockMiniCards
                 stocks={stocks}
                 summaries={summaries}
@@ -93,8 +91,8 @@ export function StockPanel({
   }
 
   return (
-    <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm">
-      <h2 className="border-b border-line px-3 py-3 text-base font-semibold text-ink sm:px-5 sm:py-3.5 sm:text-lg">종목 Summary</h2>
+    <section className={`min-w-0 overflow-hidden ${panelShell}`}>
+      <h2 className="border-b border-white/10 px-3 py-3 text-base font-semibold text-white sm:px-5 sm:py-3.5 sm:text-lg">종목 Summary</h2>
 
       <div className="min-w-0 p-3 pt-3 sm:p-5 sm:pt-4">
         <StockSummaryList
@@ -108,7 +106,7 @@ export function StockPanel({
         <button
           type="button"
           onClick={onAdd}
-          className="mt-2 w-full rounded-xl border-2 border-dashed border-line py-2.5 text-sm font-semibold text-ink-muted hover:border-gain hover:text-gain"
+          className="mt-2 w-full rounded-xl border-2 border-dashed border-white/10 py-2.5 text-sm font-semibold text-zinc-300 hover:border-gain hover:text-gain"
         >
           + 종목
         </button>

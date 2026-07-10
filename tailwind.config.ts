@@ -7,8 +7,16 @@ const config: Config = {
       colors: {
         ink: { DEFAULT: "#0f172a", muted: "#64748b" },
         /** gain=상승·이익(빨강), loss=하락·손실(파랑) — globals.css 변수와 동기화 */
-        gain: { DEFAULT: "var(--market-up)", soft: "var(--market-up-soft)" },
-        loss: { DEFAULT: "var(--market-down)", soft: "var(--market-down-soft)" },
+        gain: {
+          DEFAULT: "var(--market-up)",
+          text: "var(--market-up-text)",
+          soft: "var(--market-up-soft)",
+        },
+        loss: {
+          DEFAULT: "var(--market-down)",
+          text: "var(--market-down-text)",
+          soft: "var(--market-down-soft)",
+        },
         surface: { DEFAULT: "#ffffff", dim: "#f8fafc" },
         line: "#e2e8f0",
       },

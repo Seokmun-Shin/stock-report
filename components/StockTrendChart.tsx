@@ -12,24 +12,26 @@ import {
 import type { StockHistoryPayload } from "@/hooks/useStockHistory";
 import type { Trade } from "@/lib/types";
 import { matchTradesToChart } from "@/lib/chartTrades";
-import { panelHeaderBar, panelShell, UI, AreaSectionSubtitle, AreaSectionTitle } from "@/components/ui/PanelCard";
+import { DARK_CHART } from "@/lib/chartTheme";
+import { pickCard, pickDetailZone, AreaCardHeader, UI } from "@/components/ui/PanelCard";
 
 /** globals.css --market-* · tailwind gain/loss 와 동기화 */
 const MARKET = {
-  up: "#dc2626",
-  down: "#2563eb",
+  up: "#ff4444",
+  down: "#4d9fff",
   upSoft: "#fef2f2",
   downSoft: "#eff6ff",
 } as const;
 
 const CHART_THEME = {
-  plot: "#f8fafc",
-  plotEdge: "#e8edf2",
-  grid: "#eef2f6",
-  axis: "#64748b",
-  kospi: "#cbd5e1",
-  avgCost: "#f59e0b",
-  crosshair: "#94a3b8",
+  plot: DARK_CHART.plot,
+  plotEdge: DARK_CHART.plotEdge,
+  grid: DARK_CHART.grid,
+  axis: DARK_CHART.axis,
+  kospi: DARK_CHART.kospi,
+  avgCost: DARK_CHART.avgCost,
+  crosshair: DARK_CHART.crosshair,
+  plotInner: DARK_CHART.plotInner,
 } as const;
 
 const CHART = { w: 640, h: 182, padL: 28, padR: 3, padT: 8, padB: 20 };
@@ -118,7 +120,7 @@ function ChartTabRow<T extends string>({
   ariaLabel: string;
 }) {
   return (
-    <div className="inline-flex items-end gap-2 border-b border-line/80" role="tablist" aria-label={ariaLabel}>
+    <div className="inline-flex items-end gap-2 border-b border-white/10" role="tablist" aria-label={ariaLabel}>
       {items.map((id) => {
         const selected = id === active;
         return (
@@ -129,7 +131,7 @@ function ChartTabRow<T extends string>({
             aria-selected={selected}
             onClick={() => onChange(id)}
             className={`relative -mb-px flex h-6 min-w-[1.75rem] items-center justify-center px-0.5 pb-1 text-xs leading-none tabular-nums transition sm:text-[13px] ${
-              selected ? "font-bold text-ink" : "font-medium text-ink-muted hover:text-ink"
+              selected ? "font-bold text-white" : "font-medium text-zinc-300 hover:text-white"
             }`}
           >
             {getLabel(id)}
@@ -155,10 +157,10 @@ function ChartControlZone({
   return (
     <div
       className={`flex items-center gap-2 px-2 py-1.5 sm:px-2.5 ${
-        bordered ? "border-r border-line/70 bg-surface-dim/45" : "bg-white"
+        bordered ? "border-r border-white/10" : ""
       }`}
     >
-      <span className="inline-flex h-5 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] px-2 text-[10px] font-semibold leading-none text-ink-muted">
+      <span className="inline-flex h-5 shrink-0 items-center justify-center rounded-full bg-white/10 px-2 text-[10px] font-semibold leading-none text-zinc-300">
         {label}
       </span>
       {children}
@@ -172,22 +174,22 @@ function ChartMetricStrip({
   items: { label: string; value: string; tone?: "neutral" | "gain" | "loss" }[];
 }) {
   return (
-    <div className="flex divide-x divide-line/70 border-b border-line/80 bg-gradient-to-b from-white via-white to-surface-dim/30">
+    <div className="flex divide-x divide-white/10 overflow-hidden rounded-lg border border-white/10 bg-black/20">
       {items.map((item) => {
         const valColor =
-          item.tone === "gain" ? "text-gain" : item.tone === "loss" ? "text-loss" : "text-ink";
+          item.tone === "gain" ? "text-gain" : item.tone === "loss" ? "text-loss" : "text-white";
         const cellBg =
           item.tone === "gain"
-            ? "bg-gain-soft/25"
+            ? "bg-red-500/10"
             : item.tone === "loss"
-              ? "bg-loss-soft/25"
+              ? "bg-blue-500/10"
               : "bg-transparent";
         return (
           <div
             key={item.label}
             className={`flex min-w-0 flex-1 flex-col items-center justify-center px-2 py-2.5 text-center sm:px-3 ${cellBg}`}
           >
-            <span className="truncate text-[10px] font-medium tracking-wide text-ink-muted/90">{item.label}</span>
+            <span className="truncate text-[10px] font-medium tracking-wide text-zinc-300/90">{item.label}</span>
             <span className={`mt-0.5 truncate text-xs font-bold tabular-nums leading-snug sm:text-sm ${valColor}`}>
               {item.value}
             </span>
@@ -215,7 +217,7 @@ function ChartViewControls({
 
   return (
     <div
-      className="inline-flex max-w-full items-center overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)] ring-1 ring-black/[0.03]"
+      className="inline-flex w-full max-w-full flex-wrap items-center overflow-hidden rounded-lg border border-white/10 bg-white/5 sm:w-auto"
       aria-label="차트 보기 설정"
     >
       <ChartControlZone label="봉" bordered>
@@ -455,38 +457,49 @@ export function StockTrendChart({
   }, [cursor]);
 
   return (
-    <section className={panelShell}>
-      <div className={`${panelHeaderBar} !py-2`}>
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <div className="min-w-0 shrink">
-            <AreaSectionTitle as="h2">가격 추이</AreaSectionTitle>
-            <AreaSectionSubtitle>
-              {stockName}
-              {data?.source === "yahoo"
-                ? ` · Yahoo ${HISTORY_INTERVAL_LABEL[data.interval ?? interval]}`
-                : data?.source === "snapshot"
-                  ? " · 스냅샷"
-                  : ""}
-              {fetchedAt && (
-                <>
-                  {" · "}
-                  {fetchedAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 갱신
-                </>
-              )}
-            </AreaSectionSubtitle>
+    <section className={pickCard}>
+      <AreaCardHeader
+        as="h2"
+        title="가격 추이"
+        meta={
+          <>
+            {stockName}
+            {data?.source === "yahoo"
+              ? ` · Yahoo ${HISTORY_INTERVAL_LABEL[data.interval ?? interval]}`
+              : data?.source === "snapshot"
+                ? " · 스냅샷"
+                : ""}
+            {fetchedAt && (
+              <>
+                {" · "}
+                {fetchedAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 갱신
+              </>
+            )}
+          </>
+        }
+        trailing={
+          <div className="hidden sm:block">
+            <ChartViewControls
+              interval={interval}
+              onIntervalChange={onIntervalChange}
+              range={range}
+              onRangeChange={onRangeChange}
+              rangeOptions={rangeOptions}
+            />
           </div>
-
-          <ChartViewControls
-            interval={interval}
-            onIntervalChange={onIntervalChange}
-            range={range}
-            onRangeChange={onRangeChange}
-            rangeOptions={rangeOptions}
-          />
-        </div>
+        }
+      />
+      <div className="mt-3 sm:hidden">
+        <ChartViewControls
+          interval={interval}
+          onIntervalChange={onIntervalChange}
+          range={range}
+          onRangeChange={onRangeChange}
+          rangeOptions={rangeOptions}
+        />
       </div>
 
-      <div className="border-t border-line">
+      <div className={pickDetailZone}>
         {chart && data && (
           <ChartMetricStrip
             items={[
@@ -520,16 +533,16 @@ export function StockTrendChart({
           />
         )}
 
-        <div ref={wrapRef} className="relative">
+        <div ref={wrapRef} className="relative overflow-hidden">
           {loading && (
             <div
-              className="flex w-full items-center justify-center bg-slate-50/40"
+              className="flex w-full items-center justify-center bg-black/40"
               style={{ aspectRatio: `${CHART.w} / ${CHART.h}` }}
             >
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-ink-muted/50" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-zinc-500/50" />
             </div>
           )}
-          {error && !loading && <p className={`px-3 py-8 text-center ${UI.body} text-amber-800`}>{error}</p>}
+          {error && !loading && <p className={`px-3 py-8 text-center ${UI.body} text-amber-200`}>{error}</p>}
           {!loading && !error && data && data.points.length < 2 && (
             <p className={`px-3 py-8 text-center ${UI.body}`}>
               {interval === "5m"
@@ -555,8 +568,8 @@ export function StockTrendChart({
               >
                 <defs>
                   <linearGradient id="chart-bg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f8fafc" />
-                    <stop offset="100%" stopColor="#f1f5f9" />
+                    <stop offset="0%" stopColor={CHART_THEME.plot} />
+                    <stop offset="100%" stopColor={DARK_CHART.canvas} />
                   </linearGradient>
                   <linearGradient id="chart-area-up" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={MARKET.up} stopOpacity="0.14" />
@@ -585,7 +598,7 @@ export function StockTrendChart({
                   y={CHART.padT}
                   width={CHART.w - CHART.padL - CHART.padR}
                   height={CHART.h - CHART.padT - CHART.padB}
-                  fill="#ffffff"
+                  fill={CHART_THEME.plotInner}
                   stroke={CHART_THEME.plotEdge}
                   strokeWidth="0.35"
                   rx="0"
@@ -793,13 +806,13 @@ export function StockTrendChart({
 
               {hoverBar && cursor && tooltipStyle && (
                 <div
-                  className="pointer-events-none absolute z-20 overflow-hidden rounded-xl border border-white/70 bg-white/72 shadow-[0_4px_20px_rgba(15,23,42,0.1)] ring-1 ring-line/20 backdrop-blur-md backdrop-saturate-150"
+                  className="pointer-events-none absolute z-20 overflow-hidden rounded-xl border border-white/15 bg-zinc-900/95 px-3 py-2 shadow-lg backdrop-blur-md"
                   style={{ left: tooltipStyle.left, top: tooltipStyle.top, width: 160 }}
                 >
                   <div className="px-3 py-2.5">
-                    <p className="text-[10px] font-medium text-ink-muted">{formatTooltipDate(hoverBar.date, interval)}</p>
-                    <p className={`mt-1 ${UI.metricCompact} text-ink`}>{fmt(hoverBar.close)}</p>
-                    <div className="mt-2 space-y-1 text-[10px] tabular-nums text-ink-muted">
+                    <p className="text-[10px] font-medium text-zinc-300">{formatTooltipDate(hoverBar.date, interval)}</p>
+                    <p className={`mt-1 ${UI.metricCompact} text-white`}>{fmt(hoverBar.close)}</p>
+                    <div className="mt-2 space-y-1 text-[10px] tabular-nums text-zinc-300">
                       <p>
                         시 {fmt(hoverBar.open)} · 고 {fmt(hoverBar.high)} · 저 {fmt(hoverBar.low)}
                       </p>
@@ -818,7 +831,7 @@ export function StockTrendChart({
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-line/40 bg-gradient-to-b from-surface-dim/10 to-white px-3 py-2 text-[10px] text-slate-600">
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-white/10 px-3 py-2 text-[10px] text-zinc-400">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-gain/75 shadow-[0_0_0_1px_rgba(220,38,38,0.15)]" />
                   상승
@@ -829,7 +842,7 @@ export function StockTrendChart({
                 </span>
                 {chart.kospiPath && (
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-block h-0 w-3.5 border-t border-dashed border-slate-300/90" />
+                    <span className="inline-block h-0 w-3.5 border-t border-dashed border-zinc-500" />
                     KOSPI
                   </span>
                 )}
@@ -841,7 +854,7 @@ export function StockTrendChart({
                 )}
                 {chart.tradeMarkers.length > 0 && (
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-flex h-2 w-2 items-center justify-center rounded-full border border-gain/70 bg-white">
+                    <span className="inline-flex h-2 w-2 items-center justify-center rounded-full border border-gain/70 bg-zinc-800">
                       <span className="h-1 w-1 rounded-full bg-gain" />
                     </span>
                     체결

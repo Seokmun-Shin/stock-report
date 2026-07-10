@@ -1,20 +1,35 @@
 "use client";
 
 import { Fragment, type ReactNode } from "react";
+import { formatStockCodeLabel } from "@/lib/stockCodes";
+import { areaHeaderMeta, areaHeaderTitle } from "./PanelCard";
 
 export type StockTabBadge = "buy" | "sell" | null;
 
-/** 판단 탭 기준 — 패널 상단 타이틀·종목 탭 행 */
-export function StockPanelTitleRow({
+export type StockTabStock = { id: string; name: string; code?: string | null };
+
+/** 활성 종목 헤더 — 코드 또는 미등록 안내 */
+export function ActiveStockCodeLine({ code }: { code?: string | null }) {
+  const label = formatStockCodeLabel(code);
+  if (label) {
+    return <p className={`mt-0.5 tabular-nums ${areaHeaderMeta}`}>{label}</p>;
+  }
+  return <p className="mt-0.5 text-[11px] font-medium text-amber-200">종목코드 미등록</p>;
+}
+
+/** 판단 탭 기준 — 패널 상단 타이틀·종목 탭 행 */export function StockPanelTitleRow({
   children,
   trailing,
+  back,
 }: {
   children: ReactNode;
   trailing?: ReactNode;
+  back?: ReactNode;
 }) {
   return (
-    <div className="border-b border-line px-3 pb-0 pt-4 sm:px-5 sm:pt-5">
-      <div className="flex min-w-0 items-end justify-between gap-4">
+    <div className="border-b border-white/10 px-3 pb-0 pt-3 sm:px-5 sm:pt-4">
+      {back}
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 flex-1">{children}</div>
         {trailing}
       </div>
@@ -32,7 +47,7 @@ export function StockTitleTabs({
   panelId,
   ariaLabel = "종목 탭",
 }: {
-  stocks: { id: string; name: string }[];
+  stocks: StockTabStock[];
   activeId: string;
   onSelect: (id: string) => void;
   badgeById?: Map<string, StockTabBadge> | Record<string, StockTabBadge>;
@@ -59,7 +74,7 @@ export function StockTitleTabs({
           <Fragment key={s.id}>
             {i > 0 && (
               <span
-                className="mb-3 shrink-0 text-[10px] font-extralight leading-none text-ink/25 sm:mb-3.5 sm:text-xs"
+                className="mb-3 shrink-0 text-[10px] font-extralight leading-none text-zinc-600 sm:mb-3.5 sm:text-xs"
                 aria-hidden
               >
                 |
@@ -73,10 +88,11 @@ export function StockTitleTabs({
                   role="tab"
                   aria-selected
                   tabIndex={0}
-                  className="max-w-[min(100vw-2rem,20rem)] truncate text-xl font-bold tracking-tight text-ink sm:max-w-none sm:text-2xl"
+                  className={`max-w-[min(100vw-2rem,20rem)] truncate ${areaHeaderTitle} sm:max-w-none`}
                 >
                   {s.name}
                 </h2>
+                <ActiveStockCodeLine code={s.code} />
                 <span className="absolute inset-x-0 bottom-0 h-0.5 bg-gain" aria-hidden />
               </div>
             ) : (
@@ -87,7 +103,7 @@ export function StockTitleTabs({
                 aria-controls={panelId}
                 id={`stock-tab-${s.id}`}
                 onClick={() => onSelect(s.id)}
-                className="group relative inline-flex max-w-full shrink-0 items-center gap-1.5 pb-3 text-base font-medium text-ink-muted transition hover:text-ink sm:pb-3.5 sm:text-lg"
+                className="group relative inline-flex max-w-full shrink-0 items-center gap-1.5 pb-3 text-base font-medium text-zinc-300 transition hover:text-white sm:pb-3.5 sm:text-lg"
               >
                 <span className="truncate">{s.name}</span>
                 {action === "buy" && (
@@ -101,7 +117,7 @@ export function StockTitleTabs({
                   </span>
                 )}
                 <span
-                  className="absolute inset-x-0 bottom-0 h-0.5 bg-line opacity-0 transition group-hover:opacity-100"
+                  className="absolute inset-x-0 bottom-0 h-0.5 bg-white/20 opacity-0 transition group-hover:opacity-100"
                   aria-hidden
                 />
               </button>
@@ -129,7 +145,7 @@ export function UnderlineTabBar<T extends string>({
 }) {
   return (
     <div
-      className={`border-b border-line px-3 pb-0 pt-3 sm:px-5 sm:pt-4 ${className}`.trim()}
+      className={`border-b border-white/10 px-3 pb-0 pt-3 sm:px-5 sm:pt-4 ${className}`.trim()}
       role="tablist"
       aria-label={ariaLabel}
     >
@@ -140,7 +156,7 @@ export function UnderlineTabBar<T extends string>({
             <Fragment key={tab.id}>
               {i > 0 && (
                 <span
-                  className="mb-3 shrink-0 text-[10px] font-extralight leading-none text-ink/25 sm:mb-3.5 sm:text-xs"
+                  className="mb-3 shrink-0 text-[10px] font-extralight leading-none text-zinc-600 sm:mb-3.5 sm:text-xs"
                   aria-hidden
                 >
                   |
@@ -151,7 +167,7 @@ export function UnderlineTabBar<T extends string>({
                   <span
                     role="tab"
                     aria-selected
-                    className="text-base font-bold tracking-tight text-ink sm:text-lg"
+                    className="text-base font-bold tracking-tight text-white sm:text-lg"
                   >
                     {tab.label}
                   </span>
@@ -163,11 +179,11 @@ export function UnderlineTabBar<T extends string>({
                   role="tab"
                   aria-selected={false}
                   onClick={() => onChange(tab.id)}
-                  className="group relative shrink-0 pb-3 text-sm font-medium text-ink-muted transition hover:text-ink sm:pb-3.5 sm:text-base"
+                  className="group relative shrink-0 pb-3 text-sm font-medium text-zinc-300 transition hover:text-white sm:pb-3.5 sm:text-base"
                 >
                   {tab.label}
                   <span
-                    className="absolute inset-x-0 bottom-0 h-0.5 bg-line opacity-0 transition group-hover:opacity-100"
+                    className="absolute inset-x-0 bottom-0 h-0.5 bg-white/20 opacity-0 transition group-hover:opacity-100"
                     aria-hidden
                   />
                 </button>

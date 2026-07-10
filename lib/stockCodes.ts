@@ -23,3 +23,11 @@ export function suggestStockCode(name: string): string | undefined {
   }
   return undefined;
 }
+
+/** 헤더 표시용 6자리 종목코드 (없으면 null) */
+export function formatStockCodeLabel(code?: string | null): string | null {
+  if (!code?.trim()) return null;
+  const digits = code.replace(/\D/g, "");
+  if (!digits) return null;
+  return digits.padStart(6, "0");
+}

@@ -15,8 +15,11 @@ import {
 } from "@/lib/calc";
 import { fmtPct, today } from "@/lib/calc";
 import { UnitNotice } from "@/components/StatCard";
-import { AppHeaderBlock, HEADER_DESC } from "@/components/AppHeader";
+import { appLayoutMax, tabPageCanvas, appShell, appHeader, appChrome, metaPill } from "@/components/ui/PanelCard";
+import { AppHeaderBlock } from "@/components/AppHeader";
+import { getTabHeader } from "@/lib/productPositioning";
 import { AppFlowBanner } from "@/components/AppFlowBanner";
+import { defaultAppTab } from "@/lib/ledgerFlow";
 import { applyDailySnapshot, applyPeakPrices } from "@/lib/dailyReport";
 import { StockEditModal } from "@/components/StockEditModal";
 import { applyQuoteUpdates, useKisPrices } from "@/hooks/useKisPrices";
@@ -38,6 +41,8 @@ import { TimingSourcesTab } from "@/components/tabs/TimingSourcesTab";
 import { mergeCsvTrades } from "@/components/CsvImportPanel";
 import { assessDataReadiness } from "@/lib/dataReadiness";
 import { mergeCorporateActionsFromBriefing } from "@/lib/corporateActionsFromDart";
+import { isAutoRefresh } from "@/lib/appPreferences";
+import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 export function Dashboard({
   data,
@@ -47,6 +52,7 @@ export function Dashboard({
   syncing,
   syncError,
   cloudEnabled,
+  standalone = false,
 }: {
   data: AppData;
   persist: (next: AppData) => void;
@@ -55,8 +61,9 @@ export function Dashboard({
   syncing: boolean;
   syncError: string | null;
   cloudEnabled: boolean;
+  standalone?: boolean;
 }) {
-  const [activeTab, setActiveTab] = useState<AppTab>("verdict");
+  const [activeTab, setActiveTab] = useState<AppTab>(() => defaultAppTab(data));
   const [activeId, setActiveId] = useState(data.stocks[0]?.id ?? "");
   const [addingStock, setAddingStock] = useState(false);
   const [newStockName, setNewStockName] = useState("");
@@ -65,6 +72,7 @@ export function Dashboard({
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
   const [tradeFormOpen, setTradeFormOpen] = useState(false);
+  const { preferences } = useAppPreferences();
 
   /** 하단 탭 전환 시 항상 페이지 최상단 */
   useLayoutEffect(() => {
@@ -111,6 +119,26 @@ export function Dashboard({
     [data.stocks]
   );
   const discovery = useStockDiscovery(portfolioCodes, briefing.context);
+
+  /** 자동 갱신 — 탭 진입 시 해당 데이터만 (설정 → 화면·갱신) */
+  useEffect(() => {
+    if (!isAutoRefresh(preferences.refreshMode)) return;
+
+    let briefingTimer: ReturnType<typeof setTimeout> | undefined;
+
+    if (activeTab === "verdict" || activeTab === "sources") {
+      void kis.refresh();
+      briefingTimer = window.setTimeout(() => void briefing.refresh(), 1_500);
+    } else if (activeTab === "discover") {
+      void discovery.refresh();
+    } else if (activeTab === "settings") {
+      briefingTimer = window.setTimeout(() => void briefing.refresh(), 500);
+    }
+
+    return () => {
+      if (briefingTimer) window.clearTimeout(briefingTimer);
+    };
+  }, [activeTab, preferences.refreshMode, kis.refresh, briefing.refresh, discovery.refresh]);
 
   const dartEventsSyncRef = useRef("");
   useEffect(() => {
@@ -395,7 +423,7 @@ export function Dashboard({
       watchlist: (data.watchlist ?? []).filter((w) => w.code !== normalized),
     });
     setActiveId(id);
-    setActiveTab("verdict");
+    setActiveTab("records");
   }
 
   function addStockFromDiscovery(code: string, name: string) {
@@ -414,7 +442,7 @@ export function Dashboard({
       watchlist: (data.watchlist ?? []).filter((w) => w.code !== normalized),
     });
     setActiveId(id);
-    setActiveTab("verdict");
+    setActiveTab("records");
   }
 
   function addStock() {
@@ -434,7 +462,7 @@ export function Dashboard({
     setNewStockCode("");
     setNewStockCodeManual(false);
     setAddingStock(false);
-    setActiveTab("verdict");
+    setTradeFormOpen(true);
   }
 
   function editStock(stock: Stock) {
@@ -537,31 +565,36 @@ export function Dashboard({
   );
 
   return (
-    <div className="min-h-screen min-w-0 overflow-x-hidden bg-slate-100 pb-[calc(3.25rem+env(safe-area-inset-bottom))]">
-      <header className="border-b border-slate-200/90 bg-white shadow-sm">
-        <div className="mx-auto max-w-5xl px-3 py-3 sm:px-6">
+    <div className={appShell}>
+      <header className={appHeader}>
+        <div className={`${appChrome} mx-auto ${appLayoutMax} px-3 py-3 sm:px-6`}>
           <AppHeaderBlock
             tab={activeTab}
             meta={
-              cloudEnabled && user ? (
-                <span className="rounded-full border border-gain/20 bg-gain-soft px-2.5 py-0.5 text-[11px] font-semibold text-gain">
+              !standalone && cloudEnabled && user ? (
+                <span className="rounded-full border border-gain/20 bg-red-500/12 px-2.5 py-0.5 text-[11px] font-semibold text-gain">
                   {syncing ? "저장 중…" : "동기화"}
                 </span>
+              ) : standalone ? (
+                <span className={metaPill}>로컬 저장</span>
               ) : undefined
             }
             desc={
               <>
-                {HEADER_DESC[activeTab]}
+                {getTabHeader(activeTab, standalone).desc}
                 {" · "}
                 <UnitNotice />
               </>
             }
           />
-          {syncError && <p className="mt-1.5 text-sm text-loss">동기화 오류: {syncError}</p>}
+          {!standalone && syncError && (
+            <p className="mt-1.5 text-sm text-amber-200">동기화 오류: {syncError}</p>
+          )}
         </div>
       </header>
 
-      <main className="mx-auto min-w-0 max-w-5xl px-3 py-4 sm:px-6">
+      <main className={`${appChrome} mx-auto min-w-0 ${appLayoutMax} px-3 py-3 sm:px-6 sm:py-4`}>
+        <div className={tabPageCanvas}>
         {activeTab === "verdict" && (
           <TradingVerdictView
             stocks={data.stocks}
@@ -576,6 +609,7 @@ export function Dashboard({
             quote={activeStock ? data.stockQuotes?.[activeStock.id] : undefined}
             buySignal={buySignal}
             sellSignal={sellSignal}
+            portfolio={portfolio}
             portfolioPnl={portfolio.totalPnl}
             kospiLabel={kospiLabel}
             kisLoading={kis.loading}
@@ -584,19 +618,15 @@ export function Dashboard({
             briefingError={briefing.error}
             kisConfigured={kis.configured}
             kisLastUpdated={kis.lastUpdated}
-            kisAutoRefresh={kis.autoRefresh}
-            onKisAutoRefreshChange={kis.setAutoRefresh}
             onKisRefresh={kis.refresh}
             onBriefingRefresh={briefing.refresh}
+            refreshMode={preferences.refreshMode}
             onVerdictRefresh={() => void refreshVerdict()}
             verdictRefreshing={verdictRefreshing}
             verdictLastUpdated={verdictLastUpdated}
             onAddStock={beginAddStock}
             allVerdicts={tradingVerdicts}
             marketContext={briefing.context}
-            onOpenRecords={() => {
-              setActiveTab("records");
-            }}
             onPriceChange={setCurrentPrice}
             reportSettings={data.reportSettings}
             targetPrice={reportSettings.targetPrices?.[activeStock?.id ?? ""]}
@@ -627,8 +657,10 @@ export function Dashboard({
         {activeTab === "sources" && (
           <TimingSourcesTab
             report={timingSourceReport}
-            onRefresh={() => void refreshVerdict()}
-            refreshing={verdictRefreshing}
+            onKisRefresh={() => void kis.refresh()}
+            onBriefingRefresh={() => void briefing.refresh()}
+            kisLoading={kis.loading}
+            briefingLoading={briefing.loading}
             stocks={data.stocks}
             activeId={activeId}
             onSelectStock={selectStock}
@@ -668,6 +700,8 @@ export function Dashboard({
             sellSignal={sellSignal}
             reportSettings={data.reportSettings}
             onImportCsv={importCsvRows}
+            standalone={standalone}
+            onBeginAddStock={beginAddStock}
           />
         )}
 
@@ -701,16 +735,19 @@ export function Dashboard({
             user={user}
             signOut={signOut}
             onResetDemo={resetDemo}
+            onRestoreBackup={persist}
             cloudEnabled={cloudEnabled}
+            standalone={standalone}
             syncing={syncing}
             readinessItems={readinessItems}
           />
         )}
 
         <AppFlowBanner tab={activeTab} />
+        </div>
       </main>
 
-      <AppTabNav active={activeTab} onChange={setActiveTab} />
+      <AppTabNav active={activeTab} onChange={setActiveTab} standalone={standalone} />
 
       {editingStock && (
         <StockEditModal stock={editingStock} onSave={saveEditedStock} onClose={() => setEditingStock(null)} />

@@ -1,6 +1,7 @@
 /** RSS 파싱 (외부 의존성 없음) */
 
 import type { BriefingNewsItem } from "../types";
+import { sanitizeExternalUrl } from "@/lib/safeUrl";
 
 const RSS_FEEDS: { url: string; source: string; region?: BriefingNewsItem["region"]; topic?: BriefingNewsItem["topic"] }[] = [
   {
@@ -165,9 +166,10 @@ export function parseRssXml(
     const link = (block.match(/<link>([\s\S]*?)<\/link>/i)?.[1] ?? "").trim();
     const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)?.[1] ?? "").trim();
     if (title) {
+      const safeLink = sanitizeExternalUrl(link);
       items.push({
         title,
-        link: link || "#",
+        link: safeLink ?? "#",
         publishedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
         source,
         region: meta?.region,

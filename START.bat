@@ -4,13 +4,14 @@ cd /d "%~dp0"
 
 echo.
 echo ========================================
-echo   mtock 로컬 실행 (v0.1.7)
+echo   mtock 단독 실행판
 echo   폴더: %CD%
 echo ========================================
 echo.
 
 if not exist "package.json" (
-  echo [X] package.json 없음 — stock-report 폴더에서 실행하세요.
+echo   mtock 판매용 — START-SALE.bat 과 동일
+echo   연구용은 DEV.bat
   pause
   exit /b 1
 )
@@ -18,13 +19,30 @@ if not exist "package.json" (
 if not exist "node_modules" (
   echo [1] npm install...
   call npm install
+  if errorlevel 1 (
+    echo [X] npm install 실패 — Node.js 20+ 설치 후 다시 시도하세요.
+    pause
+    exit /b 1
+  )
 )
 
-echo [2] 이전 빌드 캐시 삭제 (.next)...
-if exist ".next" rmdir /s /q ".next"
+if not exist ".env.local" (
+  echo [2] .env.standalone ^→ .env.local 복사...
+  copy /Y ".env.standalone" ".env.local" >nul
+)
 
-echo [3] dev 서버 시작 — 종료: 이 창에서 Ctrl+C
-echo     확인: 설정 탭 하단 "mtock v0.1.7" / 성과 탭 "성과 구분"
+if not exist ".next\BUILD_ID" (
+  echo [3] 프로덕션 빌드 중 ^(최초 1회, 2~5분^)...
+  call npm run build
+  if errorlevel 1 (
+    echo [X] 빌드 실패 — 위 오류 메시지를 확인하세요.
+    pause
+    exit /b 1
+  )
+)
+
+echo [4] 서버 시작 — 종료: 이 창에서 Ctrl+C
+echo     브라우저: http://localhost:3000
 echo.
 start http://localhost:3000
-call npm run dev
+call npm run start

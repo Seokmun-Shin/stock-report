@@ -3,26 +3,36 @@ import { buildStockDiscoveryReport } from "@/lib/briefing/stockDiscovery";
 import { aggregateMarketContextLite } from "@/lib/briefing/providers/marketContextLite";
 import { fetchAllMarketRankings } from "@/lib/kis/ranking";
 import { isKisConfigured } from "@/lib/kis/clientCore";
+import { guardApiRequest, readJsonBody } from "@/lib/server/apiSecurity";
+import { runWithRequestSecrets } from "@/lib/server/requestSecrets";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  return NextResponse.json({
-    configured: {
-      kis: isKisConfigured(),
-      discovery: isKisConfigured(),
-    },
-  });
+export async function GET(req: Request) {
+  const blocked = guardApiRequest(req);
+  if (blocked) return blocked;
+  return runWithRequestSecrets(req, () =>
+    NextResponse.json({
+      configured: {
+        kis: isKisConfigured(),
+        discovery: isKisConfigured(),
+      },
+    })
+  );
 }
 
 export async function POST(req: Request) {
-  try {
-    const body = (await req.json().catch(() => ({}))) as {
-      portfolioCodes?: string[];
-      /** 클라이언트 브리핑 캐시 재사용 (선택) */
-      marketContext?: Parameters<typeof buildStockDiscoveryReport>[0]["marketContext"];
-    };
+  const blocked = guardApiRequest(req);
+  if (blocked) return blocked;
 
+  try {
+    const body = await readJsonBody<{
+      portfolioCodes?: string[];
+      marketContext?: Parameters<typeof buildStockDiscoveryReport>[0]["marketContext"];
+    }>(req);
+    if (body instanceof NextResponse) return body;
+
+    return runWithRequestSecrets(req, async () => {
     const errors: string[] = [];
     let marketContext = body.marketContext ?? null;
 
@@ -53,6 +63,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(report);
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "종목 발굴 실패";
     return NextResponse.json({ error: msg }, { status: 500 });

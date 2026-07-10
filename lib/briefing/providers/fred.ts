@@ -1,5 +1,6 @@
 /** FRED — 미국 연준 공식 경제지표 */
 
+import { envSecret } from "@/lib/envSecret";
 import type { OfficialIndicatorSnapshot } from "../types";
 
 const FRED_BASE = "https://api.stlouisfed.org/fred/series/observations";
@@ -28,7 +29,7 @@ const FRED_SERIES: FredSeriesDef[] = [
 ];
 
 export function isFredConfigured(): boolean {
-  return !!process.env.FRED_API_KEY?.trim();
+  return !!envSecret("FRED_API_KEY");
 }
 
 function parseObs(value: string): number | null {
@@ -38,7 +39,7 @@ function parseObs(value: string): number | null {
 }
 
 async function fetchFredObservations(seriesId: string, limit: number): Promise<{ date: string; value: number }[]> {
-  const apiKey = process.env.FRED_API_KEY!.trim();
+  const apiKey = envSecret("FRED_API_KEY")!;
   const url = new URL(FRED_BASE);
   url.searchParams.set("series_id", seriesId);
   url.searchParams.set("api_key", apiKey);

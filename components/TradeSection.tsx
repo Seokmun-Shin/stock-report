@@ -15,7 +15,24 @@ import {
 import type { TradeSuggestion } from "@/lib/briefing/tradeSuggestions";
 import { FormattedNumberInput } from "@/components/FormattedNumberInput";
 import { SectionCollapseToggle } from "@/components/CollapsibleSection";
-import { insetCard, panelShell, UI, HeaderActionButton, AreaSectionTitle } from "@/components/ui/PanelCard";
+import {
+  BtnCreateBlock,
+  BtnCancel,
+  BtnSave,
+  BtnEdit,
+  BtnDelete,
+  BtnApply,
+  BtnExpand,
+  BtnTextAction,
+  AreaCardHeader,
+  AreaSectionTitle,
+  innerBlock,
+  insetCard,
+  listDivide,
+  panelShell,
+  SegmentTab,
+  UI,
+} from "@/components/ui/PanelCard";
 
 type TradeInput = Omit<Trade, "id" | "stockId" | "createdAt">;
 
@@ -51,30 +68,30 @@ export function TradeTable({
 
   if (sorted.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-line bg-surface-dim/50 p-8 text-center text-sm text-ink-muted">
+      <div className={`${innerBlock} border border-dashed border-white/10 p-8 text-center text-sm text-zinc-300`}>
         아직 매매 내역이 없습니다.
         <br />
-        <span className="mt-1 inline-block text-ink">위 「+ 체결 내역 입력」</span>을 눌러 체결 내역을 입력해 주세요.
+        <span className="mt-1 inline-block text-white">위 「+ 체결 내역 입력」</span>을 눌러 체결 내역을 입력해 주세요.
       </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      <div className="space-y-2 lg:hidden">
+      <div className={`${listDivide} lg:hidden`}>
         {visible.map((t) => {
           const isCapital = initialCapitalIds.has(t.id);
           const realized = realizedById[t.id];
           return (
             <div
               key={t.id}
-              className={`rounded-xl border border-line p-3 text-sm ${isCapital ? "border-amber-200 bg-amber-50/50" : "bg-white"}`}
+              className={`${innerBlock} text-sm ${isCapital ? "ring-1 ring-amber-400/30 bg-amber-500/15" : ""}`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${t.type === "buy" ? "bg-gain-soft text-gain" : "bg-loss-soft text-loss"}`}>
+                <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${t.type === "buy" ? "bg-red-500/12 text-gain" : "bg-blue-500/12 text-loss"}`}>
                   {t.type === "buy" ? "매수" : "매도"}
                 </span>
-                <span className="tabular-nums text-ink-muted">{t.executedTime ? `${t.date} ${t.executedTime}` : t.date}</span>
+                <span className="tabular-nums text-zinc-300">{t.executedTime ? `${t.date} ${t.executedTime}` : t.date}</span>
               </div>
               <p className="mt-2 tabular-nums">
                 {fmtQty(t.quantity)}주 × {fmt(t.price)} = <strong>{fmt(tradeAmount(t))}</strong>
@@ -91,18 +108,14 @@ export function TradeTable({
                     onClick={() => onToggleCapital(t.id)}
                     title={isCapital ? "기준 매수" : "기준으로 지정"}
                     className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold ${
-                      isCapital ? "bg-amber-500 text-white" : "border border-line"
+                      isCapital ? "bg-amber-500 text-white" : "ui-chip font-semibold text-zinc-300"
                     }`}
                   >
                     {isCapital ? "★" : "○"}
                   </button>
                 )}
-                <HeaderActionButton onClick={() => onEdit(t)} className="px-2 py-0.5">
-                  수정
-                </HeaderActionButton>
-                <HeaderActionButton variant="danger" onClick={() => onDelete(t.id)} className="px-2 py-0.5">
-                  삭제
-                </HeaderActionButton>
+                <BtnEdit onClick={() => onEdit(t)} className="px-2 py-0.5" />
+                <BtnDelete onClick={() => onDelete(t.id)} className="px-2 py-0.5" />
               </div>
             </div>
           );
@@ -111,7 +124,7 @@ export function TradeTable({
 
       <div className={`hidden min-w-0 lg:block ${UI.dataTableWrap}`}>
         <table className={`${UI.dataTable} min-w-[42rem]`}>
-          <thead className="bg-surface-dim text-xs text-ink-muted">
+          <thead className="bg-white/10 text-xs text-zinc-300">
             <tr>
               <th className={`${UI.dataTh} w-14 text-center`}>기준</th>
               <th className={`${UI.dataTh} w-16 text-center`}>구분</th>
@@ -128,7 +141,7 @@ export function TradeTable({
             {visible.map((t) => {
               const isCapital = initialCapitalIds.has(t.id);
               return (
-                <tr key={t.id} className={`border-t border-line ${isCapital ? "bg-amber-50/60" : ""}`}>
+                <tr key={t.id} className={`border-t border-white/10 ${isCapital ? "bg-amber-500/15" : ""}`}>
                   <td className={`${UI.dataTd} text-center`}>
                     {t.type === "buy" ? (
                       <button
@@ -136,38 +149,34 @@ export function TradeTable({
                         onClick={() => onToggleCapital(t.id)}
                         title={isCapital ? "기준 매수" : "기준으로 지정"}
                         className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold ${
-                          isCapital ? "bg-amber-500 text-white" : "border border-line bg-white text-ink-muted"
+                          isCapital ? "bg-amber-500 text-white" : "ui-chip font-semibold text-zinc-300"
                         }`}
                       >
                         {isCapital ? "★" : "○"}
                       </button>
                     ) : (
-                      <span className="text-ink-muted">—</span>
+                      <span className="text-zinc-300">—</span>
                     )}
                   </td>
                   <td className={`${UI.dataTd} text-center`}>
-                    <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-semibold ${t.type === "buy" ? "bg-gain-soft text-gain" : "bg-loss-soft text-loss"}`}>
+                    <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-semibold ${t.type === "buy" ? "bg-red-500/12 text-gain" : "bg-blue-500/12 text-loss"}`}>
                       {t.type === "buy" ? "매수" : "매도"}
                     </span>
                   </td>
-                  <td className={`${UI.dataTd} text-left text-ink`}>
+                  <td className={`${UI.dataTd} text-left text-white`}>
                     {t.executedTime ? `${t.date} ${t.executedTime}` : t.date}
                   </td>
                   <td className={`${UI.dataTd} text-right`}>{fmtQty(t.quantity)}</td>
                   <td className={`${UI.dataTd} text-right`}>{fmt(t.price)}</td>
                   <td className={`${UI.dataTd} text-right`}>{fmt(tradeAmount(t))}</td>
-                  <td className={`${UI.dataTd} text-right text-ink-muted`}>{fmt(tradeCost(t))}</td>
-                  <td className={`${UI.dataTd} text-right font-medium ${t.type === "sell" ? (realizedById[t.id] >= 0 ? "text-gain" : "text-loss") : "text-ink-muted"}`}>
+                  <td className={`${UI.dataTd} text-right text-zinc-300`}>{fmt(tradeCost(t))}</td>
+                  <td className={`${UI.dataTd} text-right font-medium ${t.type === "sell" ? (realizedById[t.id] >= 0 ? "text-gain" : "text-loss") : "text-zinc-300"}`}>
                     {t.type === "sell" ? fmtSigned(realizedById[t.id] ?? 0) : "—"}
                   </td>
                   <td className={`${UI.dataTd} text-center`}>
                     <div className="inline-flex items-center justify-center gap-1.5">
-                      <HeaderActionButton onClick={() => onEdit(t)} className="px-2 py-0.5">
-                        수정
-                      </HeaderActionButton>
-                      <HeaderActionButton variant="danger" onClick={() => onDelete(t.id)} className="px-2 py-0.5">
-                        삭제
-                      </HeaderActionButton>
+                      <BtnEdit onClick={() => onEdit(t)} className="px-2 py-0.5" />
+                      <BtnDelete onClick={() => onDelete(t.id)} className="px-2 py-0.5" />
                     </div>
                   </td>
                 </tr>
@@ -175,19 +184,15 @@ export function TradeTable({
             })}
           </tbody>
         </table>
-        <p className="border-t border-line bg-surface-dim px-3 py-1.5 text-center text-xs text-ink-muted">
+        <p className="border-t border-white/10 bg-white/10 px-3 py-1.5 text-center text-xs text-zinc-300">
           {stockName} · 총 {sorted.length}건 · 최신순
         </p>
       </div>
 
       {hasMore && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="w-full rounded-lg border border-line bg-white py-2 text-sm text-ink-muted hover:bg-surface-dim"
-        >
+        <BtnExpand type="button" onClick={() => setExpanded((v) => !v)} className="py-2">
           {expanded ? "접기" : `더보기 (${sorted.length - DEFAULT_VISIBLE}건)`}
-        </button>
+        </BtnExpand>
       )}
     </div>
   );
@@ -321,69 +326,71 @@ export function TradeForm({
 
   return (
     <form onSubmit={submit} className={`${panelShell} p-3 sm:p-5`}>
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <AreaSectionTitle as="p">{isEditing ? "매매 수정" : "체결 내역 입력"}</AreaSectionTitle>
-        <span className="text-xs text-ink-muted">(단위 : 원)</span>
-      </div>
+      <AreaCardHeader
+        as="h3"
+        title={isEditing ? "매매 수정" : "체결 내역 입력"}
+        unit
+        subtitle={
+          <>
+            증권사에서 체결한 <strong className="font-medium text-white">매수/매도</strong>를 고른 뒤, 확인서 기준으로 수량·단가를
+            입력하세요.
+          </>
+        }
+      />
 
-      <p className="mb-3 text-xs leading-relaxed text-ink-muted">
-        증권사에서 체결한 <strong className="font-medium text-ink">매수/매도</strong>를 고른 뒤, 확인서 기준으로 수량·단가를 입력하세요.
-      </p>
-
-      <div className="mb-3 flex gap-2">
+      <div className="mb-3 flex flex-wrap gap-2">
         {(["buy", "sell"] as const).map((t) => (
-          <button
+          <SegmentTab
             key={t}
-            type="button"
+            active={type === t}
+            size="lg"
             onClick={() => selectType(t)}
-            className={`rounded-lg px-4 py-1.5 text-sm font-medium ${
-              type === t ? (t === "buy" ? "bg-gain text-white" : "bg-loss text-white") : "border border-line bg-white text-ink-muted"
-            }`}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium ${type === t ? (t === "buy" ? "!bg-gain !text-white" : "!bg-loss !text-white") : ""}`}
           >
             {t === "buy" ? "매수 체결" : "매도 체결"}
-          </button>
+          </SegmentTab>
         ))}
       </div>
 
       {!isEditing && suggestion && suggestion.rationale.length > 0 && (
         <div className={`mb-3 ${insetCard} leading-relaxed`}>
-          <p className="font-semibold text-ink">판단 참고 (자동 입력 없음)</p>
+          <p className="font-semibold text-white">판단 참고 (자동 입력 없음)</p>
           <ul className="mt-1 list-inside list-disc">
             {suggestion.rationale.map((line, i) => (
               <li key={i}>{line}</li>
             ))}
           </ul>
           {suggestion.alignedWithVerdict && suggestion.recommendedAction !== "hold" && (
-            <p className="mt-2 text-ink-muted">
-              판단: <strong className="text-ink">{suggestion.recommendedAction === "buy" ? "매수" : "매도"}</strong>{" "}
+            <p className="mt-2 text-zinc-300">
+              판단: <strong className="text-white">{suggestion.recommendedAction === "buy" ? "매수" : "매도"}</strong>{" "}
               참고 — 체결과 다르면 아래에 실제 값을 입력하세요.
             </p>
           )}
           {canApplyReference && (
-            <button
+            <BtnApply
               type="button"
               onClick={() => suggestion && applySuggestion(suggestion)}
-              className="mt-2 rounded-md border border-line bg-white px-2 py-1 text-xs font-medium text-ink-muted hover:bg-surface-dim"
+              className="mt-2 px-2 py-1 text-xs font-medium"
             >
               {type === "buy" ? "매수" : "매도"} 참고값만 넣기 (선택)
-            </button>
+            </BtnApply>
           )}
           {suggestion.alignedWithVerdict &&
             suggestion.recommendedAction !== "hold" &&
             suggestion.recommendedAction !== type && (
-              <p className="mt-2 text-amber-800">
+              <p className="mt-2 text-amber-200">
                 판단은 {suggestion.recommendedAction === "buy" ? "매수" : "매도"} 쪽입니다. 다른 체결을 기록 중이면 참고값은 쓰지 마세요.
               </p>
             )}
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <label className="text-xs text-ink-muted">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="text-xs text-zinc-300">
           날짜
           <input type="date" className={`${inputCls} text-center`} value={date} onChange={(e) => setDate(e.target.value)} required />
         </label>
-        <label className="text-xs text-ink-muted">
+        <label className="text-xs text-zinc-300">
           체결시각
           <input
             type="time"
@@ -393,41 +400,41 @@ export function TradeForm({
             title="같은 날 여러 체결 시 FIFO 순서"
           />
         </label>
-        <label className="text-xs text-ink-muted">
+        <label className="text-xs text-zinc-300">
           수량
           <FormattedNumberInput value={quantity} onChange={setQuantity} className={inputCls} placeholder="0" />
         </label>
-        <label className="text-xs text-ink-muted">
+        <label className="text-xs text-zinc-300">
           단가
           <FormattedNumberInput value={price} onChange={setPrice} className={inputCls} placeholder="0" />
         </label>
-        <label className="text-xs text-ink-muted">
+        <label className="text-xs text-zinc-300">
           <span className="flex items-center justify-between gap-1">
             수수료
-            <button type="button" onClick={applyFeePreset} className="text-[10px] font-medium text-gain hover:underline">
+            <BtnTextAction type="button" onClick={applyFeePreset} className="text-[10px] font-medium">
               {feeLabel} 적용
-            </button>
+            </BtnTextAction>
           </span>
           <FormattedNumberInput value={fee} onChange={setFee} className={inputCls} placeholder="0" />
         </label>
         {type === "sell" && (
           <>
-            <label className="text-xs text-ink-muted">
+            <label className="text-xs text-zinc-300">
               <span className="flex items-center justify-between gap-1">
                 증권거래세
-                <button type="button" onClick={applySellTaxPreset} className="text-[10px] font-medium text-gain hover:underline">
+                <BtnTextAction type="button" onClick={applySellTaxPreset} className="text-[10px] font-medium">
                   {taxLabel} 적용
-                </button>
+                </BtnTextAction>
               </span>
               <FormattedNumberInput value={transactionTax} onChange={setTransactionTax} className={inputCls} placeholder="0" />
             </label>
             {(isEditing && ruralTax > 0) && (
-              <label className="text-xs text-ink-muted">
+              <label className="text-xs text-zinc-300">
                 농특세 (과거 기록)
                 <FormattedNumberInput value={ruralTax} onChange={setRuralTax} className={inputCls} placeholder="0" />
               </label>
             )}
-            <p className="col-span-2 text-xs text-ink-muted sm:col-span-3">
+            <p className="col-span-2 text-xs text-zinc-300 sm:col-span-3">
               매도 세금 합계: {fmt(transactionTax + ruralTax)}원 ({taxLabel} 증권거래세 참고 · 매수 시 세금 없음)
             </p>
           </>
@@ -435,12 +442,8 @@ export function TradeForm({
       </div>
 
       <div className="mt-4 flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-lg border border-line bg-white px-4 py-1.5 text-sm text-ink-muted hover:bg-surface-dim">
-          취소
-        </button>
-        <button type="submit" className={`${UI.btnPrimary} px-5 py-1.5 text-sm`}>
-          {isEditing ? "수정" : "저장"}
-        </button>
+        <BtnCancel type="button" onClick={onCancel} className="px-4 py-1.5 text-sm" />
+        <BtnSave className="px-5 py-1.5 text-sm">{isEditing ? "저장" : "등록"}</BtnSave>
       </div>
     </form>
   );
@@ -515,23 +518,19 @@ export function TradeHistorySection({
         />
       ) : (
         !hideHeaderAction && (
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="w-full rounded-lg border border-dashed border-line py-2.5 text-sm text-ink-muted hover:border-gain hover:text-gain"
-          >
+          <BtnCreateBlock type="button" onClick={() => setFormOpen(true)}>
             + 체결 내역 입력
-          </button>
+          </BtnCreateBlock>
         )
       )}
 
       <button
         type="button"
         onClick={() => setListOpen((v) => !v)}
-        className="flex w-full items-center gap-3 rounded-lg border border-line/80 bg-surface-dim/50 px-3 py-2 text-left"
+        className="ui-btn-secondary flex w-full items-center gap-3 px-3 py-2 text-left"
       >
         <span className="min-w-0 flex-1 text-sm">
-          매매 기록 <span className="text-ink-muted">({trades.length}건)</span>
+          매매 기록 <span className="text-zinc-300">({trades.length}건)</span>
         </span>
         <SectionCollapseToggle open={listOpen} />
       </button>

@@ -22,4 +22,11 @@ const RAW_SEED = {
 
 export const SEED: AppData = migrateAppData(RAW_SEED);
 
+export const EMPTY: AppData = migrateAppData({
+  stocks: [],
+  trades: [],
+  currentPrices: {},
+  initialCapitalTradeIds: [],
+});
+
 export const STORAGE_KEY = "stock-report-v2";

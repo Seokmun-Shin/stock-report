@@ -1,7 +1,8 @@
 "use client";
 
 import type { AppData, InitialCapitalSummary, PortfolioSummary, Stock, StockSummary } from "@/lib/types";
-import { TabIntroBanner } from "@/components/ui/PanelCard";
+import { tabLabel } from "@/lib/appTabs";
+import { TabIntroBanner, boxList } from "@/components/ui/PanelCard";
 import { InitialCapitalPanel } from "@/components/InitialCapitalPanel";
 import { PeriodReportPanel } from "@/components/PeriodReportPanel";
 import { PerformanceOverview } from "@/components/PerformanceOverview";
@@ -36,34 +37,39 @@ export function ReportTab({
   const stockSummary = summaries[activeId];
 
   return (
-    <div className="space-y-3">
+    <>
       <TabIntroBanner
-        title="④ 성과"
-        description="실현(매도 확정)과 평가(보유·미실현)를 구분해 봅니다. ③ 기록 → FIFO 집계 · ① 판단 보조 신호로도 씁니다."
+        title={tabLabel("report")}
+        description="실현·평가 손익과 보유 상태를 확인합니다. 「기록해!」 체결 · 「살까?팔까?」 타이밍과 함께 봅니다."
       />
 
-      <PerformanceOverview portfolio={portfolio} />
+      <div className={boxList}>
+        <PerformanceOverview portfolio={portfolio} />
 
-      <PortfolioBenchmarkChart dailySnapshots={data.dailySnapshots} />
+        <PortfolioBenchmarkChart dailySnapshots={data.dailySnapshots} />
 
-      <TimingBacktestPanel data={data} />
+        <PortfolioSummaryPanel portfolio={portfolio} />
 
-      <PortfolioSummaryPanel portfolio={portfolio} />
+        <PeriodReportPanel data={data} />
 
-      {stocks.length > 0 && (
-        <StockDetailPanel
-          stocks={stocks}
-          activeId={activeId}
-          onSelect={onSelectStock}
-          onEdit={onEditStock}
-          onDelete={onDeleteStock}
-        >
-          {activeStock && stockSummary && <StockSettlement stockName={activeStock.name} summary={stockSummary} />}
-        </StockDetailPanel>
-      )}
+        {stocks.length > 0 && (
+          <StockDetailPanel
+            stocks={stocks}
+            activeId={activeId}
+            onSelect={onSelectStock}
+            onEdit={onEditStock}
+            onDelete={onDeleteStock}
+          >
+            {activeStock && stockSummary && (
+              <StockSettlement stockName={activeStock.name} summary={stockSummary} />
+            )}
+          </StockDetailPanel>
+        )}
 
-      <PeriodReportPanel data={data} />
-      <InitialCapitalPanel summary={capital} />
-    </div>
+        <TimingBacktestPanel data={data} />
+
+        <InitialCapitalPanel summary={capital} />
+      </div>
+    </>
   );
 }

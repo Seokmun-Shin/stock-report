@@ -5,6 +5,7 @@ import { fmt, fmtPct, fmtSigned } from "@/lib/calc";
 import { INITIAL_CAPITAL_HINTS } from "@/lib/metricHints";
 import { CollapsibleSection, SummaryChip } from "./CollapsibleSection";
 import { HintTooltip, SectionTitle, StatCard } from "./StatCard";
+import { warnSurface } from "./ui/PanelCard";
 
 function isFullySold(summary: InitialCapitalSummary): boolean {
   return summary.stillInvested === 0 && summary.holdingMarketValue === 0;
@@ -13,11 +14,11 @@ function isFullySold(summary: InitialCapitalSummary): boolean {
 export function InitialCapitalPanel({ summary }: { summary: InitialCapitalSummary }) {
   if (summary.selectedCount === 0) {
     return (
-      <section className="rounded-2xl border border-dashed border-amber-300/90 bg-amber-50/40 px-4 py-4 sm:px-5 sm:py-5">
+      <section className={warnSurface}>
         <SectionTitle>초기 투자금 기준 수익</SectionTitle>
-        <p className="mt-2 text-sm leading-relaxed text-amber-900/85">
-          매매 내역 표에서 매수 건의 <strong>「기준」</strong>을 눌러 초기 투자금으로 지정하세요.
-          <span className="mt-1 block text-sm text-amber-800/80">
+        <p className="ui-warn-body mt-2 text-sm leading-relaxed">
+          매매 내역 표에서 매수 건의 <strong className="text-[var(--ui-warn-fg-strong)]">「기준」</strong>을 눌러 초기 투자금으로 지정하세요.
+          <span className="mt-1 block text-sm">
             ★ 매수분을 전량 매도한 뒤, 투입 대비 회수·실현 수익을 확인하는 용도입니다.
           </span>
         </p>
@@ -59,6 +60,7 @@ export function InitialCapitalPanel({ summary }: { summary: InitialCapitalSummar
           hint={INITIAL_CAPITAL_HINTS.returnRate}
           value={fmtPct(summary.returnRate)}
           tone={summary.returnRate >= 0 ? "gain" : "loss"}
+          className={fullySold ? "col-span-2 sm:col-span-1" : undefined}
         />
         {!fullySold && (
           <>
@@ -73,7 +75,7 @@ export function InitialCapitalPanel({ summary }: { summary: InitialCapitalSummar
           </>
         )}
       </div>
-      <p className="mt-3 text-sm text-slate-600">
+      <p className="ui-fg-muted mt-3 text-sm">
         {fullySold ? (
           <>
             회수 현금 {fmt(summary.recoveredCash)}

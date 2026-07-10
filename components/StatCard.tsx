@@ -2,17 +2,25 @@
 
 import { useState } from "react";
 import { fmtPct } from "@/lib/calc";
-import { AreaSectionTitle } from "./ui/PanelCard";
+import { AreaCardHeader } from "./ui/PanelCard";
 
 export function UnitNotice() {
-  return <span className="ml-1 text-xs font-normal text-ink-muted">(단위 : 원)</span>;
+  return <span className="ui-fg-muted ml-1 text-xs font-normal">(단위 : 원)</span>;
 }
 
-export function SectionTitle({ children, unit }: { children: React.ReactNode; unit?: boolean }) {
+export function SectionTitle({
+  children,
+  unit,
+  subtitle,
+  trailing,
+}: {
+  children: React.ReactNode;
+  unit?: boolean;
+  subtitle?: React.ReactNode;
+  trailing?: React.ReactNode;
+}) {
   return (
-    <AreaSectionTitle as="h2" unit={unit}>
-      {children}
-    </AreaSectionTitle>
+    <AreaCardHeader as="h2" title={children} unit={unit} subtitle={subtitle} trailing={trailing} />
   );
 }
 
@@ -28,13 +36,13 @@ export function HintTooltip({ text, align = "center" }: { text: string; align?: 
         aria-label={`${text} (설명)`}
         onClick={() => setOpen((v) => !v)}
         onBlur={() => setOpen(false)}
-        className="ml-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold leading-none text-ink-muted/60 hover:bg-surface-dim hover:text-ink-muted focus:outline-none focus:ring-2 focus:ring-gain/25"
+        className="ml-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold leading-none text-zinc-500 hover:bg-white/10 hover:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-gain/25"
       >
         ?
       </button>
       <span
         role="tooltip"
-        className={`pointer-events-none absolute bottom-[calc(100%+6px)] z-30 w-max max-w-[260px] rounded-lg bg-ink px-2.5 py-2 text-left text-xs font-normal leading-snug text-white shadow-lg ${pos} ${
+        className={`pointer-events-none absolute bottom-[calc(100%+6px)] z-30 w-max max-w-[260px] rounded-lg bg-zinc-900 px-2.5 py-2 text-left text-xs font-normal leading-snug text-white shadow-lg ${pos} ${
           open ? "block" : "hidden group-hover/hint:block group-focus-within/hint:block"
         }`}
       >
@@ -62,6 +70,7 @@ export function StatCard({
   inline = false,
   fill = false,
   hintAlign,
+  className = "",
 }: {
   label: string;
   hint?: string;
@@ -71,15 +80,14 @@ export function StatCard({
   inline?: boolean;
   fill?: boolean;
   hintAlign?: "center" | "right";
+  className?: string;
 }) {
-  const bg =
-    tone === "gain" ? "bg-gain-soft border-gain/20" : tone === "loss" ? "bg-loss-soft border-loss/20" : "bg-surface border-line";
-  const valColor = tone === "gain" ? "text-gain" : tone === "loss" ? "text-loss" : "text-ink";
+  const valColor = tone === "gain" ? "text-gain" : tone === "loss" ? "text-loss" : "ui-fg-primary";
 
   if (inline) {
     return (
-      <div className={`flex min-h-[2.5rem] min-w-0 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 ${bg} ${fill ? "flex-1" : ""}`}>
-        <div className="min-w-0 flex-1 text-xs font-medium text-ink-muted sm:text-sm">
+      <div className={`ui-inner-block flex min-h-[2.5rem] min-w-0 items-center justify-between gap-2 py-2 ${fill ? "flex-1" : ""}`}>
+        <div className="ui-fg-secondary min-w-0 flex-1 text-xs font-medium sm:text-sm">
           <CardLabel label={label} hint={hint} hintAlign={hintAlign} />
         </div>
         <span className={`shrink-0 text-right text-sm font-bold tabular-nums leading-snug ${valColor}`} title={value}>
@@ -90,8 +98,8 @@ export function StatCard({
   }
 
   return (
-    <div className={`flex min-w-0 flex-col rounded-lg border p-2.5 ${bg}`}>
-      <p className="text-xs font-medium text-ink-muted">
+    <div className={`ui-inner-block flex min-w-0 flex-col p-2.5 ${className} ${tone !== "neutral" ? (tone === "gain" ? "bg-red-500/10" : "bg-blue-500/10") : ""}`}>
+      <p className="ui-fg-secondary text-xs font-medium">
         <CardLabel label={label} hint={hint} hintAlign={hintAlign} />
       </p>
       <div className="mt-1.5">
@@ -103,7 +111,7 @@ export function StatCard({
         </p>
         {sub && (
           <p
-            className={`mt-0.5 text-right text-xs tabular-nums sm:text-sm ${tone !== "neutral" ? valColor : "text-ink-muted"}`}
+            className={`mt-0.5 text-right text-xs tabular-nums sm:text-sm ${tone !== "neutral" ? valColor : "text-zinc-300"}`}
           >
             {sub}
           </p>
@@ -126,15 +134,15 @@ export function HeroMetric({
   sub?: string;
   tone?: "neutral" | "gain" | "loss";
 }) {
-  const valColor = tone === "gain" ? "text-gain" : tone === "loss" ? "text-loss" : "text-ink";
+  const valColor = tone === "gain" ? "text-gain" : tone === "loss" ? "text-loss" : "text-white";
   return (
     <div className="min-w-0 max-w-[300px] shrink-0 text-right">
-      <p className="text-sm font-semibold text-ink-muted">
+      <p className="text-sm font-semibold text-zinc-300">
         <CardLabel label={label} hint={hint} hintAlign="right" />
       </p>
       <p className={`mt-1.5 whitespace-nowrap text-xl font-bold tabular-nums sm:text-2xl ${valColor}`}>
         <span title={value}>{value}</span>
-        {sub && <span className="ml-2 text-lg font-semibold text-ink-muted">{sub}</span>}
+        {sub && <span className="ml-2 text-lg font-semibold text-zinc-300">{sub}</span>}
       </p>
     </div>
   );
@@ -143,18 +151,18 @@ export function HeroMetric({
 export function ZoneDivider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-1">
-      <div className="h-px flex-1 bg-line" />
-      <span className="shrink-0 rounded-full border border-line bg-white px-2.5 py-0.5 text-xs font-semibold text-ink-muted">
+      <div className="h-px flex-1 bg-white/15" />
+      <span className="shrink-0 ui-chip px-2.5 py-0.5 text-xs font-semibold text-zinc-300">
         {label}
       </span>
-      <div className="h-px flex-1 bg-line" />
+      <div className="h-px flex-1 bg-white/15" />
     </div>
   );
 }
 
 export function Pct({ n }: { n: number }) {
   return (
-    <span className={n > 0 ? "font-bold tabular-nums text-gain" : n < 0 ? "font-bold tabular-nums text-loss" : "font-bold tabular-nums text-ink"}>
+    <span className={n > 0 ? "font-bold tabular-nums text-gain" : n < 0 ? "font-bold tabular-nums text-loss" : "font-bold tabular-nums text-white"}>
       {fmtPct(n)}
     </span>
   );

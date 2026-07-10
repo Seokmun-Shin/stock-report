@@ -13,6 +13,7 @@ import type {
 } from "../types";
 import type { KisInvestorNet } from "../kis/types";
 import { fmt, fmtPct, fmtQty, fmtSigned } from "../calc";
+import { tabLabel } from "@/lib/appTabs";
 import { resolveReportSettings, type ReportSettings } from "../reportSettings";
 import type { MarketBriefingContext, OfficialIndicatorSnapshot, StockBriefingContext, TradeRecommendation } from "./types";
 import type { StockTradingVerdict } from "./tradingVerdict";
@@ -181,7 +182,7 @@ function buildTradeRecommendationSection(rec: TradeRecommendation | null): Timin
   return {
     id: "trade-recommendation",
     title: "통합 매매 추천",
-    subtitle: "판단 탭과 동일 엔진 (시세·시장·뉴스·공시·고점·평단)",
+    subtitle: `${tabLabel("verdict")} 탭과 동일 엔진 (시세·시장·뉴스·공시·고점·평단)`,
     group: "overview",
     usedFor: tag("both"),
     rows: [

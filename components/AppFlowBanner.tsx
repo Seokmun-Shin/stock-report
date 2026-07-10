@@ -1,38 +1,35 @@
 "use client";
 
-import type { AppTab } from "@/components/AppTabNav";
-import { APP_FLOW_STEPS, stepForTab } from "@/lib/appFlow";
+import type { AppTab } from "@/lib/appTabs";
+import { LEDGER_FLOW_STEPS, ledgerStepForTab } from "@/lib/ledgerFlow";
 
+/** 기록 + 원천 → 손익 → 타이밍 3단계 */
 export function AppFlowBanner({ tab }: { tab: AppTab }) {
-  const current = stepForTab(tab);
+  const current = ledgerStepForTab(tab);
   if (!current) return null;
 
   return (
-    <section className="mt-4 rounded-2xl border border-slate-200/90 bg-white px-3 py-3 shadow-sm sm:px-5">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-ink-muted">사용 흐름</p>
-      <ol className="mt-2 flex flex-wrap gap-1.5">
-        {APP_FLOW_STEPS.map((s) => {
-          const active = s.step === current.step || s.alsoTab === tab;
-          const inApp = !s.external;
+    <section className="ui-flow-banner min-w-0">
+      <p className="ui-fg-muted text-xs font-bold uppercase tracking-wide">기록 + 원천 → 손익 → 타이밍</p>
+      <ol className="ui-flow-step-row mt-2">
+        {LEDGER_FLOW_STEPS.map((s) => {
+          const active = s.step === current.step;
           return (
             <li
               key={s.step}
-              className={`rounded-lg px-2 py-1 text-[11px] font-medium leading-snug sm:text-xs ${
+              className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium leading-snug sm:text-sm ${
                 active
-                  ? "border border-gain/35 bg-gain-soft text-gain"
-                  : inApp
-                    ? "bg-surface-dim/60 text-ink-muted"
-                    : "border border-dashed border-line bg-white text-ink-muted"
+                  ? "border border-gain/35 bg-gain/20 text-gain"
+                  : "ui-flow-step-idle"
               }`}
               title={s.detail}
             >
               <span className="font-bold tabular-nums">{s.step}.</span> {s.short}
-              {s.external && <span className="ml-0.5 text-[10px] opacity-70">(앱 밖)</span>}
             </li>
           );
         })}
       </ol>
-      <p className="mt-2 text-xs leading-relaxed text-ink-muted">{current.detail}</p>
+      <p className="ui-fg-secondary mt-2 text-xs leading-relaxed">{current.detail}</p>
     </section>
   );
 }

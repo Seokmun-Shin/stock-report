@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Stock } from "@/lib/types";
 import type { MarketBriefingContext } from "@/lib/briefing/types";
+import { authedFetch } from "@/lib/client/authedFetch";
 
 const CACHE_KEY = "mtock-briefing-cache";
 const CACHE_TTL_MS = 30 * 60 * 1000;
@@ -57,7 +58,7 @@ export function useBriefingData(stocks: Stock[]) {
     setError(null);
 
     try {
-      const res = await fetch("/api/briefing", {
+      const res = await authedFetch("/api/briefing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -81,17 +82,6 @@ export function useBriefingData(stocks: Stock[]) {
       setLoading(false);
     }
   }, [stocks, stocksKey]);
-
-  const autoRef = useRef(false);
-  useEffect(() => {
-    if (autoRef.current) return;
-    if (stocks.length === 0) return;
-    autoRef.current = true;
-    if (context) return;
-    // KIS 시세와 동시 토큰 요청 방지 (Vercel 서버리스 · 1분 1회 제한)
-    const t = window.setTimeout(() => void refresh(), 3_000);
-    return () => window.clearTimeout(t);
-  }, [stocksKey, refresh, stocks.length, context]);
 
   useEffect(() => {
     const cached = readCache(stocksKey);

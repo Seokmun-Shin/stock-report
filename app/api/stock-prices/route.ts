@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { fetchKisQuotes, fetchDomesticIndicesWithFallback, isKisConfigured, normalizeStockCode } from "@/lib/kis/client";
 import { cached, withRetry } from "@/lib/server/fetchUtil";
+import { guardApiRequest, readJsonBody } from "@/lib/server/apiSecurity";
+import { runWithRequestSecrets } from "@/lib/server/requestSecrets";
 
 export const dynamic = "force-dynamic";
 
 /** KIS 연동 설정 여부 (키 노출 없음) */
-export async function GET() {
-  return NextResponse.json({ configured: isKisConfigured(), yahooFallback: true });
+export async function GET(req: Request) {
+  const blocked = guardApiRequest(req);
+  if (blocked) return blocked;
+  return runWithRequestSecrets(req, () =>
+    NextResponse.json({ configured: isKisConfigured(), yahooFallback: true })
+  );
 }
 
 async function fetchViaYahoo(normalized: string[], includeKospi: boolean) {
@@ -46,15 +52,15 @@ async function fetchViaYahoo(normalized: string[], includeKospi: boolean) {
 
 /** 종목코드 배열 → 시세 조회 + KOSPI (KIS 우선, 미설정 시 Yahoo) */
 export async function POST(req: Request) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "JSON body 필요" }, { status: 400 });
-  }
+  const blocked = guardApiRequest(req);
+  if (blocked) return blocked;
 
-  const codes = (body as { codes?: unknown }).codes;
-  const includeKospi = (body as { includeKospi?: boolean }).includeKospi !== false;
+  const body = await readJsonBody<{ codes?: unknown; includeKospi?: boolean }>(req);
+  if (body instanceof NextResponse) return body;
+
+  return runWithRequestSecrets(req, async () => {
+  const codes = body.codes;
+  const includeKospi = body.includeKospi !== false;
 
   if (!Array.isArray(codes) || codes.length === 0) {
     return NextResponse.json({ error: "codes 배열이 필요합니다." }, { status: 400 });
@@ -108,4 +114,5 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json(payload);
+  });
 }

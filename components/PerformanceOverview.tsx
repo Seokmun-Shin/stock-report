@@ -4,7 +4,17 @@ import type { PortfolioSummary } from "@/lib/types";
 import { fmtPct, fmtSigned } from "@/lib/calc";
 import { PORTFOLIO_HINTS } from "@/lib/metricHints";
 import { HintTooltip } from "./StatCard";
-import { PageSectionTitle, PanelCard, UI, AreaSectionSubtitle, AreaSectionTitle } from "./ui/PanelCard";
+import {
+  AreaCardHeader,
+  PanelCard,
+  UI,
+  AreaSectionSubtitle,
+  AreaSectionTitle,
+  pickCard,
+  pickDetailZone,
+  gainBlock,
+  lossBlock,
+} from "./ui/PanelCard";
 
 type MetricTone = "gain" | "loss" | "neutral";
 
@@ -17,13 +27,13 @@ function metricTone(n: number): MetricTone {
 function toneText(tone: MetricTone) {
   if (tone === "gain") return "text-gain";
   if (tone === "loss") return "text-loss";
-  return "text-ink-muted";
+  return "text-zinc-300";
 }
 
-function toneSurface(tone: MetricTone) {
-  if (tone === "gain") return "border-gain/30 bg-gain-soft/50";
-  if (tone === "loss") return "border-loss/30 bg-loss-soft/50";
-  return "border-line bg-surface-dim/40";
+function blockClass(tone: MetricTone) {
+  if (tone === "gain") return `${gainBlock} bg-red-500/10 ring-0`;
+  if (tone === "loss") return `${lossBlock} bg-blue-500/10 ring-0`;
+  return pickCard;
 }
 
 function MetricLabelRow({ label, hint }: { label: string; hint?: string }) {
@@ -55,11 +65,9 @@ function MetricBlock({
   rateHint: string;
 }) {
   const blockTone = metricTone(pnl);
-  const pnlTone = metricTone(pnl);
-  const rateTone = metricTone(rate);
 
   return (
-    <div className={`rounded-lg border p-2.5 sm:p-3 ${toneSurface(blockTone)}`}>
+    <div className={`rounded-xl p-3 sm:p-4 ${blockClass(blockTone)}`}>
       <AreaSectionTitle as="p" size="sub">
         {title}
       </AreaSectionTitle>
@@ -67,8 +75,8 @@ function MetricBlock({
       <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1">
         <MetricLabelRow label={pnlLabel} />
         <MetricLabelRow label={rateLabel} hint={rateHint} />
-        <p className={`${UI.metricCompact} ${toneText(pnlTone)}`}>{fmtSigned(pnl)}</p>
-        <p className={`${UI.metricCompact} ${toneText(rateTone)}`}>{fmtPct(rate)}</p>
+        <p className={`${UI.metricCompact} ${toneText(metricTone(pnl))}`}>{fmtSigned(pnl)}</p>
+        <p className={`${UI.metricCompact} ${toneText(metricTone(rate))}`}>{fmtPct(rate)}</p>
       </div>
     </div>
   );
@@ -76,12 +84,14 @@ function MetricBlock({
 
 export function PerformanceOverview({ portfolio }: { portfolio: PortfolioSummary }) {
   const totalTone = metricTone(portfolio.totalPnl);
-  const totalSurface = toneSurface(totalTone);
 
   return (
     <PanelCard>
-      <PageSectionTitle unit>성과 구분</PageSectionTitle>
-      <AreaSectionSubtitle>매도로 확정된 금액과, 아직 보유 중인 평가 손익을 나눠 표시합니다.</AreaSectionSubtitle>
+      <AreaCardHeader
+        title="성과 구분"
+        unit
+        subtitle="매도로 확정된 금액과, 아직 보유 중인 평가 손익을 나눠 표시합니다."
+      />
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <MetricBlock
@@ -104,7 +114,7 @@ export function PerformanceOverview({ portfolio }: { portfolio: PortfolioSummary
         />
       </div>
 
-      <div className={`mt-3 rounded-lg border px-3 py-2.5 ${totalSurface}`}>
+      <div className={`${pickDetailZone} rounded-xl p-3 sm:p-4 ${blockClass(totalTone)}`}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <AreaSectionTitle as="p" size="sub">

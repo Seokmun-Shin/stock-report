@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AppData } from "@/lib/types";
 import { migrateAppData } from "@/lib/calc";
-import { SEED, STORAGE_KEY } from "@/lib/seed";
+import { EMPTY, SEED, STORAGE_KEY } from "@/lib/seed";
+import { IS_STANDALONE, ONBOARDING_KEY } from "@/lib/appConfig";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { toAuthError } from "@/lib/supabase/authErrors";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/lib/supabase/portfolio";
 
 export type StorageMode = "loading" | "local" | "cloud" | "auth-required";
+export type OnboardingChoice = "demo" | "empty";
 
 function readLocalData(): AppData | null {
   if (typeof window === "undefined") return null;
@@ -34,8 +36,14 @@ function writeLocalCache(data: AppData) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+function isOnboarded(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(ONBOARDING_KEY) === "1";
+}
+
 export function usePortfolioStorage() {
   const [mode, setMode] = useState<StorageMode>("loading");
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [data, setData] = useState<AppData | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -77,10 +85,16 @@ export function usePortfolioStorage() {
   }, []);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
-      const local = readLocalData() ?? SEED;
-      writeLocalCache(local);
-      setData(local);
+    if (IS_STANDALONE || !isSupabaseConfigured()) {
+      const local = readLocalData();
+      if (IS_STANDALONE && !isOnboarded() && !local) {
+        setNeedsOnboarding(true);
+        setMode("local");
+        return;
+      }
+      const initial = local ?? (IS_STANDALONE ? EMPTY : SEED);
+      writeLocalCache(initial);
+      setData(initial);
       setMode("local");
       return;
     }
@@ -106,13 +120,22 @@ export function usePortfolioStorage() {
     };
   }, [loadCloudForUser]);
 
+  const completeOnboarding = useCallback((choice: OnboardingChoice) => {
+    const next = choice === "demo" ? SEED : EMPTY;
+    localStorage.setItem(ONBOARDING_KEY, "1");
+    writeLocalCache(next);
+    setData(next);
+    setNeedsOnboarding(false);
+    setMode("local");
+  }, []);
+
   const persist = useCallback(
     (next: AppData) => {
       setData(next);
       writeLocalCache(next);
       setSyncError(null);
 
-      if (!userIdRef.current || !isSupabaseConfigured()) return;
+      if (IS_STANDALONE || !userIdRef.current || !isSupabaseConfigured()) return;
 
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
@@ -133,6 +156,8 @@ export function usePortfolioStorage() {
 
   return {
     mode,
+    needsOnboarding,
+    completeOnboarding,
     user,
     data,
     persist,
@@ -162,6 +187,7 @@ export function usePortfolioStorage() {
     signOut: async () => {
       await signOut();
     },
-    cloudEnabled: isSupabaseConfigured(),
+    cloudEnabled: !IS_STANDALONE && isSupabaseConfigured(),
+    standalone: IS_STANDALONE,
   };
 }

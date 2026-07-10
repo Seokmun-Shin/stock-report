@@ -19,7 +19,7 @@ export function StockPills({
             type="button"
             onClick={() => onSelect(s.id)}
             className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-              active ? "bg-gain text-white" : "bg-surface-dim text-ink-muted hover:bg-line/50"
+              active ? "bg-gain text-white" : "bg-white/10 text-zinc-300 hover:bg-white/20"
             }`}
           >
             {s.name}

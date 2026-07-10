@@ -1,11 +1,12 @@
 /** DART Open API — 공시 (무료, DART_API_KEY 필요) */
 
+import { envSecret } from "@/lib/envSecret";
 import type { BriefingDisclosure } from "../types";
 
 const DART_BASE = "https://opendart.fss.or.kr/api";
 
 export function isDartConfigured(): boolean {
-  return !!process.env.DART_API_KEY?.trim();
+  return !!envSecret("DART_API_KEY");
 }
 
 function formatDate(d: Date): string {
@@ -30,7 +31,7 @@ interface DartListItem {
 
 /** 최근 공시 목록 (stock_code로 필터) */
 export async function fetchRecentDisclosures(stockCodes: string[], days = 14): Promise<BriefingDisclosure[]> {
-  const key = process.env.DART_API_KEY?.trim();
+  const key = envSecret("DART_API_KEY");
   if (!key) return [];
 
   const codeSet = new Set(stockCodes.map((c) => c.replace(/\D/g, "").padStart(6, "0")));

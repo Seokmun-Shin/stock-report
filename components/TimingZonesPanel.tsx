@@ -2,22 +2,23 @@
 
 import type { StockTradingPlan, TradingZone } from "@/lib/briefing/tradingZones";
 import { fmt } from "@/lib/calc";
+import { gainBlock, innerBlock, lossBlock } from "./ui/PanelCard";
 
 function zoneStyle(kind: TradingZone["kind"], active: boolean) {
-  if (!active) return "border-line bg-white text-ink-muted";
-  if (kind === "buy") return "border-gain bg-gain-soft/40 text-gain";
-  if (kind === "sell") return "border-loss bg-loss-soft/40 text-loss";
-  return "border-slate-300 bg-surface-dim text-ink";
+  if (!active) return `${innerBlock} text-zinc-300`;
+  if (kind === "buy") return `${gainBlock} bg-red-500/10 text-gain`;
+  if (kind === "sell") return `${lossBlock} bg-blue-500/10 text-loss`;
+  return `${innerBlock} text-white`;
 }
 
 export function TimingZonesPanel({ plan, compact }: { plan: StockTradingPlan; compact?: boolean }) {
   if (plan.zones.length === 0) {
-    return <p className="text-sm text-ink-muted">매매 구간을 계산하려면 매도·보유 내역이 필요합니다.</p>;
+    return <p className="text-sm text-zinc-300">매매 구간을 계산하려면 매도·보유 내역이 필요합니다.</p>;
   }
 
   return (
     <div className={compact ? "space-y-2" : "space-y-3"}>
-      <div className={`rounded-lg border px-3 py-2 ${zoneStyle(plan.primaryAction, true)}`}>
+      <div className={`rounded-lg px-3 py-2 ${zoneStyle(plan.primaryAction, true)}`}>
         <p className="text-sm font-semibold">{plan.headline}</p>
         <p className="mt-0.5 text-xs leading-relaxed opacity-90">{plan.detail}</p>
       </div>
@@ -26,7 +27,7 @@ export function TimingZonesPanel({ plan, compact }: { plan: StockTradingPlan; co
         {plan.zones.map((z) => (
           <div
             key={z.label}
-            className={`rounded-lg border px-3 py-2 text-xs ${zoneStyle(z.kind, z.active)} ${z.active ? "ring-1 ring-inset ring-current/20" : ""}`}
+            className={`rounded-lg px-3 py-2 text-xs ${zoneStyle(z.kind, z.active)} ${z.active ? "ring-1 ring-inset ring-current/20" : ""}`}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-semibold">{z.label}</span>

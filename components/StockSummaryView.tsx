@@ -4,8 +4,8 @@ import type { BuyTimingSignal, SellTimingSignal, Stock, StockQuote, StockSummary
 import { fmt, fmtPct, fmtQty, fmtSigned } from "@/lib/calc";
 
 function QuoteChange({ quote }: { quote?: StockQuote }) {
-  if (!quote) return <span className="text-ink-muted">—</span>;
-  const tone = quote.changeRate > 0 ? "text-gain" : quote.changeRate < 0 ? "text-loss" : "text-ink-muted";
+  if (!quote) return <span className="text-zinc-300">—</span>;
+  const tone = quote.changeRate > 0 ? "text-gain" : quote.changeRate < 0 ? "text-loss" : "text-zinc-300";
   return (
     <span className={`tabular-nums font-semibold ${tone}`}>
       {fmtPct(quote.changeRate)}
@@ -43,33 +43,33 @@ export function StockSummaryCards({
             key={s.id}
             type="button"
             onClick={() => onOpen(s.id)}
-            className="rounded-xl border border-line bg-white p-3 text-left shadow-sm transition hover:border-gain/40 hover:bg-surface-dim/30"
+            className="ui-inner-block p-3 text-left shadow-sm transition hover:border-gain/40 hover:bg-white/10"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate font-bold text-ink">{s.name}</p>
-                <p className="text-xs tabular-nums text-ink-muted">{s.code ?? "코드 없음"}</p>
+                <p className="truncate font-bold text-white">{s.name}</p>
+                <p className="text-xs tabular-nums text-zinc-300">{s.code ?? "코드 없음"}</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold tabular-nums text-ink">{fmt(sum.currentPrice)}</p>
+                <p className="text-lg font-bold tabular-nums text-white">{fmt(sum.currentPrice)}</p>
                 <QuoteChange quote={q} />
               </div>
             </div>
 
             {q && (
-              <p className="mt-2 text-xs tabular-nums text-ink-muted">
+              <p className="mt-2 text-xs tabular-nums text-zinc-300">
                 전일 {fmt(q.prevClose)} · 고 {fmt(q.high)} · 저 {fmt(q.low)}
               </p>
             )}
 
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span className="text-ink-muted">보유 </span>
+                <span className="text-zinc-300">보유 </span>
                 <span className="font-semibold tabular-nums">{sum.holdingQty > 0 ? `${fmtQty(sum.holdingQty)}주` : "0"}</span>
               </div>
               <div className="text-right">
-                <span className="text-ink-muted">평가 </span>
-                <span className={`font-bold tabular-nums ${sum.holdingQty > 0 ? pnlTone : "text-ink"}`}>
+                <span className="text-zinc-300">평가 </span>
+                <span className={`font-bold tabular-nums ${sum.holdingQty > 0 ? pnlTone : "text-white"}`}>
                   {sum.holdingQty > 0 ? fmtSigned(sum.unrealizedPnlWithCost) : "0"}
                 </span>
               </div>
@@ -111,9 +111,9 @@ export function StockSummaryList({
         onOpen={onOpen}
       />
 
-      <div className="hidden min-w-0 overflow-x-auto rounded-xl border border-line md:block">
+      <div className="hidden min-w-0 overflow-x-auto rounded-xl border border-white/10 md:block">
         <table className="w-full min-w-[880px] text-sm lg:text-base">
-          <thead className="border-b border-line bg-surface-dim text-xs font-semibold text-ink-muted lg:text-sm">
+          <thead className="border-b border-white/10 bg-white/10 text-xs font-semibold text-zinc-300 lg:text-sm">
             <tr>
               <th className="px-3 py-2.5 text-left">종목</th>
               <th className="px-3 py-2.5 text-right">현재가</th>
@@ -138,24 +138,24 @@ export function StockSummaryList({
                   ? "text-gain"
                   : sum.holdingQty > 0 && sum.unrealizedPnlWithCost < 0
                     ? "text-loss"
-                    : "text-ink";
+                    : "text-white";
 
               return (
                 <tr
                   key={s.id}
                   onClick={() => onOpen(s.id)}
-                  className="cursor-pointer border-t border-line transition hover:bg-surface-dim/80"
+                  className="cursor-pointer border-t border-white/10 transition hover:bg-white/10"
                 >
                   <td className="px-3 py-3">
-                    <span className="font-semibold text-ink">{s.name}</span>
-                    <span className="ml-1.5 text-xs tabular-nums text-ink-muted">{s.code ?? ""}</span>
+                    <span className="font-semibold text-white">{s.name}</span>
+                    <span className="ml-1.5 text-xs tabular-nums text-zinc-300">{s.code ?? ""}</span>
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums font-semibold">{fmt(sum.currentPrice)}</td>
                   <td className="px-3 py-3 text-right">
                     <QuoteChange quote={q} />
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums text-ink-muted">{q ? fmt(q.high) : "—"}</td>
-                  <td className="px-3 py-3 text-right tabular-nums text-ink-muted">{q ? fmt(q.low) : "—"}</td>
+                  <td className="px-3 py-3 text-right tabular-nums text-zinc-300">{q ? fmt(q.high) : "—"}</td>
+                  <td className="px-3 py-3 text-right tabular-nums text-zinc-300">{q ? fmt(q.low) : "—"}</td>
                   <td className="px-3 py-3 text-right tabular-nums font-semibold">
                     {sum.holdingQty > 0 ? `${fmtQty(sum.holdingQty)}주` : "0"}
                   </td>
