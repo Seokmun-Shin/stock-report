@@ -20,6 +20,7 @@ import type { ReadinessItem } from "@/lib/dataReadiness";
 import { CsvImportPanel } from "@/components/CsvImportPanel";
 import { tabLabel } from "@/lib/appTabs";
 import { sanitizeExternalUrl } from "@/lib/safeUrl";
+import { AccountSwitcherPanel } from "@/components/AccountSwitcherPanel";
 
 export function SettingsTab({
   data,
@@ -37,6 +38,7 @@ export function SettingsTab({
   signOut,
   onResetDemo,
   onRestoreBackup,
+  onPersist,
   cloudEnabled,
   standalone = false,
   syncing,
@@ -57,6 +59,7 @@ export function SettingsTab({
   signOut: () => void;
   onResetDemo: () => void;
   onRestoreBackup: (next: AppData) => void;
+  onPersist: (next: AppData) => void;
   cloudEnabled: boolean;
   standalone?: boolean;
   syncing: boolean;
@@ -92,6 +95,8 @@ export function SettingsTab({
       <AppPreferencesPanel />
 
       <StrategySettingsForm settings={data.reportSettings} onSave={onSettingsChange} />
+
+      <AccountSwitcherPanel data={data} onPersist={onPersist} />
 
       <ApiKeysPanel standalone={standalone} cloudEnabled={cloudEnabled} user={user} />
 

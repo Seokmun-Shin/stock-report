@@ -12,6 +12,7 @@ import {
 import type { StockHistoryPayload } from "@/hooks/useStockHistory";
 import type { Trade } from "@/lib/types";
 import { matchTradesToChart } from "@/lib/chartTrades";
+import type { ChartTimingLine } from "@/lib/chartTimingLines";
 import { DARK_CHART } from "@/lib/chartTheme";
 import { pickCard, pickDetailZone, AreaCardHeader, UI } from "@/components/ui/PanelCard";
 
@@ -255,6 +256,7 @@ export function StockTrendChart({
   holdingQty,
   trades = [],
   fetchedAt,
+  timingLines = [],
 }: {
   stockName: string;
   data: StockHistoryPayload | null;
@@ -268,6 +270,7 @@ export function StockTrendChart({
   holdingQty?: number;
   trades?: Trade[];
   fetchedAt?: Date | null;
+  timingLines?: ChartTimingLine[];
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -289,6 +292,12 @@ export function StockTrendChart({
     if (avgCost != null && avgCost > 0 && holdingQty && holdingQty > 0) {
       yMin = Math.min(yMin, avgCost);
       yMax = Math.max(yMax, avgCost);
+    }
+    for (const line of timingLines) {
+      if (line.price > 0) {
+        yMin = Math.min(yMin, line.price);
+        yMax = Math.max(yMax, line.price);
+      }
     }
     const pad = Math.max((yMax - yMin) * 0.06, yMax * 0.002);
     yMin -= pad;
@@ -384,6 +393,15 @@ export function StockTrendChart({
       cy: yScale(m.price),
     }));
 
+    const timingY = timingLines
+      .filter((l) => l.price >= yMin && l.price <= yMax)
+      .map((l) => ({
+        ...l,
+        y: yScale(l.price),
+        color: l.kind.startsWith("buy") ? MARKET.up : MARKET.down,
+        dash: l.kind.endsWith("2") ? "4 3" : "2 2",
+      }));
+
     return {
       candles,
       closePath,
@@ -407,13 +425,14 @@ export function StockTrendChart({
       avgY,
       vsAvgPct,
       tradeMarkers,
+      timingY,
       yMin,
       yMax,
       xCenter,
       yScale,
       kospiEquiv,
     };
-  }, [data, avgCost, holdingQty, interval, range, trades]);
+  }, [data, avgCost, holdingQty, interval, range, trades, timingLines]);
 
   const handlePointer = useCallback(
     (clientX: number, clientY: number, rect: DOMRect) => {
@@ -766,6 +785,32 @@ export function StockTrendChart({
                   </>
                 )}
 
+                {chart.timingY.map((line) => (
+                  <g key={line.kind}>
+                    <line
+                      x1={CHART.padL}
+                      x2={CHART.w - CHART.padR}
+                      y1={line.y}
+                      y2={line.y}
+                      stroke={line.color}
+                      strokeWidth="0.55"
+                      strokeDasharray={line.dash}
+                      opacity="0.55"
+                    />
+                    <text
+                      x={CHART.padL + 2}
+                      y={line.y - 2}
+                      fill={line.color}
+                      fontSize="5.5"
+                      fontWeight="600"
+                      fontFamily="inherit"
+                      opacity="0.75"
+                    >
+                      {line.label}
+                    </text>
+                  </g>
+                ))}
+
                 {hoverIdx != null && chart.candles[hoverIdx] && (
                   <line
                     x1={chart.candles[hoverIdx].cx}
@@ -850,6 +895,12 @@ export function StockTrendChart({
                   <span className="inline-flex items-center gap-1.5">
                     <span className="inline-block h-0 w-3.5 border-t border-dashed border-amber-400/80" />
                     평단
+                  </span>
+                )}
+                {chart.timingY.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block h-0 w-3.5 border-t border-dashed border-gain/80" />
+                    타이밍
                   </span>
                 )}
                 {chart.tradeMarkers.length > 0 && (

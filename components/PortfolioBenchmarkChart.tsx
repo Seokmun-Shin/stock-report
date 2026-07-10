@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { fmtPct } from "@/lib/calc";
 import { tabLabel } from "@/lib/appTabs";
 import type { DailySnapshot } from "@/lib/types";
@@ -32,9 +32,23 @@ function pickTicks(n: number, max = 5): number[] {
   return Array.from({ length: max }, (_, i) => Math.round(i * step));
 }
 
+const BENCHMARK_RANGES = [
+  { days: 7, label: "7일" },
+  { days: 30, label: "30일" },
+  { days: 90, label: "90일" },
+] as const;
+
 export function PortfolioBenchmarkChart({ dailySnapshots }: { dailySnapshots?: DailySnapshot[] }) {
-  const { data, loading, error } = usePortfolioBenchmark(dailySnapshots);
-  const snapCount = dailySnapshots?.length ?? 0;
+  const [rangeDays, setRangeDays] = useState<(typeof BENCHMARK_RANGES)[number]["days"]>(90);
+
+  const filteredSnapshots = useMemo(() => {
+    if (!dailySnapshots?.length) return undefined;
+    const sorted = [...dailySnapshots].sort((a, b) => a.date.localeCompare(b.date));
+    return sorted.slice(-rangeDays);
+  }, [dailySnapshots, rangeDays]);
+
+  const { data, loading, error } = usePortfolioBenchmark(filteredSnapshots);
+  const snapCount = filteredSnapshots?.length ?? 0;
 
   const chart = useMemo(() => {
     if (!data || data.portfolioIndex.length < 2) return null;
@@ -86,7 +100,7 @@ export function PortfolioBenchmarkChart({ dailySnapshots }: { dailySnapshots?: D
         title="포트폴리오 vs KOSPI"
         meta={
           <>
-            일별 스냅샷 기준 누적 수익률(지수 100) · 최대 90일
+            일별 스냅샷 기준 누적 수익률(지수 100)
             {data?.fetchedAt && (
               <>
                 {" · "}
@@ -94,6 +108,22 @@ export function PortfolioBenchmarkChart({ dailySnapshots }: { dailySnapshots?: D
               </>
             )}
           </>
+        }
+        trailing={
+          <div className="inline-flex overflow-hidden rounded-lg border border-white/10 bg-white/5">
+            {BENCHMARK_RANGES.map((r) => (
+              <button
+                key={r.days}
+                type="button"
+                onClick={() => setRangeDays(r.days)}
+                className={`px-2.5 py-1 text-xs font-semibold tabular-nums ${
+                  rangeDays === r.days ? "bg-gain/20 text-gain" : "text-zinc-300 hover:text-white"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
         }
       />
 

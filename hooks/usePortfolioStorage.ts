@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AppData } from "@/lib/types";
 import { migrateAppData } from "@/lib/calc";
+import { packActiveAccount } from "@/lib/multiAccount";
 import { EMPTY, SEED, STORAGE_KEY } from "@/lib/seed";
 import { IS_STANDALONE, ONBOARDING_KEY } from "@/lib/appConfig";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -174,7 +175,7 @@ export function usePortfolioStorage() {
 
   const persist = useCallback(
     (next: AppData, options?: { immediate?: boolean }) => {
-      const stamped = stamp(next);
+      const stamped = stamp(packActiveAccount(next));
       setData(stamped);
       writeLocalCache(stamped);
       setSyncError(null);

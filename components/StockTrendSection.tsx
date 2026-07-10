@@ -1,8 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import { useStockHistory } from "@/hooks/useStockHistory";
 import { StockTrendChart } from "@/components/StockTrendChart";
-import type { DailySnapshot, Trade } from "@/lib/types";
+import { buildChartTimingLines } from "@/lib/chartTimingLines";
+import type { DailySnapshot, StockSummary, Trade } from "@/lib/types";
+import type { ReportSettings } from "@/lib/reportSettings";
 
 export function StockTrendSection({
   stockId,
@@ -13,6 +16,8 @@ export function StockTrendSection({
   avgCost,
   holdingQty,
   trades,
+  summary,
+  reportSettings,
 }: {
   stockId: string;
   stockName: string;
@@ -22,6 +27,8 @@ export function StockTrendSection({
   avgCost?: number;
   holdingQty?: number;
   trades?: Trade[];
+  summary?: StockSummary | null;
+  reportSettings?: Partial<ReportSettings>;
 }) {
   const { data, loading, error, range, setRange, interval, setInterval, fetchedAt } = useStockHistory({
     stockId,
@@ -29,6 +36,11 @@ export function StockTrendSection({
     currentPrice,
     dailySnapshots,
   });
+
+  const timingLines = useMemo(
+    () => buildChartTimingLines(summary, reportSettings),
+    [summary, reportSettings]
+  );
 
   return (
     <StockTrendChart
@@ -44,6 +56,7 @@ export function StockTrendSection({
       holdingQty={holdingQty}
       trades={trades}
       fetchedAt={fetchedAt}
+      timingLines={timingLines}
     />
   );
 }

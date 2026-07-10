@@ -10,6 +10,7 @@ import type {
 } from "./types";
 import { sellTaxTotal, calcSellFees, calcSellTaxes } from "./tradeFees";
 import { resolveReportSettings, timingLineFromAvg, timingLineFromSell, sellFeeRateFromSettings, sellTaxRateFromSettings } from "./reportSettings";
+import { resolveAccountSlice, syncAccountsFromFlat } from "./multiAccount";
 import type { ReportSettings } from "./reportSettings";
 
 export function tradeAmount(t: Trade): number {
@@ -571,10 +572,15 @@ const LEGACY_STOCK_CODES: Record<string, string> = {
   ss: "005930",
 };
 
-export function migrateAppData(
-  raw: Partial<Omit<AppData, "trades">> & { trades?: TradeDraft[] }
-): AppData {
-  const trades = (raw.trades ?? []).map((t, i) => {
+/** migrateAppData 입력 — trades createdAt 생략 가능 */
+type MigrateRaw = Partial<Omit<AppData, "trades">> & {
+  trades?: TradeDraft[];
+  accounts?: import("./types").AccountPortfolio[];
+};
+
+export function migrateAppData(raw: MigrateRaw): AppData {
+  const slice = resolveAccountSlice(raw as Parameters<typeof resolveAccountSlice>[0]);
+  const trades = (slice.trades ?? []).map((t, i) => {
     const tax = t.tax ?? 0;
     const transactionTax = t.transactionTax;
     const ruralTax = t.ruralTax;
@@ -587,23 +593,26 @@ export function migrateAppData(
       createdAt: t.createdAt ?? inferCreatedAt(t as Trade, i),
     };
   });
-  const stocks = (raw.stocks ?? []).map((s) => ({
+  const stocks = (slice.stocks ?? []).map((s) => ({
     ...s,
     code: s.code?.trim() || LEGACY_STOCK_CODES[s.id],
   }));
-  return {
+  const migrated: AppData = {
     stocks,
     trades,
-    currentPrices: raw.currentPrices ?? {},
-    initialCapitalTradeIds: raw.initialCapitalTradeIds ?? [],
-    reportSettings: resolveReportSettings(raw.reportSettings),
-    dailySnapshots: raw.dailySnapshots ?? [],
-    peakPrices: raw.peakPrices ?? {},
+    currentPrices: slice.currentPrices ?? {},
+    initialCapitalTradeIds: slice.initialCapitalTradeIds ?? [],
+    reportSettings: resolveReportSettings(slice.reportSettings ?? raw.reportSettings),
+    dailySnapshots: slice.dailySnapshots ?? raw.dailySnapshots ?? [],
+    peakPrices: slice.peakPrices ?? raw.peakPrices ?? {},
     stockQuotes: raw.stockQuotes ?? {},
     kospiBenchmark: raw.kospiBenchmark,
     kosdaqBenchmark: raw.kosdaqBenchmark,
-    stockEvents: raw.stockEvents ?? [],
+    stockEvents: slice.stockEvents ?? raw.stockEvents ?? [],
     watchlist: raw.watchlist ?? [],
     updatedAt: raw.updatedAt,
+    activeAccountId: slice.activeAccountId ?? raw.activeAccountId,
+    accounts: raw.accounts,
   };
+  return syncAccountsFromFlat(migrated, raw as Parameters<typeof syncAccountsFromFlat>[1]);
 }

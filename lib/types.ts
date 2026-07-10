@@ -78,6 +78,19 @@ export interface WatchlistItem {
   addedAt: string;
 }
 
+/** 다계좌 — 계좌별 매매·종목 slice (Phase D) */
+export interface AccountPortfolio {
+  id: string;
+  name: string;
+  stocks: Stock[];
+  trades: Trade[];
+  currentPrices: Record<string, number>;
+  initialCapitalTradeIds: string[];
+  stockEvents?: StockEvent[];
+  peakPrices?: Record<string, StockPeak>;
+  dailySnapshots?: DailySnapshot[];
+}
+
 export interface AppData {
   stocks: Stock[];
   trades: Trade[];
@@ -102,6 +115,9 @@ export interface AppData {
   stockEvents?: StockEvent[];
   /** 포트폴리오 개정 시각 — 로컬↔클라우드 병합용 (ISO) */
   updatedAt?: string;
+  /** 다계좌 (선택) — 없으면 단일 포트폴리오 */
+  accounts?: AccountPortfolio[];
+  activeAccountId?: string;
 }
 
 export interface StockSummary {

@@ -19,6 +19,7 @@ import { tabLabel } from "@/lib/appTabs";
 import { BtnCreate, RefreshButtonGroup, PanelBackButton, panelShell, AreaCardHeader, TabSectionHeader, pickCard } from "./ui/PanelCard";
 import { StockPanelTitleRow, StockTitleTabs, type StockTabBadge } from "./ui/StockTitleTabBar";
 import { StockTrendSection } from "./StockTrendSection";
+import { StockFundamentalsPanel } from "./StockFundamentalsPanel";
 
 export function TradingVerdictView({
   stocks,
@@ -249,8 +250,12 @@ export function TradingVerdictView({
             avgCost={summary?.holdingAvgPriceWithCost}
             holdingQty={summary?.holdingQty}
             trades={stockTrades}
+            summary={summary}
+            reportSettings={reportSettings}
           />
         )}
+
+        {displayName && <StockFundamentalsPanel quote={quote} stockName={displayName} />}
 
         {showDetail && (
           <TimingRadar

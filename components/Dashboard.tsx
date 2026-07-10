@@ -742,6 +742,7 @@ export function Dashboard({
             signOut={signOut}
             onResetDemo={resetDemo}
             onRestoreBackup={persist}
+            onPersist={persist}
             cloudEnabled={cloudEnabled}
             standalone={standalone}
             syncing={syncing}
