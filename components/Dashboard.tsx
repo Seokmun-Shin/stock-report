@@ -124,7 +124,7 @@ export function Dashboard({
   useEffect(() => {
     if (!isAutoRefresh(preferences.refreshMode)) return;
 
-    let briefingTimer: ReturnType<typeof setTimeout> | undefined;
+    let briefingTimer: number | undefined;
 
     if (activeTab === "verdict" || activeTab === "sources") {
       void kis.refresh();
@@ -136,7 +136,7 @@ export function Dashboard({
     }
 
     return () => {
-      if (briefingTimer) window.clearTimeout(briefingTimer);
+      if (briefingTimer != null) window.clearTimeout(briefingTimer);
     };
   }, [activeTab, preferences.refreshMode, kis.refresh, briefing.refresh, discovery.refresh]);
 

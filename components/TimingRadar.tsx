@@ -6,7 +6,7 @@ import { STOCK_SETTLEMENT_HINTS, TIMING_HINTS } from "@/lib/metricHints";
 import { resolveReportSettings, type ReportSettings } from "@/lib/reportSettings";
 import { FormattedNumberInput } from "./FormattedNumberInput";
 import { HintTooltip, StatCard } from "./StatCard";
-import { AreaSectionTitle, pickCard, AreaCardHeader, RefreshButton } from "./ui/PanelCard";
+import { AreaSectionTitle, pickCard, AreaCardHeader, RefreshButton, UI } from "./ui/PanelCard";
 import { formatKisUpdatedTime, isKrxMarketOpen } from "@/hooks/useKisPrices";
 import type { RefreshMode } from "@/lib/appPreferences";
 import { isAutoRefresh } from "@/lib/appPreferences";

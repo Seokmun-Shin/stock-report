@@ -15,6 +15,7 @@ import { TimingRadar } from "./TimingRadar";
 import { DataReadinessBanner } from "./DataReadinessPanel";
 import type { ReadinessItem } from "@/lib/dataReadiness";
 import type { RefreshMode } from "@/lib/appPreferences";
+import { tabLabel } from "@/lib/appTabs";
 import { BtnCreate, RefreshButtonGroup, PanelBackButton, panelShell, AreaCardHeader, TabSectionHeader, pickCard } from "./ui/PanelCard";
 import { StockPanelTitleRow, StockTitleTabs, type StockTabBadge } from "./ui/StockTitleTabBar";
 import { StockTrendSection } from "./StockTrendSection";
