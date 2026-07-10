@@ -8,8 +8,8 @@ export const PRODUCT_TAGLINE = "내 주식 거래 관리";
 /** 기록은 수단, 타이밍이 목적 */
 export const PRODUCT_PURPOSE = "기록·관리 → 매매 타이밍";
 
-/** 하단 탭 — 타이밍 → 발굴 → 기록 순 */
-const LEDGER_TAB_ORDER: AppTab[] = ["verdict", "discover", "records", "report", "sources", "settings"];
+/** 하단 탭 — 판단 → 기록 → 손익 → 발굴 → 원천 → 설정 */
+const LEDGER_TAB_ORDER: AppTab[] = ["verdict", "records", "report", "discover", "sources", "settings"];
 
 const LEDGER_HEADERS: Record<AppTab, { title: string; desc: string }> = {
   verdict: {

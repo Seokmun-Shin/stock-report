@@ -4,10 +4,10 @@ export type AppTab = "verdict" | "discover" | "sources" | "records" | "report" |
 
 export const APP_TABS: { id: AppTab; label: string }[] = [
   { id: "verdict", label: "살까?팔까?" },
-  { id: "discover", label: "강추!!" },
   { id: "records", label: "기록해!" },
-  { id: "sources", label: "왜?추천?" },
   { id: "report", label: "얼마벌어?" },
+  { id: "discover", label: "강추!!" },
+  { id: "sources", label: "왜?추천?" },
   { id: "settings", label: "설정!" },
 ];
 
