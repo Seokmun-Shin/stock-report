@@ -14,7 +14,7 @@ import { VerdictDashboard } from "./VerdictDashboard";
 import { TimingRadar } from "./TimingRadar";
 import { DataReadinessBanner } from "./DataReadinessPanel";
 import type { ReadinessItem } from "@/lib/dataReadiness";
-import type { RefreshMode } from "@/lib/appPreferences";
+import type { RefreshMode, RefreshIntervalMinutes } from "@/lib/appPreferences";
 import { tabLabel } from "@/lib/appTabs";
 import { BtnCreate, RefreshButtonGroup, PanelBackButton, panelShell, AreaCardHeader, TabSectionHeader, pickCard } from "./ui/PanelCard";
 import { StockPanelTitleRow, StockTitleTabs, type StockTabBadge } from "./ui/StockTitleTabBar";
@@ -43,6 +43,7 @@ export function TradingVerdictView({
   kisConfigured,
   kisLastUpdated,
   refreshMode,
+  refreshIntervalMinutes,
   onKisRefresh,
   onBriefingRefresh,
   onVerdictRefresh,
@@ -82,6 +83,7 @@ export function TradingVerdictView({
   kisConfigured: boolean | null;
   kisLastUpdated: Date | null;
   refreshMode: RefreshMode;
+  refreshIntervalMinutes: RefreshIntervalMinutes;
   onKisRefresh: () => void;
   onBriefingRefresh: () => void;
   onVerdictRefresh: () => void;
@@ -268,6 +270,7 @@ export function TradingVerdictView({
             kisError={kisError}
             kisLastUpdated={kisLastUpdated}
             refreshMode={refreshMode}
+            refreshIntervalMinutes={refreshIntervalMinutes}
             onKisRefresh={onKisRefresh}
             kisStockCode={activeStockCode}
             stockQuote={quote}

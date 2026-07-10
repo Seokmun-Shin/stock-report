@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { REFRESH_ACTIONS } from "@/lib/refreshActions";
+import { refreshIntervalLabel, type RefreshIntervalMinutes } from "@/lib/appPreferences";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 import { AreaCardHeader, PanelCard, segmentTab, segmentTabActive } from "@/components/ui/PanelCard";
 
@@ -21,8 +22,10 @@ function ModeButton({
   );
 }
 
+const INTERVAL_OPTIONS: RefreshIntervalMinutes[] = [5, 15, 30];
+
 export function AppPreferencesPanel() {
-  const { preferences, setRefreshMode, setTheme } = useAppPreferences();
+  const { preferences, setRefreshMode, setRefreshIntervalMinutes, setTheme } = useAppPreferences();
 
   return (
     <PanelCard>
@@ -36,17 +39,30 @@ export function AppPreferencesPanel() {
             {REFRESH_ACTIONS.discovery.label}」 공통
           </p>
           <div className="ui-mode-toggle-row mt-2">
-            <ModeButton active={preferences.refreshMode === "auto"} onClick={() => setRefreshMode("auto")}>
-              자동
+            <ModeButton active={preferences.refreshMode === "periodic"} onClick={() => setRefreshMode("periodic")}>
+              주기적
             </ModeButton>
             <ModeButton active={preferences.refreshMode === "manual"} onClick={() => setRefreshMode("manual")}>
               수동
             </ModeButton>
           </div>
+          {preferences.refreshMode === "periodic" && (
+            <div className="ui-mode-toggle-row mt-2">
+              {INTERVAL_OPTIONS.map((m) => (
+                <ModeButton
+                  key={m}
+                  active={preferences.refreshIntervalMinutes === m}
+                  onClick={() => setRefreshIntervalMinutes(m)}
+                >
+                  {refreshIntervalLabel(m)}
+                </ModeButton>
+              ))}
+            </div>
+          )}
           <p className="ui-fg-muted mt-2 text-xs leading-relaxed">
-            {preferences.refreshMode === "auto"
-              ? "탭에 들어가면 해당 화면 데이터를 자동으로 갱신합니다."
-              : "버튼을 눌러야 갱신됩니다. 탭 이동만으로는 갱신하지 않습니다."}
+            {preferences.refreshMode === "periodic"
+              ? `해당 탭을 보고 있는 동안 ${refreshIntervalLabel(preferences.refreshIntervalMinutes)}마다 갱신합니다. 탭을 옮길 때마다 바로 갱신하지 않습니다.`
+              : "버튼을 눌러야 갱신됩니다."}
           </p>
         </div>
 

@@ -41,7 +41,7 @@ import { TimingSourcesTab } from "@/components/tabs/TimingSourcesTab";
 import { mergeCsvTrades } from "@/components/CsvImportPanel";
 import { assessDataReadiness } from "@/lib/dataReadiness";
 import { mergeCorporateActionsFromBriefing } from "@/lib/corporateActionsFromDart";
-import { isAutoRefresh } from "@/lib/appPreferences";
+import { isPeriodicRefresh } from "@/lib/appPreferences";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 export function Dashboard({
@@ -120,25 +120,50 @@ export function Dashboard({
   );
   const discovery = useStockDiscovery(portfolioCodes, briefing.context);
 
-  /** 자동 갱신 — 탭 진입 시 해당 데이터만 (설정 → 화면·갱신) */
+  const kisRefreshRef = useRef(kis.refresh);
+  const briefingRefreshRef = useRef(briefing.refresh);
+  const discoveryRefreshRef = useRef(discovery.refresh);
+  kisRefreshRef.current = kis.refresh;
+  briefingRefreshRef.current = briefing.refresh;
+  discoveryRefreshRef.current = discovery.refresh;
+
+  const lastPeriodicRefreshRef = useRef<Partial<Record<"verdict" | "discover", number>>>({});
+
+  /** 주기적 갱신 — 탭 활성 시 N분마다 (탭 전환마다 즉시 갱신하지 않음) */
   useEffect(() => {
-    if (!isAutoRefresh(preferences.refreshMode)) return;
+    if (!isPeriodicRefresh(preferences.refreshMode)) return;
 
-    let briefingTimer: number | undefined;
+    const intervalMs = preferences.refreshIntervalMinutes * 60_000;
 
-    if (activeTab === "verdict" || activeTab === "sources") {
-      void kis.refresh();
-      briefingTimer = window.setTimeout(() => void briefing.refresh(), 1_500);
-    } else if (activeTab === "discover") {
-      void discovery.refresh();
-    } else if (activeTab === "settings") {
-      briefingTimer = window.setTimeout(() => void briefing.refresh(), 500);
+    function runIfDue(key: "verdict" | "discover", run: () => void) {
+      const last = lastPeriodicRefreshRef.current[key] ?? 0;
+      if (Date.now() - last < intervalMs) return;
+      lastPeriodicRefreshRef.current[key] = Date.now();
+      run();
     }
 
-    return () => {
-      if (briefingTimer != null) window.clearTimeout(briefingTimer);
-    };
-  }, [activeTab, preferences.refreshMode, kis.refresh, briefing.refresh, discovery.refresh]);
+    function runVerdict() {
+      runIfDue("verdict", () => {
+        void kisRefreshRef.current();
+        window.setTimeout(() => void briefingRefreshRef.current(), 1_500);
+      });
+    }
+
+    function runDiscover() {
+      runIfDue("discover", () => void discoveryRefreshRef.current());
+    }
+
+    if (activeTab === "verdict" || activeTab === "sources") {
+      runVerdict();
+      const id = window.setInterval(runVerdict, intervalMs);
+      return () => clearInterval(id);
+    }
+    if (activeTab === "discover") {
+      runDiscover();
+      const id = window.setInterval(runDiscover, intervalMs);
+      return () => clearInterval(id);
+    }
+  }, [activeTab, preferences.refreshMode, preferences.refreshIntervalMinutes]);
 
   const dartEventsSyncRef = useRef("");
   useEffect(() => {
@@ -627,6 +652,7 @@ export function Dashboard({
             onKisRefresh={kis.refresh}
             onBriefingRefresh={briefing.refresh}
             refreshMode={preferences.refreshMode}
+            refreshIntervalMinutes={preferences.refreshIntervalMinutes}
             onVerdictRefresh={() => void refreshVerdict()}
             verdictRefreshing={verdictRefreshing}
             verdictLastUpdated={verdictLastUpdated}

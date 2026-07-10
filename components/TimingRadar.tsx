@@ -8,21 +8,24 @@ import { FormattedNumberInput } from "./FormattedNumberInput";
 import { HintTooltip, StatCard } from "./StatCard";
 import { AreaSectionTitle, pickCard, AreaCardHeader, RefreshButton, UI } from "./ui/PanelCard";
 import { formatKisUpdatedTime, isKrxMarketOpen } from "@/hooks/useKisPrices";
-import type { RefreshMode } from "@/lib/appPreferences";
-import { isAutoRefresh } from "@/lib/appPreferences";
+import type { RefreshMode, RefreshIntervalMinutes } from "@/lib/appPreferences";
+import { isPeriodicRefresh, refreshIntervalLabel } from "@/lib/appPreferences";
 import { tabLabel } from "@/lib/appTabs";
 
 function buildKisStatusText(
   stockCode: string | undefined,
   lastUpdated: Date | null,
-  refreshMode: RefreshMode
+  refreshMode: RefreshMode,
+  refreshIntervalMinutes: RefreshIntervalMinutes
 ) {
   const marketOpen = isKrxMarketOpen();
   return [
     "KIS",
     stockCode ?? "코드 없음",
     lastUpdated ? `${formatKisUpdatedTime(lastUpdated)} 갱신` : null,
-    isAutoRefresh(refreshMode) ? (marketOpen ? "탭 자동" : "탭 자동·장 마감") : "수동",
+    isPeriodicRefresh(refreshMode)
+      ? `${refreshIntervalLabel(refreshIntervalMinutes)} 주기${marketOpen ? "" : "·장 마감"}`
+      : "수동",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -215,6 +218,7 @@ export function TimingRadar({
   kisError,
   kisLastUpdated,
   refreshMode,
+  refreshIntervalMinutes = 15,
   onKisRefresh,
   kisStockCode,
   stockQuote,
@@ -231,6 +235,7 @@ export function TimingRadar({
   kisError?: string | null;
   kisLastUpdated?: Date | null;
   refreshMode?: RefreshMode;
+  refreshIntervalMinutes?: RefreshIntervalMinutes;
   onKisRefresh?: () => void;
   kisStockCode?: string;
   stockQuote?: StockQuote;
@@ -274,14 +279,19 @@ export function TimingRadar({
       ) : (
         <div className="space-y-1">
           <p className="text-right text-xs leading-snug tabular-nums text-zinc-300">
-            {buildKisStatusText(kisStockCode, kisLastUpdated ?? null, refreshMode ?? "auto")}
+            {buildKisStatusText(
+              kisStockCode,
+              kisLastUpdated ?? null,
+              refreshMode ?? "periodic",
+              refreshIntervalMinutes
+            )}
           </p>
           {kisError && <p className="text-right text-xs leading-snug text-amber-200">{kisError}</p>}
           {!kisStockCode && (
             <p className="text-right text-xs text-amber-200">「이름 수정」에서 종목코드를 입력하세요.</p>
           )}
           <p className="text-right text-[10px] text-zinc-500">
-            자동/수동 → 「{tabLabel("settings")}」 화면·갱신
+            자동/수동·주기 → 「{tabLabel("settings")}」 화면·갱신
           </p>
         </div>
       )

@@ -1,21 +1,29 @@
 /** 앱 화면·갱신 설정 — localStorage (기록 데이터와 분리) */
 
-export type RefreshMode = "auto" | "manual";
+export type RefreshMode = "manual" | "periodic";
+export type RefreshIntervalMinutes = 5 | 15 | 30;
 export type UiTheme = "dark" | "light";
 
 export interface AppPreferences {
-  /** auto: 해당 탭 진입 시 갱신 · manual: 버튼만 */
+  /** manual: 버튼만 · periodic: N분마다 (탭 활성 시) */
   refreshMode: RefreshMode;
+  refreshIntervalMinutes: RefreshIntervalMinutes;
   theme: UiTheme;
 }
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
-  refreshMode: "auto",
+  refreshMode: "periodic",
+  refreshIntervalMinutes: 15,
   theme: "dark",
 };
 
 const STORAGE_KEY = "stock-report-app-preferences";
 const LEGACY_KIS_AUTO_KEY = "stock-report-kis-auto";
+
+function parseInterval(v: unknown): RefreshIntervalMinutes {
+  if (v === 5 || v === 30) return v;
+  return 15;
+}
 
 export function loadAppPreferences(): AppPreferences {
   if (typeof localStorage === "undefined") return DEFAULT_APP_PREFERENCES;
@@ -29,9 +37,17 @@ export function loadAppPreferences(): AppPreferences {
       }
       return DEFAULT_APP_PREFERENCES;
     }
-    const parsed = JSON.parse(raw) as Partial<AppPreferences>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const rawMode = typeof parsed.refreshMode === "string" ? parsed.refreshMode : undefined;
+    const mode: RefreshMode =
+      rawMode === "manual"
+        ? "manual"
+        : rawMode === "auto" || rawMode === "periodic" || rawMode == null
+          ? "periodic"
+          : DEFAULT_APP_PREFERENCES.refreshMode;
     return {
-      refreshMode: parsed.refreshMode === "manual" ? "manual" : "auto",
+      refreshMode: mode,
+      refreshIntervalMinutes: parseInterval(parsed.refreshIntervalMinutes),
       theme: parsed.theme === "light" ? "light" : "dark",
     };
   } catch {
@@ -50,6 +66,15 @@ export function applyUiTheme(theme: UiTheme): void {
   document.documentElement.dataset.theme = theme;
 }
 
+export function isPeriodicRefresh(mode: RefreshMode): boolean {
+  return mode === "periodic";
+}
+
+/** @deprecated isPeriodicRefresh 사용 */
 export function isAutoRefresh(mode: RefreshMode): boolean {
-  return mode === "auto";
+  return isPeriodicRefresh(mode);
+}
+
+export function refreshIntervalLabel(minutes: RefreshIntervalMinutes): string {
+  return `${minutes}분`;
 }

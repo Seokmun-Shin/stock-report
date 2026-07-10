@@ -16,12 +16,14 @@ import {
   saveAppPreferences,
   type AppPreferences,
   type RefreshMode,
+  type RefreshIntervalMinutes,
   type UiTheme,
 } from "@/lib/appPreferences";
 
 type AppPreferencesContextValue = {
   preferences: AppPreferences;
   setRefreshMode: (mode: RefreshMode) => void;
+  setRefreshIntervalMinutes: (minutes: RefreshIntervalMinutes) => void;
   setTheme: (theme: UiTheme) => void;
 };
 
@@ -44,6 +46,14 @@ export function AppPreferencesProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const setRefreshIntervalMinutes = useCallback((refreshIntervalMinutes: RefreshIntervalMinutes) => {
+    setPreferences((prev) => {
+      const next = { ...prev, refreshIntervalMinutes };
+      saveAppPreferences(next);
+      return next;
+    });
+  }, []);
+
   const setTheme = useCallback((theme: UiTheme) => {
     setPreferences((prev) => {
       const next = { ...prev, theme };
@@ -53,8 +63,8 @@ export function AppPreferencesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ preferences, setRefreshMode, setTheme }),
-    [preferences, setRefreshMode, setTheme]
+    () => ({ preferences, setRefreshMode, setRefreshIntervalMinutes, setTheme }),
+    [preferences, setRefreshMode, setRefreshIntervalMinutes, setTheme]
   );
 
   return <AppPreferencesContext.Provider value={value}>{children}</AppPreferencesContext.Provider>;
