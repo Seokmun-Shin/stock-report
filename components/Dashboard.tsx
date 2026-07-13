@@ -506,7 +506,14 @@ export function Dashboard({
   function deleteStock(stockId: string) {
     const stock = data.stocks.find((s) => s.id === stockId);
     if (!stock) return;
-    if (!confirm(`「${stock.name}」 종목과 매매·시세 기록을 모두 삭제할까요?\n(클라우드에도 바로 반영됩니다)`)) return;
+    if (
+      !confirm(
+        standalone
+          ? `「${stock.name}」 종목과 매매·시세 기록을 모두 삭제할까요?`
+          : `「${stock.name}」 종목과 매매·시세 기록을 모두 삭제할까요?\n(클라우드에도 바로 반영됩니다)`
+      )
+    )
+      return;
     const removedTradeIds = new Set(data.trades.filter((t) => t.stockId === stockId).map((t) => t.id));
     const nextStocks = data.stocks.filter((s) => s.id !== stockId);
     const { [stockId]: _p, ...restPrices } = data.currentPrices;

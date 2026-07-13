@@ -25,5 +25,5 @@ Thumbs.db
 .vscode/
 tsconfig.tsbuildinfo
 
-# vercel
-.vercel
+# build output / sale zip
+dist/

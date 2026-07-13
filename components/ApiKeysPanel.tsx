@@ -231,8 +231,9 @@ export function ApiKeysPanel({
       </div>
 
       <p className={`mt-3 text-[11px] leading-relaxed ${UI.micro}`}>
-        Supabase 동기화는 로그인 시 「동기화」 배지로 확인 · 종목코드 6자리는 종목 편집 · 매매 내역은 「
-        {tabLabel("records")}」 또는 CSV
+        {standalone
+          ? `키 저장 후 「${REFRESH_ACTIONS.kis.label}」「${REFRESH_ACTIONS.briefing.label}」로 반영 · 종목코드 6자리는 종목 편집 · 매매 내역은 「${tabLabel("records")}」 또는 CSV`
+          : `Supabase 동기화는 로그인 시 「동기화」 배지로 확인 · 종목코드 6자리는 종목 편집 · 매매 내역은 「${tabLabel("records")}」 또는 CSV`}
       </p>
     </PanelCard>
   );

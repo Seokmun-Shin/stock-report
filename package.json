@@ -11,7 +11,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "pack:sale": "powershell -ExecutionPolicy Bypass -File scripts/pack-sale-zip.ps1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",
