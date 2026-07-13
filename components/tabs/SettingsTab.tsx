@@ -9,7 +9,7 @@ import { buildMarketBrief, formatMarketBriefText } from "@/lib/briefing/marketBr
 import type { MarketBriefingContext } from "@/lib/briefing/types";
 import type { ReportSettings } from "@/lib/reportSettings";
 import type { ParsedTradeRow } from "@/lib/import/tradeCsv";
-import { PanelCard, AreaCardHeader, RefreshButton, BtnCancel, BtnCreate, BtnTextAction, BtnReset, TabIntroBanner, TabSectionHeader } from "@/components/ui/PanelCard";
+import { PanelCard, AreaCardHeader, BtnCancel, BtnCreate, BtnTextAction, BtnReset, TabIntroBanner, TabSectionHeader } from "@/components/ui/PanelCard";
 import { APP_VERSION } from "@/lib/appVersion";
 import { StrategySettingsForm } from "@/components/StrategySettingsForm";
 import { DataReadinessPanel } from "@/components/DataReadinessPanel";
@@ -116,12 +116,7 @@ export function SettingsTab({
       {standalone ? <DataBackupPanel data={data} onRestore={onRestoreBackup} /> : null}
 
       <PanelCard>
-        <TabSectionHeader
-          title="시장·뉴스 (보조)"
-          actions={
-            <RefreshButton kind="briefing" loading={briefingLoading} onClick={onBriefingRefresh} disabled={briefingLoading} />
-          }
-        />
+        <TabSectionHeader title="시장·뉴스 (보조)" />
         {briefingError && <p className="mt-2 text-xs text-amber-200">{briefingError}</p>}
 
         {marketContext?.globalIndices.length ? (
@@ -139,7 +134,7 @@ export function SettingsTab({
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-sm text-zinc-300">「뉴스·거시」로 시장·뉴스 정보를 불러오세요.</p>
+          <p className="mt-3 text-sm text-zinc-300">상단 헤더 「새로고침」으로 시장·뉴스를 불러오세요.</p>
         )}
 
         {marketContext?.marketNews.length ? (

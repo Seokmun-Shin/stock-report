@@ -15,7 +15,6 @@ import { tabLabel } from "@/lib/appTabs";
 import {
   BtnCreate,
   BtnApply,
-  RefreshButtonGroup,
   TabSectionHeader,
   boxGrid,
   boxList,
@@ -331,11 +330,7 @@ export function VerdictDashboard({
   portfolioAlerts,
   kospiLabel,
   onOpenDetail,
-  onKisRefresh,
-  onBriefingRefresh,
   onAddStock,
-  kisLoading,
-  briefingLoading,
 }: {
   portfolio: PortfolioSummary;
   allVerdicts: StockTradingVerdict[];
@@ -344,11 +339,7 @@ export function VerdictDashboard({
   portfolioAlerts: AlertItem[];
   kospiLabel?: string;
   onOpenDetail: (stockId: string) => void;
-  onKisRefresh: () => void;
-  onBriefingRefresh: () => void;
   onAddStock: () => void;
-  kisLoading: boolean;
-  briefingLoading: boolean;
 }) {
   const pnlTone = portfolio.totalPnl >= 0 ? gainBright : lossBright;
   const alertsByStock = useMemo(() => groupAlertsByStock(portfolioAlerts), [portfolioAlerts]);
@@ -365,17 +356,7 @@ export function VerdictDashboard({
         <TabSectionHeader
           eyebrow={tabLabel("verdict")}
           title="오늘 한눈에"
-          actions={
-            <>
-              <RefreshButtonGroup
-                onKisRefresh={onKisRefresh}
-                onBriefingRefresh={onBriefingRefresh}
-                kisLoading={kisLoading}
-                briefingLoading={briefingLoading}
-              />
-              <BtnCreate onClick={onAddStock}>종목 추가</BtnCreate>
-            </>
-          }
+          actions={<BtnCreate onClick={onAddStock}>종목 추가</BtnCreate>}
         />
 
       <div className={`${boxGrid} gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4`}>

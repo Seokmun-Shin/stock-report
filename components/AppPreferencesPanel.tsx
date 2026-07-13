@@ -36,7 +36,7 @@ export function AppPreferencesPanel() {
           <p className="ui-fg-secondary text-xs font-semibold">새로고침</p>
           <p className="ui-fg-muted mt-1 text-xs leading-relaxed">
             「{REFRESH_ACTIONS.kis.label}」「{REFRESH_ACTIONS.briefing.label}」「
-            {REFRESH_ACTIONS.discovery.label}」 공통
+            {REFRESH_ACTIONS.discovery.label}」 · 상단 「전체 새로고침」
           </p>
           <div className="ui-mode-toggle-row mt-2">
             <ModeButton active={preferences.refreshMode === "periodic"} onClick={() => setRefreshMode("periodic")}>
@@ -61,8 +61,8 @@ export function AppPreferencesPanel() {
           )}
           <p className="ui-fg-muted mt-2 text-xs leading-relaxed">
             {preferences.refreshMode === "periodic"
-              ? `해당 탭을 보고 있는 동안 ${refreshIntervalLabel(preferences.refreshIntervalMinutes)}마다 갱신합니다. 탭을 옮길 때마다 바로 갱신하지 않습니다.`
-              : "버튼을 눌러야 갱신됩니다."}
+              ? `해당 탭을 보는 동안 ${refreshIntervalLabel(preferences.refreshIntervalMinutes)}마다 갱신합니다. 남은 시간은 상단 타이머에 표시됩니다.`
+              : "상단 새로고침 버튼을 눌러야 갱신됩니다."}
           </p>
         </div>
 

@@ -1,5 +1,6 @@
 /**
- * 새로고침 버튼 — 갱신 대상별 라벨 (전체 일괄 새로고침 없음, 각 버튼이 담당 데이터를 명시)
+ * 새로고침 버튼 — 갱신 대상별 라벨
+ * 헤더 「전체 새로고침」은 탭별로 아래 항목을 묶어 실행합니다.
  */
 
 export const REFRESH_ACTIONS = {
@@ -26,6 +27,12 @@ export const REFRESH_ACTIONS = {
     label: "연동 상태",
     loading: "확인 중…",
     hint: "API 키 저장·연결 상태",
+  },
+  /** 헤더 — 탭별 일괄 갱신 (verdict/sources: kis+briefing, discover: discovery 등) */
+  all: {
+    label: "전체 새로고침",
+    loading: "갱신 중…",
+    hint: "이 탭에 필요한 데이터 일괄 갱신",
   },
 } as const;
 

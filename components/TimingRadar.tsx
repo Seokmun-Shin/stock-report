@@ -291,7 +291,7 @@ export function TimingRadar({
             <p className="text-right text-xs text-amber-200">「이름 수정」에서 종목코드를 입력하세요.</p>
           )}
           <p className="text-right text-[10px] text-zinc-500">
-            자동/수동·주기 → 「{tabLabel("settings")}」 화면·갱신
+            자동/수동·주기 → 「{tabLabel("settings")}」 화면·갱신 · 남은 시간은 상단 타이머
           </p>
         </div>
       )

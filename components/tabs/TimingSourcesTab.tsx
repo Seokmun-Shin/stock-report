@@ -10,7 +10,6 @@ import type {
 import {
   TabIntroBanner,
   PanelCard,
-  RefreshButtonGroup,
   TabSectionHeader,
   panelShell,
   pickCard,
@@ -228,19 +227,11 @@ function GroupedSections({
 
 export function TimingSourcesTab({
   report,
-  onKisRefresh,
-  onBriefingRefresh,
-  kisLoading,
-  briefingLoading,
   stocks,
   activeId,
   onSelectStock,
 }: {
   report: TimingSourceReport | null;
-  onKisRefresh: () => void;
-  onBriefingRefresh: () => void;
-  kisLoading: boolean;
-  briefingLoading: boolean;
   stocks: { id: string; name: string; code?: string | null }[];
   activeId: string;
   onSelectStock: (id: string) => void;
@@ -281,14 +272,6 @@ export function TimingSourcesTab({
         eyebrow={tabLabel("sources")}
         title="원천 데이터"
         subtitle={fetchedLabel ? `브리핑 ${fetchedLabel}` : undefined}
-        actions={
-          <RefreshButtonGroup
-            onKisRefresh={onKisRefresh}
-            onBriefingRefresh={onBriefingRefresh}
-            kisLoading={kisLoading}
-            briefingLoading={briefingLoading}
-          />
-        }
       />
 
       <div className={`min-w-0 ${panelShell}`}>

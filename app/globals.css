@@ -210,6 +210,9 @@ table {
   }
 
   .ui-app-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
     border-bottom: 1px solid var(--ui-header-border);
     background-color: var(--ui-page-bg);
   }

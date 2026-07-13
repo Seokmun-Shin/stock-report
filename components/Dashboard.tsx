@@ -15,7 +15,7 @@ import {
 } from "@/lib/calc";
 import { fmtPct, today } from "@/lib/calc";
 import { UnitNotice } from "@/components/StatCard";
-import { appLayoutMax, tabPageCanvas, appShell, appHeader, appChrome, metaPill } from "@/components/ui/PanelCard";
+import { appLayoutMax, tabPageCanvas, appShell, appHeader, appChrome } from "@/components/ui/PanelCard";
 import { AppHeaderBlock } from "@/components/AppHeader";
 import { getTabHeader } from "@/lib/productPositioning";
 import { AppFlowBanner } from "@/components/AppFlowBanner";
@@ -42,7 +42,10 @@ import { mergeCsvTrades } from "@/components/CsvImportPanel";
 import { assessDataReadiness } from "@/lib/dataReadiness";
 import { mergeCorporateActionsFromBriefing } from "@/lib/corporateActionsFromDart";
 import { isPeriodicRefresh } from "@/lib/appPreferences";
+import { nextPeriodicDelay, GLOBAL_PERIODIC_KEY, type PeriodicRefreshKey } from "@/lib/periodicRefresh";
+import { resolveTabRefreshControls } from "@/lib/headerRefresh";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
+import { RefreshControlCluster } from "@/components/HeaderRefreshControl";
 
 export function Dashboard({
   data,
@@ -127,43 +130,74 @@ export function Dashboard({
   briefingRefreshRef.current = briefing.refresh;
   discoveryRefreshRef.current = discovery.refresh;
 
-  const lastPeriodicRefreshRef = useRef<Partial<Record<"verdict" | "discover", number>>>({});
+  const lastPeriodicRefreshRef = useRef<Partial<Record<PeriodicRefreshKey, number>>>({});
+  const [lastRefreshAt, setLastRefreshAt] = useState<Partial<Record<PeriodicRefreshKey, number>>>({});
 
-  /** 주기적 갱신 — 탭 활성 시 N분마다 (탭 전환마다 즉시 갱신하지 않음) */
+  function markPeriodicRefresh() {
+    const now = Date.now();
+    lastPeriodicRefreshRef.current[GLOBAL_PERIODIC_KEY] = now;
+    setLastRefreshAt({ [GLOBAL_PERIODIC_KEY]: now });
+  }
+
+  /** 주기적 갱신 — 모든 탭에서 타이머·설정 주기 적용 */
   useEffect(() => {
     if (!isPeriodicRefresh(preferences.refreshMode)) return;
 
     const intervalMs = preferences.refreshIntervalMinutes * 60_000;
+    const key = GLOBAL_PERIODIC_KEY;
 
-    function runIfDue(key: "verdict" | "discover", run: () => void) {
-      const last = lastPeriodicRefreshRef.current[key] ?? 0;
-      if (Date.now() - last < intervalMs) return;
-      lastPeriodicRefreshRef.current[key] = Date.now();
-      run();
-    }
-
-    function runVerdict() {
-      runIfDue("verdict", () => {
-        void kisRefreshRef.current();
-        window.setTimeout(() => void briefingRefreshRef.current(), 1_500);
-      });
+    function runRefresh() {
+      markPeriodicRefresh();
+      void kisRefreshRef.current();
+      window.setTimeout(() => void briefingRefreshRef.current(), 1_500);
+      window.setTimeout(() => void discoveryRefreshRef.current(), 3_000);
     }
 
-    function runDiscover() {
-      runIfDue("discover", () => void discoveryRefreshRef.current());
+    let timeoutId = 0;
+    let intervalId = 0;
+
+    function schedule() {
+      const delay = nextPeriodicDelay(lastPeriodicRefreshRef.current[key], intervalMs);
+      timeoutId = window.setTimeout(() => {
+        runRefresh();
+        intervalId = window.setInterval(runRefresh, intervalMs);
+      }, delay);
     }
 
-    if (activeTab === "verdict" || activeTab === "sources") {
-      runVerdict();
-      const id = window.setInterval(runVerdict, intervalMs);
-      return () => clearInterval(id);
-    }
-    if (activeTab === "discover") {
-      runDiscover();
-      const id = window.setInterval(runDiscover, intervalMs);
-      return () => clearInterval(id);
-    }
+    schedule();
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
+    };
   }, [activeTab, preferences.refreshMode, preferences.refreshIntervalMinutes]);
+
+  const refreshAll = useCallback(async () => {
+    markPeriodicRefresh();
+    await kis.refresh();
+    await briefing.refresh();
+    await discovery.refresh();
+  }, [kis.refresh, briefing.refresh, discovery.refresh]);
+
+  const refreshVerdict = useCallback(async () => {
+    markPeriodicRefresh();
+    await kis.refresh();
+    await briefing.refresh();
+  }, [kis.refresh, briefing.refresh]);
+
+  const refreshKisManual = useCallback(async () => {
+    markPeriodicRefresh();
+    await kis.refresh();
+  }, [kis.refresh]);
+
+  const refreshBriefingManual = useCallback(async () => {
+    markPeriodicRefresh();
+    await briefing.refresh();
+  }, [briefing.refresh]);
+
+  const refreshDiscoveryManual = useCallback(async () => {
+    markPeriodicRefresh();
+    await discovery.refresh();
+  }, [discovery.refresh]);
 
   const dartEventsSyncRef = useRef("");
   useEffect(() => {
@@ -325,11 +359,6 @@ export function Dashboard({
     if (times.length === 0) return null;
     return new Date(Math.max(...times.map((d) => d.getTime())));
   }, [kis.lastUpdated, briefing.lastFetched]);
-
-  const refreshVerdict = useCallback(async () => {
-    await kis.refresh();
-    await briefing.refresh();
-  }, [kis.refresh, briefing.refresh]);
 
   function selectStock(id: string) {
     setActiveId(id);
@@ -602,21 +631,35 @@ export function Dashboard({
     [data, kis.configured, kis.codedCount, briefing.context, briefing.loading]
   );
 
+  const tabRefreshControls = useMemo(
+    () =>
+      resolveTabRefreshControls({
+        refreshAll: () => void refreshAll(),
+        kisLoading: kis.loading,
+        briefingLoading: briefing.loading,
+        discoveryLoading: discovery.loading,
+      }),
+    [refreshAll, kis.loading, briefing.loading, discovery.loading]
+  );
+
+  const globalLastRefreshMs = lastRefreshAt[GLOBAL_PERIODIC_KEY];
+
+  const refreshCluster = (
+    <RefreshControlCluster
+      controls={tabRefreshControls}
+      refreshMode={preferences.refreshMode}
+      refreshIntervalMinutes={preferences.refreshIntervalMinutes}
+      lastRefreshMs={globalLastRefreshMs}
+    />
+  );
+
   return (
     <div className={appShell}>
       <header className={appHeader}>
         <div className={`${appChrome} mx-auto ${appLayoutMax} px-3 py-3 sm:px-6`}>
           <AppHeaderBlock
             tab={activeTab}
-            meta={
-              !standalone && cloudEnabled && user ? (
-                <span className="rounded-full border border-gain/20 bg-red-500/12 px-2.5 py-0.5 text-[11px] font-semibold text-gain">
-                  {syncing ? "저장 중…" : "동기화"}
-                </span>
-              ) : standalone ? (
-                <span className={metaPill}>로컬 저장</span>
-              ) : undefined
-            }
+            meta={refreshCluster}
             desc={
               <>
                 {getTabHeader(activeTab, standalone).desc}
@@ -656,8 +699,8 @@ export function Dashboard({
             briefingError={briefing.error}
             kisConfigured={kis.configured}
             kisLastUpdated={kis.lastUpdated}
-            onKisRefresh={kis.refresh}
-            onBriefingRefresh={briefing.refresh}
+            onKisRefresh={() => void refreshKisManual()}
+            onBriefingRefresh={() => void refreshBriefingManual()}
             refreshMode={preferences.refreshMode}
             refreshIntervalMinutes={preferences.refreshIntervalMinutes}
             onVerdictRefresh={() => void refreshVerdict()}
@@ -683,7 +726,7 @@ export function Dashboard({
             loading={discovery.loading}
             error={discovery.error}
             lastFetched={discovery.lastFetched}
-            onRefresh={() => void discovery.refresh()}
+            onRefresh={() => void refreshDiscoveryManual()}
             onAddStock={addStockFromDiscovery}
             onAddWatchlist={addToWatchlist}
             watchlist={data.watchlist ?? []}
@@ -696,10 +739,6 @@ export function Dashboard({
         {activeTab === "sources" && (
           <TimingSourcesTab
             report={timingSourceReport}
-            onKisRefresh={() => void kis.refresh()}
-            onBriefingRefresh={() => void briefing.refresh()}
-            kisLoading={kis.loading}
-            briefingLoading={briefing.loading}
             stocks={data.stocks}
             activeId={activeId}
             onSelectStock={selectStock}
@@ -768,7 +807,7 @@ export function Dashboard({
             marketContext={briefing.context}
             briefingLoading={briefing.loading}
             briefingError={briefing.error}
-            onBriefingRefresh={briefing.refresh}
+            onBriefingRefresh={() => void refreshBriefingManual()}
             onSettingsChange={patchReportSettings}
             onImportCsv={importCsvRows}
             user={user}

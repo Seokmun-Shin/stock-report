@@ -13,7 +13,6 @@ import { fmt, fmtPct } from "@/lib/calc";
 import { tabLabel } from "@/lib/appTabs";
 import {
   BtnCreate,
-  RefreshButton,
   InsetCard,
   TabIntroBanner,
   TabSectionHeader,
@@ -240,7 +239,6 @@ export function DiscoveryTab({
             ? `갱신 ${lastFetched.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`
             : undefined
         }
-        actions={<RefreshButton kind="discovery" loading={loading} onClick={onRefresh} disabled={loading} />}
       />
 
       <section className={panelShell}>

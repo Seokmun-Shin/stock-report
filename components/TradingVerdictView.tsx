@@ -16,7 +16,7 @@ import { DataReadinessBanner } from "./DataReadinessPanel";
 import type { ReadinessItem } from "@/lib/dataReadiness";
 import type { RefreshMode, RefreshIntervalMinutes } from "@/lib/appPreferences";
 import { tabLabel } from "@/lib/appTabs";
-import { BtnCreate, RefreshButtonGroup, PanelBackButton, panelShell, AreaCardHeader, TabSectionHeader, pickCard } from "./ui/PanelCard";
+import { BtnCreate, PanelBackButton, panelShell, AreaCardHeader, TabSectionHeader, pickCard } from "./ui/PanelCard";
 import { StockPanelTitleRow, StockTitleTabs, type StockTabBadge } from "./ui/StockTitleTabBar";
 import { StockTrendSection } from "./StockTrendSection";
 import { StockFundamentalsPanel } from "./StockFundamentalsPanel";
@@ -135,11 +135,7 @@ export function TradingVerdictView({
           portfolioAlerts={portfolioAlerts}
           kospiLabel={kospiLabel}
           onOpenDetail={openDetail}
-          onKisRefresh={onKisRefresh}
-          onBriefingRefresh={onBriefingRefresh}
           onAddStock={onAddStock}
-          kisLoading={kisLoading}
-          briefingLoading={briefingLoading}
         />
       </>
     );
@@ -177,18 +173,7 @@ export function TradingVerdictView({
       </div>
 
       <div className="min-w-0 space-y-4 sm:space-y-5">
-        <TabSectionHeader
-          eyebrow={tabLabel("verdict")}
-          title={displayName ?? "종목 상세"}
-          actions={
-            <RefreshButtonGroup
-              onKisRefresh={onKisRefresh}
-              onBriefingRefresh={onBriefingRefresh}
-              kisLoading={kisLoading}
-              briefingLoading={briefingLoading}
-            />
-          }
-        />
+        <TabSectionHeader eyebrow={tabLabel("verdict")} title={displayName ?? "종목 상세"} />
 
         <section className="border-b border-white/10 pb-3">
           <div className="min-w-0">
